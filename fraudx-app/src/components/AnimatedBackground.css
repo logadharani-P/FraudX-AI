@@ -1,0 +1,14 @@
+.animated-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: var(--z-background);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+[data-theme="midnight"] .animated-background {
+  opacity: 0.4;
+}

@@ -1,0 +1,146 @@
+/* ================================================
+   FRAUDX AI — Page-Level & Shared Component Styles
+   ================================================ */
+
+/* ---- Page Container ---- */
+.page-container {
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-8);
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* ---- Filter Strip ---- */
+.filter-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-6);
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* ---- Glass Cards ---- */
+.glass-card {
+  background: var(--gradient-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-6);
+  transition: all var(--transition-base);
+}
+
+.glass-card--clickable {
+  cursor: pointer;
+}
+
+.glass-card--clickable:hover {
+  border-color: var(--brand-blue);
+  box-shadow: var(--shadow-md), var(--shadow-glow-blue);
+  transform: translateY(-2px);
+}
+
+/* ---- Card Grid ---- */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+.card-grid--2col {
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+}
+
+@media (max-width: 768px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+  .card-grid--2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Member Avatar ---- */
+.member-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-full);
+  background: var(--gradient-brand);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
+}
+
+.member-avatar--lg {
+  width: 52px;
+  height: 52px;
+  font-size: var(--font-size-lg);
+}
+
+.member-avatar--xl {
+  width: 72px;
+  height: 72px;
+  font-size: var(--font-size-2xl);
+}
+
+/* ---- Treatment List ---- */
+.treatment-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ---- Toast Notification ---- */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--brand-green);
+  color: white;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-toast);
+}
+
+/* ---- Typing Animation (AI Agent) ---- */
+.typing-dots {
+  display: inline-flex;
+  gap: 2px;
+  animation: pulse 1.5s ease-in-out infinite;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+/* ---- Responsive page adjustments ---- */
+@media (max-width: 768px) {
+  .page-container {
+    padding: var(--space-4);
+  }
+
+  .page-header {
+    margin-bottom: var(--space-6);
+  }
+
+  .filter-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

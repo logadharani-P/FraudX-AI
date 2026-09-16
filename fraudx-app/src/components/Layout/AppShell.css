@@ -1,0 +1,66 @@
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-shell__content {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left var(--transition-base);
+}
+
+.app-shell__header {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-overlay);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.app-shell__menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.app-shell__menu-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--brand-blue);
+}
+
+.app-shell__page {
+  flex: 1;
+  padding: var(--space-8);
+  max-width: var(--content-max-width);
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .app-shell__content {
+    margin-left: 0;
+  }
+  .app-shell__header {
+    display: flex;
+    align-items: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell__page {
+    padding: var(--space-4);
+  }
+}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 320" fill="none">
+  <!-- Shield shape - green -->
+  <path d="M150 60 L200 95 L200 165 L150 200 L100 165 L100 95 Z" 
+        stroke="#2ECC87" stroke-width="12" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Triangle/AI shape - blue, overlapping -->
+  <path d="M150 45 L210 150 L90 150 Z" 
+        stroke="#4A7BF7" stroke-width="12" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Checkmark inside -->
+  <path d="M125 130 L145 150 L175 110" 
+        stroke="#2ECC87" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Wordmark -->
+  <text x="150" y="260" text-anchor="middle" font-family="Inter, sans-serif" font-weight="700" font-size="40" fill="#2ECC87" letter-spacing="4">FRAUDX AI</text>
+</svg>
