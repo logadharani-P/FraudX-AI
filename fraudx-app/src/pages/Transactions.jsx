@@ -16,18 +16,30 @@ export default function Transactions() {
   const [page, setPage] = useState(1);
   const perPage = 25;
 
-  const types = ['All', ...new Set(transactions.map(t => t.type))];
+  const types = ['All', ...new Set(transactions.map(t => t.type).filter(Boolean))];
   const risks = ['All', 'Low', 'Medium', 'High', 'Critical'];
   const statuses = ['All', 'Completed', 'Under Review', 'Flagged', 'Monitoring'];
 
   const filtered = useMemo(() => {
     return transactions.filter(txn => {
       if (typeFilter !== 'All' && txn.type !== typeFilter) return false;
-      if (riskFilter !== 'All' && txn.riskLevel !== riskFilter) return false;
-      if (statusFilter !== 'All' && txn.status !== statusFilter) return false;
+      if (riskFilter !== 'All' && txn.riskLevel?.toLowerCase() !== riskFilter.toLowerCase()) return false;
+      if (statusFilter !== 'All') {
+        const normTxnStatus = (txn.status || '').toLowerCase().replace(/[\s_-]+/g, '');
+        const normFilterStatus = statusFilter.toLowerCase().replace(/[\s_-]+/g, '');
+        if (normTxnStatus !== normFilterStatus) return false;
+      }
       if (search) {
-        const q = search.toLowerCase();
-        return txn.id.toLowerCase().includes(q) || txn.senderName.toLowerCase().includes(q) || txn.receiverName.toLowerCase().includes(q) || txn.location.toLowerCase().includes(q) || String(txn.amount).includes(q);
+        const q = search.toLowerCase().trim();
+        const matchesId = txn.id?.toLowerCase().includes(q);
+        const matchesSender = txn.senderName?.toLowerCase().includes(q);
+        const matchesReceiver = txn.receiverName?.toLowerCase().includes(q);
+        const matchesLocation = (txn.location || txn.city || '')?.toLowerCase().includes(q);
+        const matchesAmount = String(txn.amount || '').includes(q) || String(txn.amountFormatted || '').toLowerCase().includes(q);
+        const matchesType = txn.type?.toLowerCase().includes(q);
+        if (!matchesId && !matchesSender && !matchesReceiver && !matchesLocation && !matchesAmount && !matchesType) {
+          return false;
+        }
       }
       return true;
     });
@@ -47,6 +59,11 @@ export default function Transactions() {
       setSelectedTransaction(txn);
       setHighlightedTransactionId(txnId);
     }
+  };
+
+  const formatStatus = (st) => {
+    if (!st) return '—';
+    return st.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   return (
@@ -114,13 +131,13 @@ export default function Transactions() {
                   </div>
                 </td>
                 <td><span className="text-mono text-xs">{txn.id}</span></td>
-                <td><span className="text-sm">{txn.senderName}</span></td>
-                <td><span className="text-sm">{txn.receiverName}</span></td>
+                <td><span className="text-sm">{txn.senderName || '—'}</span></td>
+                <td><span className="text-sm">{txn.receiverName || '—'}</span></td>
                 <td><span className="badge badge-info">{txn.type}</span></td>
                 <td><span className="text-sm font-semibold">{txn.amountFormatted}</span></td>
-                <td><span className="text-sm">{txn.city}</span></td>
-                <td><span className={`badge badge-${txn.riskLevel.toLowerCase()}`}>{txn.riskLevel}</span></td>
-                <td><span className="text-sm">{txn.status}</span></td>
+                <td><span className="text-sm">{txn.city || txn.location || '—'}</span></td>
+                <td><span className={`badge badge-${txn.riskLevel?.toLowerCase() || 'low'}`}>{txn.riskLevel}</span></td>
+                <td><span className="text-sm">{formatStatus(txn.status)}</span></td>
               </tr>
             ))}
             {paginated.length === 0 && (

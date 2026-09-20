@@ -1,20 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-
-const SAMPLE_RESPONSES = {
-  'fraud patterns': 'Based on our AI analysis of 1,000 transactions, the top fraud patterns detected are:\n\n1. **Unusual Amount Spikes** — 34% of flagged transactions show amounts 3x+ above the sender\'s average.\n2. **Rapid Successive Transfers** — 22% involve multiple transactions within 5 minutes to different recipients.\n3. **Geographic Anomalies** — 18% originate from locations inconsistent with the user\'s profile.\n4. **Night-time Activity** — 15% of fraud occurs between 11 PM - 4 AM.\n5. **New Recipient Patterns** — 11% involve first-time recipients with newly created accounts.',
-  'high risk': 'Currently there are **{highRisk}** high-risk transactions detected. The primary risk indicators are:\n\n• Large value transfers to unverified accounts\n• Cross-border transactions with velocity anomalies\n• Device fingerprint mismatches\n\nI recommend reviewing these in the **Risk Treatment** section for immediate action.',
-  'summary': 'Here\'s your FraudX AI dashboard summary:\n\n📊 **Total Transactions**: {total}\n💰 **Total Volume**: ₹{volume}K\n🚨 **Fraud Detected**: {fraud} cases\n⚠️ **Active Alerts**: {alerts}\n\nThe fraud detection rate is **{rate}%** with our AI engine maintaining **99.2% accuracy** on the demo dataset.',
-};
+import api from '../lib/api';
 
 export default function AIAgent() {
-  const { stats } = useData();
   const { user } = useAuth();
   const { t } = useTheme();
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: `Hello ${user?.name || 'there'}! 👋 I'm your FraudX AI Assistant. I can help you analyze fraud patterns, review risk assessments, and provide insights on your transaction data.\n\nTry asking me:\n• "Show me fraud patterns"\n• "High risk summary"\n• "Give me a dashboard summary"` }
+    {
+      role: 'assistant',
+      content: `Hello ${user?.name || 'there'}! 👋 I am the **FraudX Intelligence Agent**.\n\nI provide grounded, evidence-backed insights directly from the PostgreSQL transaction ledger, Isolation Forest anomaly models, and NetworkX transaction graphs.\n\n**Try asking me:**\n• "Analyze transaction TXN-100001"\n• "Show me the top open fraud alerts"\n• "What are the details for member MBR-400001?"\n• "Explain the network laundering patterns detected"`,
+    },
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -24,43 +20,37 @@ export default function AIAgent() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const generateResponse = (query) => {
-    const q = query.toLowerCase();
-    let response = '';
-
-    if (q.includes('pattern') || q.includes('fraud')) {
-      response = SAMPLE_RESPONSES['fraud patterns'];
-    } else if (q.includes('high risk') || q.includes('risk')) {
-      response = SAMPLE_RESPONSES['high risk']
-        .replace('{highRisk}', stats.highRiskCount || 0);
-    } else if (q.includes('summary') || q.includes('overview') || q.includes('dashboard')) {
-      response = SAMPLE_RESPONSES['summary']
-        .replace('{total}', (stats.totalTransactions || 0).toLocaleString())
-        .replace('{volume}', ((stats.totalAmount || 0) / 1000).toFixed(1))
-        .replace('{fraud}', stats.fraudCount || 0)
-        .replace('{alerts}', stats.openAlerts || 0)
-        .replace('{rate}', stats.totalTransactions ? ((stats.fraudCount || 0) / stats.totalTransactions * 100).toFixed(2) : '0');
-    } else {
-      response = `I understand you're asking about "${query}". In a production environment, I would leverage our ML models and transaction data to provide real-time analysis.\n\nFor this demo, try asking about:\n• **Fraud patterns** in the dataset\n• **High risk** transaction summary\n• **Dashboard summary** overview`;
-    }
-
-    return response;
-  };
-
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isTyping) return;
 
-    const userMsg = { role: 'user', content: input.trim() };
-    setMessages(prev => [...prev, userMsg]);
+    const userText = input.trim();
+    const userMsg = { role: 'user', content: userText };
+    setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const response = generateResponse(userMsg.content);
-      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+    try {
+      const data = await api.agent.chat(userText);
+      let replyText = data.reply || 'No analysis available for this query.';
+
+      if (data.evidence && data.evidence.length > 0) {
+        replyText += '\n\n**📋 Grounded Evidence:**\n' + data.evidence.map(e => `• *[${e.type.toUpperCase()}]* ${e.title}: ${e.description}`).join('\n');
+      }
+
+      setMessages((prev) => [...prev, { role: 'assistant', content: replyText }]);
+    } catch (err) {
+      console.error('Agent chat error:', err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `⚠️ Failed to reach the FraudX Intelligence Agent service. Error: ${err.message || 'Network error'}`,
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 800 + Math.random() * 1200);
+    }
   };
 
   return (
@@ -68,7 +58,7 @@ export default function AIAgent() {
       <div className="page-header animate-fade-in-up" style={{ flexShrink: 0 }}>
         <div>
           <h1 className="heading-2">🤖 {t('nav.aiAgent')}</h1>
-          <p className="text-secondary">AI-powered fraud analysis assistant</p>
+          <p className="text-secondary">AI-powered fraud analysis assistant (Connected to FastAPI backend)</p>
         </div>
       </div>
 
@@ -86,7 +76,7 @@ export default function AIAgent() {
             >
               <div
                 style={{
-                  maxWidth: '80%',
+                  maxWidth: '85%',
                   padding: '12px 16px',
                   borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                   background: msg.role === 'user' ? 'var(--brand-blue)' : 'var(--bg-tertiary)',
@@ -98,7 +88,7 @@ export default function AIAgent() {
               >
                 {msg.content.split('\n').map((line, li) => {
                   const bold = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                  return <p key={li} style={{ margin: '2px 0' }} dangerouslySetInnerHTML={{ __html: bold }} />;
+                  return <p key={li} style={{ margin: '3px 0' }} dangerouslySetInnerHTML={{ __html: bold }} />;
                 })}
               </div>
             </div>
@@ -117,12 +107,13 @@ export default function AIAgent() {
           <input
             className="input"
             type="text"
-            placeholder="Ask about fraud patterns, risks, or transaction data..."
+            placeholder="Ask about transaction TXN-100001, member MBR-400001, or open alerts..."
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={(e) => setInput(e.target.value)}
             style={{ flex: 1 }}
+            disabled={isTyping}
           />
-          <button type="submit" className="btn btn-primary" disabled={!input.trim()}>
+          <button type="submit" className="btn btn-primary" disabled={!input.trim() || isTyping}>
             Send
           </button>
         </form>

@@ -1,8 +1,34 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 dist/
+build/
+
+# Environment & Secrets
 .env
 .env.local
+.env.*.local
+*.env
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Local Database Files
+*.db
+*.sqlite3
+backend/fraudx.db
+
+# Model Binary Artifacts
+backend/data/models/*.pkl
+backend/data/models/*.joblib
+
+# Logs & System Generated
 *.log
+.system_generated/
 
 # Dataset
 Dataset/

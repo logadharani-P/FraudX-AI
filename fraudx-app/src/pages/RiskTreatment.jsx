@@ -1,27 +1,55 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
+import api from '../lib/api';
 
 const TREATMENT_OPTIONS = [
-  { id: 'block', label: 'Block Transaction', icon: '🚫', desc: 'Immediately block and reverse the flagged transaction', severity: 'critical' },
-  { id: 'freeze', label: 'Freeze Account', icon: '🧊', desc: 'Temporarily freeze all activity on the associated account', severity: 'high' },
-  { id: 'escalate', label: 'Escalate to Analyst', icon: '👤', desc: 'Forward to a senior analyst for manual review', severity: 'medium' },
-  { id: 'monitor', label: 'Enhanced Monitoring', icon: '👁️', desc: 'Apply enhanced monitoring rules for 30 days', severity: 'low' },
-  { id: 'whitelist', label: 'Whitelist', icon: '✅', desc: 'Mark as legitimate and add to trusted patterns', severity: 'info' },
+  { id: 'block', actionType: 'Blocked', label: 'Block Transaction', icon: '🚫', desc: 'Immediately block and reverse the flagged transaction', severity: 'critical' },
+  { id: 'freeze', actionType: 'Froze', label: 'Freeze Account', icon: '🧊', desc: 'Temporarily freeze all activity on the associated account', severity: 'high' },
+  { id: 'escalate', actionType: 'Escalated', label: 'Escalate to Analyst', icon: '👤', desc: 'Forward to a senior analyst for manual review', severity: 'medium' },
+  { id: 'monitor', actionType: 'Monitored', label: 'Enhanced Monitoring', icon: '👁️', desc: 'Apply enhanced monitoring rules for 30 days', severity: 'low' },
+  { id: 'whitelist', actionType: 'Whitelisted', label: 'Whitelist', icon: '✅', desc: 'Mark as legitimate and add to trusted patterns', severity: 'info' },
 ];
 
 export default function RiskTreatment() {
-  const { alerts, transactions } = useData();
+  const { alerts, transactions, updateAlertStatus } = useData();
   const { t } = useTheme();
   const [treatments, setTreatments] = useState({});
   const [notification, setNotification] = useState(null);
+  const [submitting, setSubmitting] = useState(null);
 
   const highRiskAlerts = (alerts || []).filter(a => a.riskLevel === 'High' || a.riskLevel === 'Critical');
 
-  const applyTreatment = (alertId, treatment) => {
-    setTreatments(prev => ({ ...prev, [alertId]: treatment }));
-    setNotification(`${treatment.label} applied to ${alertId}`);
-    setTimeout(() => setNotification(null), 3000);
+  const applyTreatment = async (alertId, treatment) => {
+    setSubmitting(alertId);
+    try {
+      // 1. Create or link investigation case
+      const inv = await api.investigations.create({
+        alert_id: alertId,
+        priority: treatment.severity === 'critical' ? 'Critical' : 'High',
+        notes: `Triage action: ${treatment.label} - ${treatment.desc}`,
+      }).catch(() => null);
+
+      if (inv) {
+        await api.investigations.addAction(inv.case_id, {
+          action_type: treatment.actionType,
+          notes: treatment.desc,
+        }).catch(() => null);
+      }
+
+      // 2. Update alert status
+      const nextStatus = treatment.id === 'whitelist' ? 'Resolved' : 'Investigating';
+      await updateAlertStatus(alertId, nextStatus, treatment.label);
+
+      setTreatments(prev => ({ ...prev, [alertId]: treatment }));
+      setNotification(`Action persisted: ${treatment.label} applied to ${alertId}`);
+    } catch (err) {
+      console.error('Failed to apply treatment:', err);
+      setNotification(`Failed to record action for ${alertId}`);
+    } finally {
+      setSubmitting(null);
+      setTimeout(() => setNotification(null), 3500);
+    }
   };
 
   return (
@@ -54,6 +82,7 @@ export default function RiskTreatment() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{alert.id}</span>
                     <span className={`badge badge-${alert.riskLevel.toLowerCase()}`}>{alert.riskLevel}</span>
+                    <span className="text-xs text-tertiary">[{alert.status}]</span>
                   </div>
                   <p className="text-sm font-semibold" style={{ margin: 0 }}>{alert.reason}</p>
                   {txn && <p className="text-xs text-tertiary" style={{ marginTop: 4 }}>{txn.senderName} → {txn.receiverName} • {txn.amountFormatted}</p>}
@@ -73,6 +102,7 @@ export default function RiskTreatment() {
                       className="btn btn-sm btn-ghost"
                       onClick={() => applyTreatment(alert.id, opt)}
                       title={opt.desc}
+                      disabled={submitting === alert.id}
                     >
                       {opt.icon} {opt.label}
                     </button>

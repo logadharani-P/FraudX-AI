@@ -1,79 +1,115 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import api from '../lib/api';
 
 const AuthContext = createContext(null);
 
-const DEMO_USERS = {
-  customer: {
-    id: 'CUS-100001',
-    name: 'Arjun Sharma',
-    email: 'arjun.sharma@email.com',
-    role: 'customer',
-    organisation: 'FraudX Financial Services',
-    phone: '+91 98765 43210',
-    avatar: null,
-    accountId: 'ACC-8839201940',
-    joinDate: 'January 2024',
-    verified: true,
-    city: 'Mumbai',
-  },
-  analyst: {
-    id: 'ANL-200001',
-    name: 'Priya Iyer',
-    email: 'priya.iyer@fraudx.ai',
-    role: 'analyst',
-    organisation: 'FraudX AI Security Division',
-    phone: '+91 87654 32109',
-    avatar: null,
-    analystId: 'ANL-200001',
-    specialization: 'Transaction Fraud & Anomaly Detection',
-    casesInvestigated: 142,
-    joinDate: 'March 2023',
-    verified: true,
-    clearanceLevel: 'Level 3',
-    city: 'Chennai',
-  },
-  organisation: {
-    id: 'ORG-300001',
-    name: 'Vikram Mehta',
-    email: 'vikram.mehta@fraudx.ai',
-    role: 'organisation',
-    organisation: 'FraudX AI',
-    phone: '+91 76543 21098',
-    avatar: null,
-    orgId: 'ORG-300001',
-    designation: 'Chief Security Officer',
-    joinDate: 'June 2022',
-    verified: true,
-    city: 'Delhi',
-  },
+const DEFAULT_ROLE_CREDENTIALS = {
+  customer: { email: 'customer@fraudx.ai', password: 'password123' },
+  analyst: { email: 'analyst@fraudx.ai', password: 'password123' },
+  organisation: { email: 'admin@fraudx.ai', password: 'password123' },
 };
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [selectedRole, setSelectedRole] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('fraudx_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [selectedRole, setSelectedRole] = useState(() => user?.role || null);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('fraudx_token'));
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = (role) => {
-    const demoUser = DEMO_USERS[role];
-    setUser(demoUser);
-    setSelectedRole(role);
-    setIsAuthenticated(true);
+  // Restore authenticated session on mount
+  useEffect(() => {
+    const token = localStorage.getItem('fraudx_token');
+    if (token) {
+      api.auth.me()
+        .then((userData) => {
+          setUser(userData);
+          setSelectedRole(userData.role);
+          setIsAuthenticated(true);
+          localStorage.setItem('fraudx_user', JSON.stringify(userData));
+        })
+        .catch(() => {
+          setUser(null);
+          setIsAuthenticated(false);
+          localStorage.removeItem('fraudx_token');
+          localStorage.removeItem('fraudx_user');
+        })
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const login = async (roleOrCreds) => {
+    let email, password, role;
+    if (typeof roleOrCreds === 'string') {
+      role = roleOrCreds;
+      const def = DEFAULT_ROLE_CREDENTIALS[role] || DEFAULT_ROLE_CREDENTIALS.customer;
+      email = def.email;
+      password = def.password;
+    } else {
+      email = roleOrCreds.email;
+      password = roleOrCreds.password;
+      role = roleOrCreds.role;
+    }
+
+    try {
+      const data = await api.auth.login(email, password, role);
+      localStorage.setItem('fraudx_token', data.token.access_token);
+      localStorage.setItem('fraudx_user', JSON.stringify(data.user));
+      setUser(data.user);
+      setSelectedRole(data.user.role);
+      setIsAuthenticated(true);
+      return data.user;
+    } catch (err) {
+      console.error('Login failed:', err);
+      throw err;
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    setSelectedRole(null);
-    setIsAuthenticated(false);
+  const register = async (userData) => {
+    try {
+      await api.auth.register(userData);
+      return await login({
+        email: userData.email,
+        password: userData.password,
+        role: userData.role || 'customer',
+      });
+    } catch (err) {
+      console.error('Registration failed:', err);
+      throw err;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await api.auth.logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      localStorage.removeItem('fraudx_token');
+      localStorage.removeItem('fraudx_user');
+      setUser(null);
+      setSelectedRole(null);
+      setIsAuthenticated(false);
+    }
   };
 
   const value = useMemo(() => ({
     user,
     selectedRole,
     isAuthenticated,
+    isLoading,
     login,
+    register,
     logout,
     setSelectedRole,
-  }), [user, selectedRole, isAuthenticated]);
+  }), [user, selectedRole, isAuthenticated, isLoading]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -1,13 +1,15 @@
 import React from 'react';
 import { useData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
+import api from '../lib/api';
 
 export default function Reports() {
-  const { stats, transactions, alerts } = useData();
+  const { stats } = useData();
   const { t } = useTheme();
 
   const reportCards = [
     {
+      id: 'transaction-summary',
       title: 'Transaction Summary Report',
       desc: `Complete overview of all ${stats.totalTransactions?.toLocaleString() || 0} transactions processed`,
       icon: '📄',
@@ -15,6 +17,7 @@ export default function Reports() {
       status: 'Ready',
     },
     {
+      id: 'fraud-detection',
       title: 'Fraud Detection Report',
       desc: `${stats.fraudCount || 0} fraud cases detected with AI-powered analysis`,
       icon: '🔍',
@@ -22,6 +25,7 @@ export default function Reports() {
       status: 'Ready',
     },
     {
+      id: 'risk-assessment',
       title: 'Risk Assessment Report',
       desc: 'Comprehensive risk scoring and categorization across all transaction types',
       icon: '📊',
@@ -29,6 +33,7 @@ export default function Reports() {
       status: 'Ready',
     },
     {
+      id: 'audit-trail',
       title: 'Compliance Audit Trail',
       desc: 'Full audit trail of all system actions and compliance checks',
       icon: '✅',
@@ -36,13 +41,15 @@ export default function Reports() {
       status: 'Ready',
     },
     {
+      id: 'anomaly-summary',
       title: 'Anomaly Detection Summary',
       desc: 'Detailed breakdown of anomalies flagged by the ML engine',
       icon: '⚡',
       date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-      status: 'Generating',
+      status: 'Ready',
     },
     {
+      id: 'executive-summary',
       title: 'Monthly Executive Summary',
       desc: 'High-level metrics and trends for executive stakeholders',
       icon: '📈',
@@ -51,12 +58,49 @@ export default function Reports() {
     },
   ];
 
+  const handleDownload = async (reportId) => {
+    try {
+      const downloadUrl = api.reports.getDownloadUrl(reportId, 'csv');
+      const token = localStorage.getItem('fraudx_token');
+
+      // Fetch file with auth token
+      const res = await fetch(downloadUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (res.headers.get('content-type')?.includes('text/csv')) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${reportId}_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        const json = await res.json();
+        const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${reportId}_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error('Download error:', err);
+    }
+  };
+
   return (
     <div className="page-container">
       <div className="page-header animate-fade-in-up">
         <div>
           <h1 className="heading-2">📋 {t('nav.reports')}</h1>
-          <p className="text-secondary">Generate and download fraud analysis reports</p>
+          <p className="text-secondary">Generate and download live fraud analysis reports</p>
         </div>
       </div>
 
@@ -77,7 +121,7 @@ export default function Reports() {
                   {report.status}
                 </span>
                 {report.status === 'Ready' && (
-                  <button className="btn btn-sm btn-primary" onClick={() => alert('Demo mode: Report download not available')}>
+                  <button className="btn btn-sm btn-primary" onClick={() => handleDownload(report.id)}>
                     Download
                   </button>
                 )}

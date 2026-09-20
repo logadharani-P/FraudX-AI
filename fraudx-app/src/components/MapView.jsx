@@ -17,11 +17,17 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
       scrollWheelZoom: true,
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
-      subdomains: 'abcd',
+    // OpenStreetMap standard tile layer (free, no API key required)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
       maxZoom: 19,
     }).addTo(mapInstance.current);
+
+    setTimeout(() => {
+      if (mapInstance.current) {
+        mapInstance.current.invalidateSize();
+      }
+    }, 100);
 
     return () => {
       if (mapInstance.current) {
@@ -38,33 +44,48 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    // Add new markers (limit to first 200 for performance)
-    const txnsWithCoords = transactions.filter(t => t.lat && t.lng).slice(0, 200);
+    // Safely filter transactions with valid numeric coordinates
+    const txnsWithCoords = transactions
+      .filter(t => {
+        if (t.lat == null || t.lng == null) return false;
+        const lat = Number(t.lat);
+        const lng = Number(t.lng);
+        return !isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+      })
+      .slice(0, 200);
+
     txnsWithCoords.forEach(txn => {
-      const color = txn.riskLevel === 'High' || txn.riskLevel === 'Critical'
+      const lat = Number(txn.lat);
+      const lng = Number(txn.lng);
+      const isHighOrCrit = txn.riskLevel === 'High' || txn.riskLevel === 'Critical';
+      const color = isHighOrCrit
         ? '#EF4444'
         : txn.riskLevel === 'Medium'
           ? '#F59E0B'
           : '#22C55E';
 
       const isHighlighted = txn.id === highlightedId;
-      const radius = isHighlighted ? 8 : 5;
-      const opacity = isHighlighted ? 1 : 0.7;
+      const radius = isHighlighted ? 9 : 6;
+      const opacity = isHighlighted ? 1 : 0.8;
 
-      const marker = L.circleMarker([txn.lat, txn.lng], {
+      const locationStr = [txn.city, txn.state].filter(Boolean).join(', ') || txn.location || 'Location unavailable';
+      const amountStr = txn.amountFormatted || (txn.amount != null ? `₹${Number(txn.amount).toLocaleString('en-IN')}` : '₹0');
+      const riskLevel = txn.riskLevel || 'Low';
+
+      const marker = L.circleMarker([lat, lng], {
         radius,
         fillColor: color,
         color: isHighlighted ? '#FFFFFF' : color,
-        weight: isHighlighted ? 3 : 1,
+        weight: isHighlighted ? 3 : 1.5,
         fillOpacity: opacity,
       })
         .addTo(mapInstance.current)
         .bindPopup(`
-          <div style="font-family: Inter, sans-serif; font-size: 13px;">
-            <strong>${txn.id}</strong><br/>
-            ${txn.senderName} → ${txn.receiverName}<br/>
-            Amount: ${txn.amountFormatted}<br/>
-            Risk: <span style="color:${color};font-weight:600">${txn.riskLevel}</span>
+          <div style="font-family: Inter, system-ui, -apple-system, sans-serif; font-size: 13px; line-height: 1.5; color: #1e293b; min-width: 170px;">
+            <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px; color: #0f172a;">${txn.id || txn.transaction_id || 'Transaction'}</div>
+            <div style="color: #64748b; font-size: 12px; margin-bottom: 4px;">📍 ${locationStr}</div>
+            <div style="margin-bottom: 2px;"><strong>Amount:</strong> ${amountStr}</div>
+            <div><strong>Risk Level:</strong> <span style="color:${color};font-weight:700;">${riskLevel}</span></div>
           </div>
         `);
 
@@ -80,8 +101,12 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
   useEffect(() => {
     if (!mapInstance.current || !highlightedId) return;
     const txn = transactions.find(t => t.id === highlightedId);
-    if (txn?.lat && txn?.lng) {
-      mapInstance.current.setView([txn.lat, txn.lng], 8, { animate: true });
+    if (txn && txn.lat != null && txn.lng != null) {
+      const lat = Number(txn.lat);
+      const lng = Number(txn.lng);
+      if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        mapInstance.current.setView([lat, lng], 8, { animate: true });
+      }
     }
   }, [highlightedId, transactions]);
 
@@ -90,11 +115,12 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
       ref={mapRef}
       style={{
         width: '100%',
-        height: '360px',
+        height: '100%',
+        minHeight: '360px',
         borderRadius: 'var(--border-radius-lg)',
         overflow: 'hidden',
-        border: '1px solid var(--border-primary)',
       }}
     />
   );
 }
+

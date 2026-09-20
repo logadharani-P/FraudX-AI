@@ -10,7 +10,7 @@ const CHART_COLORS = ['#4A7BF7', '#2ECC87', '#8B5CF6', '#F59E0B', '#22D3EE', '#E
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { stats, transactions, alerts } = useData();
+  const { stats, transactions, alerts, activity } = useData();
   const { t } = useTheme();
   const navigate = useNavigate();
 
@@ -26,30 +26,40 @@ export default function Dashboard() {
     { name: 'Low', value: stats.lowRiskCount || 0, color: '#22C55E' },
     { name: 'Medium', value: stats.mediumRiskCount || 0, color: '#F59E0B' },
     { name: 'High', value: stats.highRiskCount || 0, color: '#EF4444' },
+    { name: 'Critical', value: stats.criticalAlerts || 0, color: '#DC2626' },
   ];
 
-  // Activity timeline (group by hours)
-  const activityData = [];
-  if (transactions.length > 0) {
-    const maxTime = Math.max(...transactions.map(t => t.timeSeconds));
-    const bucketSize = maxTime / 24;
-    for (let i = 0; i < 24; i++) {
-      const start = i * bucketSize;
-      const end = (i + 1) * bucketSize;
-      const bucket = transactions.filter(t => t.timeSeconds >= start && t.timeSeconds < end);
-      activityData.push({
-        hour: `${String(i).padStart(2, '0')}:00`,
-        transactions: bucket.length,
-        flagged: bucket.filter(t => t.isFraud).length,
-      });
-    }
-  }
+  // Activity timeline: Use live backend activity points or compute from loaded transactions
+  const activityData = activity && activity.length > 0 ? activity : (() => {
+    if (!transactions || transactions.length === 0) return [];
+    const hourBuckets = Array.from({ length: 24 }, (_, i) => ({
+      hour: `${String(i).padStart(2, '0')}:00`,
+      transactions: 0,
+      flagged: 0,
+    }));
+    transactions.forEach(t => {
+      const h = t.dateObj ? t.dateObj.getHours() : 0;
+      if (h >= 0 && h < 24) {
+        hourBuckets[h].transactions += 1;
+        if (t.isFraud || t.riskLevel === 'High' || t.riskLevel === 'Critical') {
+          hourBuckets[h].flagged += 1;
+        }
+      }
+    });
+    return hourBuckets;
+  })();
 
   const recentAlerts = (alerts || []).slice(0, 5);
 
+  const formattedTotalAmount = (stats.totalAmount || 0) >= 10000000
+    ? `₹${((stats.totalAmount || 0) / 10000000).toFixed(2)} Cr`
+    : (stats.totalAmount || 0) >= 100000
+      ? `₹${((stats.totalAmount || 0) / 100000).toFixed(2)} L`
+      : `₹${(stats.totalAmount || 0).toLocaleString('en-IN')}`;
+
   const statCards = [
     { label: t('dashboard.totalTransactions'), value: stats.totalTransactions?.toLocaleString() || '0', icon: '📊', color: '#4A7BF7' },
-    { label: t('dashboard.totalAmount'), value: `₹${((stats.totalAmount || 0) / 1000).toFixed(1)}K`, icon: '💰', color: '#2ECC87' },
+    { label: t('dashboard.totalAmount'), value: formattedTotalAmount, icon: '💰', color: '#2ECC87' },
     { label: t('dashboard.fraudDetected'), value: stats.fraudCount || 0, icon: '🚨', color: '#EF4444' },
     { label: t('dashboard.activeAlerts'), value: stats.openAlerts || 0, icon: '⚠️', color: '#F59E0B' },
   ];
@@ -148,10 +158,13 @@ export default function Dashboard() {
                   <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{alert.id}</span>
                   <span className="text-sm font-medium">{alert.reason}</span>
                 </div>
-                <span className={`badge badge-${alert.riskLevel.toLowerCase()}`}>{alert.riskLevel}</span>
+                <span className={`badge badge-${alert.riskLevel?.toLowerCase() || 'medium'}`}>{alert.riskLevel}</span>
                 <span className="text-xs text-tertiary">{alert.date}</span>
               </div>
             ))}
+            {recentAlerts.length === 0 && (
+              <p className="text-sm text-tertiary" style={{ padding: '16px 0', textAlign: 'center' }}>No active alerts</p>
+            )}
           </div>
         </div>
       </div>
