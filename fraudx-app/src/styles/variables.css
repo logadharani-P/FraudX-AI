@@ -211,3 +211,97 @@
   --shadow-glow-blue: 0 0 20px rgba(59, 111, 212, 0.08);
   --shadow-glow-green: 0 0 20px rgba(46, 204, 135, 0.08);
 }
+
+/* ================================================
+   THEME: High Contrast
+   ================================================ */
+[data-theme="high-contrast"] {
+  --bg-primary: #000000;
+  --bg-secondary: #0A0A0A;
+  --bg-tertiary: #141414;
+  --bg-card: #0A0A0A;
+  --bg-card-hover: #181818;
+  --bg-sidebar: #000000;
+  --bg-input: #121212;
+  --bg-overlay: rgba(0, 0, 0, 0.97);
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #E2E8F0;
+  --text-tertiary: #CBD5E1;
+  --text-inverse: #000000;
+
+  --border-primary: #FFFFFF;
+  --border-secondary: #A0AEC0;
+
+  --brand-blue: #60A5FA;
+  --brand-green: #34D399;
+  --brand-cyan: #38BDF8;
+  --brand-violet: #C084FC;
+
+  --risk-low: #4ADE80;
+  --risk-medium: #FBBF24;
+  --risk-high: #F87171;
+  --risk-critical: #EF4444;
+
+  --gradient-brand: linear-gradient(135deg, #60A5FA 0%, #34D399 100%);
+  --gradient-brand-subtle: linear-gradient(135deg, rgba(96, 165, 250, 0.2) 0%, rgba(52, 211, 153, 0.2) 100%);
+  --gradient-card: linear-gradient(145deg, #0A0A0A 0%, #050505 100%);
+  --gradient-glass: linear-gradient(135deg, #0A0A0A 0%, #000000 100%);
+}
+
+/* ================================================
+   ACCENTS
+   ================================================ */
+[data-accent="blue"] {
+  --brand-blue: #4A7BF7;
+  --brand-blue-light: #6B93FF;
+  --brand-blue-dark: #3A62C4;
+}
+
+[data-accent="cyan"] {
+  --brand-blue: #06B6D4;
+  --brand-blue-light: #22D3EE;
+  --brand-blue-dark: #0891B2;
+}
+
+[data-accent="violet"] {
+  --brand-blue: #8B5CF6;
+  --brand-blue-light: #A78BFA;
+  --brand-blue-dark: #7C3AED;
+}
+
+[data-accent="green"] {
+  --brand-blue: #10B981;
+  --brand-blue-light: #34D399;
+  --brand-blue-dark: #059669;
+}
+
+/* ================================================
+   DENSITY & ANIMATION MODES
+   ================================================ */
+[data-density="compact"] {
+  --space-4: 10px;
+  --space-5: 14px;
+  --space-6: 16px;
+  --space-8: 20px;
+}
+
+[data-animations="reduced"] * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.05s !important;
+}
+
+[data-animations="off"] * {
+  animation: none !important;
+  transition: none !important;
+}
+
+[data-font-size="small"] {
+  font-size: 13.5px;
+}
+
+[data-font-size="large"] {
+  font-size: 16px;
+}
+

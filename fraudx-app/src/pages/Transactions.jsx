@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import TransactionDetail from '../components/TransactionDetail';
 import MapView from '../components/MapView';
 import './Transactions.css';
 
 export default function Transactions() {
-  const { transactions, highlightedTransactionId, setHighlightedTransactionId, setSelectedTransaction, selectedTransaction } = useData();
+  const { transactions, members, highlightedTransactionId, setHighlightedTransactionId, setSelectedTransaction, selectedTransaction } = useData();
+  const { user } = useAuth();
   const { t } = useTheme();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
@@ -15,35 +17,37 @@ export default function Transactions() {
   const [showMap, setShowMap] = useState(true);
   const [page, setPage] = useState(1);
   const perPage = 25;
+  const isCustomer = user?.role === 'customer';
 
-  const types = ['All', ...new Set(transactions.map(t => t.type).filter(Boolean))];
+  // Find customer's member entry
+  const customerMember = useMemo(() => {
+    if (!isCustomer || !user?.name) return null;
+    return members.find(m => m.name?.toLowerCase() === user.name.toLowerCase());
+  }, [isCustomer, user, members]);
+
+  // Filter transactions for customer role
+  const baseTransactions = useMemo(() => {
+    if (!isCustomer || !customerMember) return transactions;
+    const memberId = customerMember.id ?? customerMember.memberId;
+    return transactions.filter(t => t.senderId === memberId || t.receiverId === memberId);
+  }, [isCustomer, customerMember, transactions]);
+
+  const types = ['All', ...new Set(baseTransactions.map(t => t.type))];
   const risks = ['All', 'Low', 'Medium', 'High', 'Critical'];
   const statuses = ['All', 'Completed', 'Under Review', 'Flagged', 'Monitoring'];
 
   const filtered = useMemo(() => {
-    return transactions.filter(txn => {
+    return baseTransactions.filter(txn => {
       if (typeFilter !== 'All' && txn.type !== typeFilter) return false;
-      if (riskFilter !== 'All' && txn.riskLevel?.toLowerCase() !== riskFilter.toLowerCase()) return false;
-      if (statusFilter !== 'All') {
-        const normTxnStatus = (txn.status || '').toLowerCase().replace(/[\s_-]+/g, '');
-        const normFilterStatus = statusFilter.toLowerCase().replace(/[\s_-]+/g, '');
-        if (normTxnStatus !== normFilterStatus) return false;
-      }
+      if (riskFilter !== 'All' && txn.riskLevel !== riskFilter) return false;
+      if (statusFilter !== 'All' && txn.status !== statusFilter) return false;
       if (search) {
-        const q = search.toLowerCase().trim();
-        const matchesId = txn.id?.toLowerCase().includes(q);
-        const matchesSender = txn.senderName?.toLowerCase().includes(q);
-        const matchesReceiver = txn.receiverName?.toLowerCase().includes(q);
-        const matchesLocation = (txn.location || txn.city || '')?.toLowerCase().includes(q);
-        const matchesAmount = String(txn.amount || '').includes(q) || String(txn.amountFormatted || '').toLowerCase().includes(q);
-        const matchesType = txn.type?.toLowerCase().includes(q);
-        if (!matchesId && !matchesSender && !matchesReceiver && !matchesLocation && !matchesAmount && !matchesType) {
-          return false;
-        }
+        const q = search.toLowerCase();
+        return txn.id.toLowerCase().includes(q) || txn.senderName.toLowerCase().includes(q) || txn.receiverName.toLowerCase().includes(q) || txn.location.toLowerCase().includes(q) || String(txn.amount).includes(q);
       }
       return true;
     });
-  }, [transactions, search, typeFilter, riskFilter, statusFilter]);
+  }, [baseTransactions, search, typeFilter, riskFilter, statusFilter]);
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
   const totalPages = Math.ceil(filtered.length / perPage);
@@ -54,24 +58,24 @@ export default function Transactions() {
   };
 
   const handleMapMarkerClick = (txnId) => {
-    const txn = transactions.find(t => t.id === txnId);
+    const txn = baseTransactions.find(t => t.id === txnId);
     if (txn) {
       setSelectedTransaction(txn);
       setHighlightedTransactionId(txnId);
     }
   };
 
-  const formatStatus = (st) => {
-    if (!st) return '—';
-    return st.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
+  const pageTitle = isCustomer ? 'My Transactions' : t('transactions.title');
+  const pageSubtitle = isCustomer
+    ? `${baseTransactions.length} transactions on your account`
+    : t('transactions.subtitle');
 
   return (
     <div className="transactions-page">
       <div className="transactions-page__header animate-fade-in-up">
         <div>
-          <h1 className="heading-2">{t('transactions.title')}</h1>
-          <p className="text-secondary">{t('transactions.subtitle')}</p>
+          <h1 className="heading-2">{pageTitle}</h1>
+          <p className="text-secondary">{pageSubtitle}</p>
         </div>
         <div className="transactions-page__actions">
           <button className={`btn ${showMap ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setShowMap(!showMap)}>
@@ -131,13 +135,13 @@ export default function Transactions() {
                   </div>
                 </td>
                 <td><span className="text-mono text-xs">{txn.id}</span></td>
-                <td><span className="text-sm">{txn.senderName || '—'}</span></td>
-                <td><span className="text-sm">{txn.receiverName || '—'}</span></td>
+                <td><span className="text-sm">{txn.senderName}</span></td>
+                <td><span className="text-sm">{txn.receiverName}</span></td>
                 <td><span className="badge badge-info">{txn.type}</span></td>
                 <td><span className="text-sm font-semibold">{txn.amountFormatted}</span></td>
-                <td><span className="text-sm">{txn.city || txn.location || '—'}</span></td>
-                <td><span className={`badge badge-${txn.riskLevel?.toLowerCase() || 'low'}`}>{txn.riskLevel}</span></td>
-                <td><span className="text-sm">{formatStatus(txn.status)}</span></td>
+                <td><span className="text-sm">{txn.city}</span></td>
+                <td><span className={`badge badge-${txn.riskLevel.toLowerCase()}`}>{txn.riskLevel}</span></td>
+                <td><span className="text-sm">{txn.status}</span></td>
               </tr>
             ))}
             {paginated.length === 0 && (

@@ -8,6 +8,7 @@ import LoginOrganisation from './pages/LoginOrganisation'
 import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
 import FraudAlerts from './pages/FraudAlerts'
+import SecurityCenter from './pages/SecurityCenter'
 import Members from './pages/Members'
 import RiskAnalysis from './pages/RiskAnalysis'
 import RiskTreatment from './pages/RiskTreatment'
@@ -21,6 +22,16 @@ import { useAuth } from './context/AuthContext'
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? children : <Navigate to="/select-role" replace />;
+}
+
+// Role-based route guard: redirects disallowed roles to /dashboard
+function RoleRoute({ allowedRoles, children }) {
+  const { user } = useAuth();
+  const role = user?.role || 'customer';
+  if (!allowedRoles.includes(role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
 }
 
 export default function App() {
@@ -37,12 +48,23 @@ export default function App() {
       <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/transactions" element={<Transactions />} />
-        <Route path="/fraud-alerts" element={<FraudAlerts />} />
-        <Route path="/members" element={<Members />} />
+        <Route path="/fraud-alerts" element={
+          <RoleRoute allowedRoles={['analyst', 'organisation']}><FraudAlerts /></RoleRoute>
+        } />
+        <Route path="/security-center" element={
+          <RoleRoute allowedRoles={['analyst', 'organisation']}><SecurityCenter /></RoleRoute>
+        } />
+        <Route path="/members" element={
+          <RoleRoute allowedRoles={['analyst', 'organisation']}><Members /></RoleRoute>
+        } />
         <Route path="/risk-analysis" element={<RiskAnalysis />} />
-        <Route path="/risk-treatment" element={<RiskTreatment />} />
+        <Route path="/risk-treatment" element={
+          <RoleRoute allowedRoles={['analyst', 'organisation']}><RiskTreatment /></RoleRoute>
+        } />
         <Route path="/ai-agent" element={<AIAgent />} />
-        <Route path="/reports" element={<Reports />} />
+        <Route path="/reports" element={
+          <RoleRoute allowedRoles={['analyst', 'organisation']}><Reports /></RoleRoute>
+        } />
         <Route path="/settings" element={<Settings />} />
         <Route path="/profile" element={<Profile />} />
       </Route>

@@ -1,0 +1,131 @@
+/* ================================================
+   Security Center Dashboard Styles
+   ================================================ */
+
+.sec-center {
+  width: 100%;
+}
+
+.sec-telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.sec-telemetry-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all var(--transition-fast);
+}
+
+.sec-telemetry-card:hover {
+  border-color: var(--brand-blue);
+  box-shadow: var(--shadow-md), var(--shadow-glow-blue);
+  transform: translateY(-2px);
+}
+
+.sec-telemetry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.sec-telemetry-title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.sec-telemetry-icon {
+  font-size: 18px;
+}
+
+.sec-telemetry-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.sec-telemetry-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sec-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--risk-low);
+  box-shadow: 0 0 8px var(--risk-low);
+  display: inline-block;
+}
+
+.sec-audit-table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+  margin-top: var(--space-6);
+}
+
+.sec-table-wrapper {
+  overflow-x: auto;
+  margin-top: var(--space-4);
+}
+
+.sec-audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--font-size-sm);
+}
+
+.sec-audit-table th {
+  padding: 12px 14px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-tertiary);
+}
+
+.sec-audit-table td {
+  padding: 14px;
+  border-bottom: 1px solid var(--border-secondary);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.sec-audit-row {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.sec-audit-row:hover {
+  background: var(--bg-card-hover);
+}
+
+.sec-audit-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-tertiary);
+}

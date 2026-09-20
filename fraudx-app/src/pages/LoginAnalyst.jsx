@@ -2,135 +2,76 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import api from '../lib/api';
 import AnimatedBackground from '../components/AnimatedBackground';
+import MFAVerification from '../components/MFA/MFAVerification';
 import logoImg from '../assets/logo-original.png';
 import './Login.css';
 
+const DEMO_MFA_CODE = '482901';
+
 export default function LoginAnalyst() {
-  const [step, setStep] = useState('credentials'); // credentials, face, mfa, complete, failed
+  const [step, setStep] = useState('credentials'); // credentials, face, mfa, complete
   const [analystId, setAnalystId] = useState('');
   const [password, setPassword] = useState('');
-  const [mfaCode, setMfaCode] = useState('');
   const [faceProgress, setFaceProgress] = useState(0);
-  const [isScanning, setIsScanning] = useState(false);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [pendingAuth, setPendingAuth] = useState(null);
-
+  const [error, setError] = useState('');
   const videoRef = useRef(null);
   const streamRef = useRef(null);
-  const { setSelectedRole } = useAuth();
+  const { login } = useAuth();
   const { t } = useTheme();
   const navigate = useNavigate();
 
-  // Stop camera tracks cleanly
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-  };
-
-  // Step 1: Real credentials validation via API
-  const handleCredentials = async (e) => {
+  const handleCredentials = (e) => {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    const loginId = analystId.trim() || 'analyst@fraudx.ai';
-    const loginPassword = password || 'password123';
-
-    try {
-      // Authenticate analyst credentials with backend first
-      const authData = await api.auth.login(loginId, loginPassword, 'analyst');
-      setPendingAuth(authData);
-      setStep('face');
-    } catch (err) {
-      setError(err.message || 'Invalid analyst credentials. Please check your Analyst ID and Password.');
-    } finally {
-      setLoading(false);
+    setError('');
+    if (!analystId.trim() || !password.trim()) {
+      setError('Please enter your Analyst ID and password.');
+      return;
     }
+    setStep('face');
   };
 
-  // Step 2: Camera setup when entering face step
   useEffect(() => {
     if (step === 'face') {
-      setFaceProgress(0);
-      setIsScanning(false);
-      setError(null);
+      // Try to access camera (demo)
+      navigator.mediaDevices?.getUserMedia({ video: true })
+        .then(stream => {
+          streamRef.current = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        })
+        .catch(() => {
+          // Camera not available, proceed with demo
+        });
 
-      // Access camera for real-time video feed preview
-      if (navigator.mediaDevices?.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 480 } })
-          .then(stream => {
-            streamRef.current = stream;
-            if (videoRef.current) {
-              videoRef.current.srcObject = stream;
-            }
-          })
-          .catch(err => {
-            console.warn('Camera access unavailable or denied:', err);
-          });
-      }
+      // Simulate face verification progress
+      const interval = setInterval(() => {
+        setFaceProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            setTimeout(() => setStep('mfa'), 800);
+            return 100;
+          }
+          return prev + 2;
+        });
+      }, 60);
 
       return () => {
-        stopCamera();
+        clearInterval(interval);
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+        }
       };
     }
   }, [step]);
 
-  // Handle starting the interactive demo liveness verification
-  const handleStartVerification = () => {
-    setIsScanning(true);
-    setError(null);
-    setFaceProgress(0);
-
-    const interval = setInterval(() => {
-      setFaceProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          stopCamera();
-          setTimeout(() => setStep('mfa'), 700);
-          return 100;
-        }
-        return prev + 4;
-      });
-    }, 50);
-  };
-
-  // Explicit failure / rejection path — strictly blocks analyst login
-  const handleRejectVerification = () => {
-    stopCamera();
-    setPendingAuth(null);
-    setStep('failed');
-  };
-
-  // Step 3: MFA submission & session finalization
-  const handleMfa = (e) => {
-    e.preventDefault();
-    if (!pendingAuth) {
-      setError('Session expired. Please sign in again.');
-      setStep('credentials');
-      return;
-    }
-
+  const handleMfaSuccess = () => {
     setStep('complete');
     setTimeout(() => {
-      // Finalize authentication in localStorage and context
-      localStorage.setItem('fraudx_token', pendingAuth.token.access_token);
-      localStorage.setItem('fraudx_user', JSON.stringify(pendingAuth.user));
-      setSelectedRole(pendingAuth.user.role);
+      login('analyst');
       navigate('/dashboard');
-      window.location.reload(); // Refresh to ensure all data contexts initialize with new user
-    }, 1500);
-  };
-
-  const handleResetToLogin = () => {
-    stopCamera();
-    setPendingAuth(null);
-    setError(null);
-    setStep('credentials');
+    }, 1200);
   };
 
   return (
@@ -142,63 +83,41 @@ export default function LoginAnalyst() {
           <h1 className="login__portal-name">{t('login.analystPortal')}</h1>
         </div>
 
-        {error && (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.4)',
-            color: '#F87171',
-            borderRadius: 'var(--border-radius-md)',
-            padding: '10px 14px',
-            fontSize: 'var(--font-size-sm)',
-            marginBottom: '16px',
-            textAlign: 'center',
-          }}>
-            {error}
-          </div>
-        )}
-
         {step === 'credentials' && (
           <form className="login__form animate-fade-in" onSubmit={handleCredentials}>
             <div className="input-group">
               <label className="input-label" htmlFor="analyst-id">{t('login.analystId')}</label>
-              <input
-                id="analyst-id"
-                className="input"
-                type="text"
-                placeholder="ANL-200001 or analyst@fraudx.ai"
-                value={analystId}
-                onChange={e => setAnalystId(e.target.value)}
-              />
+              <input id="analyst-id" className="input" type="text" placeholder="ANL-200001" value={analystId} onChange={e => { setAnalystId(e.target.value); setError(''); }} />
             </div>
             <div className="input-group">
               <label className="input-label" htmlFor="analyst-pwd">{t('login.password')}</label>
-              <input
-                id="analyst-pwd"
-                className="input"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-              />
+              <input id="analyst-pwd" className="input" type="password" placeholder="••••••••" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} />
             </div>
-            <button type="submit" className="btn btn-primary btn-lg w-full" disabled={loading}>
-              {loading ? 'Validating Credentials...' : t('login.signIn')}
-            </button>
-            <p className="login__demo-note">Default Demo: analyst@fraudx.ai / password123</p>
+            {error && (
+              <div style={{ color: 'var(--risk-high, #EF4444)', fontSize: 'var(--font-size-xs)', padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 'var(--border-radius-md)', textAlign: 'center' }}>
+                {error}
+              </div>
+            )}
+            <button type="submit" className="btn btn-primary btn-lg w-full">{t('login.signIn')}</button>
+            <div style={{ textAlign: 'center', marginTop: 8 }}>
+              <span className="text-xs text-tertiary" style={{ fontFamily: 'var(--font-mono)' }}>
+                Demo — ID: ANL-200001 | Password: fraudx2024
+              </span>
+            </div>
           </form>
         )}
 
         {step === 'face' && (
           <div className="login__face animate-fade-in">
-            <h2 className="login__step-title">Biometric Liveness Verification</h2>
+            <h2 className="login__step-title">{t('login.faceVerification')}</h2>
             <div className="face-frame">
               <video ref={videoRef} autoPlay muted playsInline className="face-frame__video" />
               <div className="face-frame__guide">
                 <svg viewBox="0 0 200 200" className="face-frame__oval">
-                  <ellipse cx="100" cy="100" rx="65" ry="85" fill="none" stroke="rgba(74, 123, 247, 0.6)" strokeWidth="2" strokeDasharray="6 4"/>
+                  <ellipse cx="100" cy="100" rx="65" ry="85" fill="none" stroke="rgba(74, 123, 247, 0.5)" strokeWidth="2" strokeDasharray="6 4"/>
                 </svg>
               </div>
-              {isScanning && <div className="face-frame__scan" style={{ top: `${faceProgress}%` }} />}
+              <div className="face-frame__scan" style={{ top: `${faceProgress}%` }} />
               {faceProgress >= 100 && (
                 <div className="face-frame__success animate-fade-in-scale">
                   <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -208,102 +127,30 @@ export default function LoginAnalyst() {
                 </div>
               )}
             </div>
-
             <p className="login__face-status">
-              {faceProgress >= 100
-                ? `✓ ${t('login.faceVerified')}`
-                : isScanning
-                  ? `${t('login.verifying')} (${faceProgress}%)`
-                  : 'Position face in frame and click Verify'}
+              {faceProgress >= 100 ? `✓ ${t('login.faceVerified')}` : faceProgress > 0 ? t('login.verifying') : t('login.positionFace')}
             </p>
-
-            <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '8px' }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                style={{ flex: 1 }}
-                onClick={handleStartVerification}
-                disabled={isScanning}
-              >
-                {isScanning ? 'Scanning...' : 'Verify Liveness (Pass)'}
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger"
-                style={{ flex: 1 }}
-                onClick={handleRejectVerification}
-                disabled={faceProgress >= 100}
-              >
-                Reject / Fail
-              </button>
+            <div className="login__demo-badge" style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', padding: '8px 16px', background: 'rgba(74, 123, 247, 0.1)', borderRadius: 'var(--border-radius-md)', marginTop: 8 }}>
+              <span style={{ fontSize: '1rem' }}>🔬</span>
+              <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--brand-blue, #4A7BF7)' }}>DEMO VERIFICATION</span>
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}> — Simulated biometric check</span>
             </div>
-
-            <p className="login__demo-badge" style={{ marginTop: '10px', fontSize: '11px', lineHeight: '1.4' }}>
-              Demo Verification: Demonstrates liveness camera workflow. (Production biometric matching requires server-side facial embeddings).
-            </p>
-          </div>
-        )}
-
-        {step === 'failed' && (
-          <div className="login__complete animate-fade-in" style={{ textAlign: 'center' }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              background: 'rgba(239, 68, 68, 0.2)',
-              border: '2px solid #EF4444',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#EF4444',
-              fontSize: '24px',
-              margin: '0 auto 16px',
-            }}>
-              ✕
-            </div>
-            <h2 className="login__step-title" style={{ color: '#EF4444', marginBottom: '8px' }}>
-              Biometric Verification Failed
-            </h2>
-            <p className="text-secondary text-sm" style={{ marginBottom: '20px' }}>
-              Facial identity could not be verified. Analyst access is restricted. Authentication has been rejected.
-            </p>
-            <button
-              type="button"
-              className="btn btn-primary w-full"
-              onClick={handleResetToLogin}
-            >
-              Return to Login
-            </button>
           </div>
         )}
 
         {step === 'mfa' && (
-          <form className="login__form login__mfa animate-fade-in" onSubmit={handleMfa}>
-            <div className="login__step-check">
+          <div>
+            <div className="login__step-check" style={{ marginBottom: 16, justifyContent: 'center' }}>
               <span className="login__check">✓</span>
-              <span>Liveness Verified</span>
+              <span>{t('login.faceVerified')}</span>
             </div>
-            <h2 className="login__step-title">{t('login.mfaTitle')}</h2>
-            <p className="text-secondary text-sm">{t('login.mfaDesc')}</p>
-            <div className="mfa-inputs">
-              {[0, 1, 2, 3, 4, 5].map(i => (
-                <input
-                  key={i}
-                  className="mfa-input"
-                  type="text"
-                  maxLength="1"
-                  inputMode="numeric"
-                  onChange={e => {
-                    const val = mfaCode.split('');
-                    val[i] = e.target.value;
-                    setMfaCode(val.join(''));
-                    if (e.target.value && e.target.nextElementSibling) e.target.nextElementSibling.focus();
-                  }}
-                />
-              ))}
-            </div>
-            <button type="submit" className="btn btn-primary btn-lg w-full">Verify & Access Console</button>
-          </form>
+            <MFAVerification
+              demoCode={DEMO_MFA_CODE}
+              roleName="Analyst"
+              onSuccess={handleMfaSuccess}
+              onCancel={() => setStep('credentials')}
+            />
+          </div>
         )}
 
         {step === 'complete' && (
