@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import TransactionDetail from '../components/TransactionDetail';
 import MapView from '../components/MapView';
 import './Transactions.css';
 
 export default function Transactions() {
-  const { transactions, highlightedTransactionId, setHighlightedTransactionId, setSelectedTransaction, selectedTransaction } = useData();
+  const { transactions, members, highlightedTransactionId, setHighlightedTransactionId, setSelectedTransaction, selectedTransaction } = useData();
+  const { user } = useAuth();
   const { t } = useTheme();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
@@ -15,13 +17,27 @@ export default function Transactions() {
   const [showMap, setShowMap] = useState(true);
   const [page, setPage] = useState(1);
   const perPage = 25;
+  const isCustomer = user?.role === 'customer';
 
-  const types = ['All', ...new Set(transactions.map(t => t.type))];
+  // Find customer's member entry
+  const customerMember = useMemo(() => {
+    if (!isCustomer || !user?.name) return null;
+    return members.find(m => m.name?.toLowerCase() === user.name.toLowerCase());
+  }, [isCustomer, user, members]);
+
+  // Filter transactions for customer role
+  const baseTransactions = useMemo(() => {
+    if (!isCustomer || !customerMember) return transactions;
+    const memberId = customerMember.id ?? customerMember.memberId;
+    return transactions.filter(t => t.senderId === memberId || t.receiverId === memberId);
+  }, [isCustomer, customerMember, transactions]);
+
+  const types = ['All', ...new Set(baseTransactions.map(t => t.type))];
   const risks = ['All', 'Low', 'Medium', 'High', 'Critical'];
   const statuses = ['All', 'Completed', 'Under Review', 'Flagged', 'Monitoring'];
 
   const filtered = useMemo(() => {
-    return transactions.filter(txn => {
+    return baseTransactions.filter(txn => {
       if (typeFilter !== 'All' && txn.type !== typeFilter) return false;
       if (riskFilter !== 'All' && txn.riskLevel !== riskFilter) return false;
       if (statusFilter !== 'All' && txn.status !== statusFilter) return false;
@@ -31,7 +47,7 @@ export default function Transactions() {
       }
       return true;
     });
-  }, [transactions, search, typeFilter, riskFilter, statusFilter]);
+  }, [baseTransactions, search, typeFilter, riskFilter, statusFilter]);
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
   const totalPages = Math.ceil(filtered.length / perPage);
@@ -42,19 +58,24 @@ export default function Transactions() {
   };
 
   const handleMapMarkerClick = (txnId) => {
-    const txn = transactions.find(t => t.id === txnId);
+    const txn = baseTransactions.find(t => t.id === txnId);
     if (txn) {
       setSelectedTransaction(txn);
       setHighlightedTransactionId(txnId);
     }
   };
 
+  const pageTitle = isCustomer ? 'My Transactions' : t('transactions.title');
+  const pageSubtitle = isCustomer
+    ? `${baseTransactions.length} transactions on your account`
+    : t('transactions.subtitle');
+
   return (
     <div className="transactions-page">
       <div className="transactions-page__header animate-fade-in-up">
         <div>
-          <h1 className="heading-2">{t('transactions.title')}</h1>
-          <p className="text-secondary">{t('transactions.subtitle')}</p>
+          <h1 className="heading-2">{pageTitle}</h1>
+          <p className="text-secondary">{pageSubtitle}</p>
         </div>
         <div className="transactions-page__actions">
           <button className={`btn ${showMap ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setShowMap(!showMap)}>

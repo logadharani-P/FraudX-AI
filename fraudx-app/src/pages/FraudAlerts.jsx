@@ -1,28 +1,28 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
-import TransactionDetail from '../components/TransactionDetail';
+import AlertDetailPanel from '../components/AlertDetailPanel';
 
 export default function FraudAlerts() {
-  const { alerts, transactions, selectedTransaction, setSelectedTransaction } = useData();
+  const { alerts, getTreatment } = useData();
   const { t } = useTheme();
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
+  const [selectedAlert, setSelectedAlert] = useState(null);
 
   const filtered = useMemo(() => {
     return (alerts || []).filter(alert => {
       if (filter !== 'All' && alert.riskLevel !== filter) return false;
       if (search) {
         const q = search.toLowerCase();
-        return alert.id?.toLowerCase().includes(q) || alert.reason?.toLowerCase().includes(q) || alert.transactionId?.toLowerCase().includes(q);
+        return alert.id?.toLowerCase().includes(q) || alert.reason?.toLowerCase().includes(q) || alert.transactionId?.toLowerCase().includes(q) || alert.senderName?.toLowerCase().includes(q) || alert.receiverName?.toLowerCase().includes(q);
       }
       return true;
     });
   }, [alerts, filter, search]);
 
   const handleAlertClick = (alert) => {
-    const txn = transactions.find(t => t.id === alert.transactionId);
-    if (txn) setSelectedTransaction(txn);
+    setSelectedAlert(alert);
   };
 
   return (
@@ -38,10 +38,10 @@ export default function FraudAlerts() {
         <input
           className="input"
           type="text"
-          placeholder="Search alerts..."
+          placeholder="Search alerts by ID, reason, or member..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ maxWidth: 300 }}
+          style={{ maxWidth: 360 }}
         />
         <div style={{ display: 'flex', gap: 8 }}>
           {['All', 'Low', 'Medium', 'High', 'Critical'].map(level => (
@@ -57,23 +57,47 @@ export default function FraudAlerts() {
       </div>
 
       <div className="card-grid animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        {filtered.map(alert => (
-          <div
-            key={alert.id}
-            className="glass-card glass-card--clickable"
-            onClick={() => handleAlertClick(alert)}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-              <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{alert.id}</span>
-              <span className={`badge badge-${alert.riskLevel.toLowerCase()}`}>{alert.riskLevel}</span>
+        {filtered.map(alert => {
+          const treatment = getTreatment(alert.id);
+          let displayStatus = alert.status;
+          if (treatment) {
+            if (treatment.id === 'block') displayStatus = 'Blocked';
+            else if (treatment.id === 'whitelist') displayStatus = 'Whitelisted';
+            else if (treatment.id === 'freeze') displayStatus = 'Frozen';
+            else if (treatment.id === 'escalate') displayStatus = 'Escalated';
+            else if (treatment.id === 'monitor') displayStatus = 'Monitoring';
+          }
+
+          return (
+            <div
+              key={alert.id}
+              className="glass-card glass-card--clickable"
+              onClick={() => handleAlertClick(alert)}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{alert.id}</span>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  {treatment && (
+                    <span className={`badge ${displayStatus === 'Blocked' ? 'badge-critical' : displayStatus === 'Whitelisted' ? 'badge-low' : 'badge-info'}`}>
+                      {displayStatus}
+                    </span>
+                  )}
+                  <span className={`badge badge-${alert.riskLevel.toLowerCase()}`}>{alert.riskLevel}</span>
+                </div>
+              </div>
+              <p className="text-sm font-semibold" style={{ marginBottom: 8, lineHeight: 1.4 }}>{alert.reason}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="text-xs text-tertiary">TXN: {alert.transactionId}</span>
+                <span className="text-xs text-tertiary">{alert.date}</span>
+              </div>
+              {alert.senderName && (
+                <div style={{ marginTop: 6 }}>
+                  <span className="text-xs text-tertiary">{alert.senderName} → {alert.receiverName} • {alert.amount ? `₹${alert.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : ''}</span>
+                </div>
+              )}
             </div>
-            <p className="text-sm font-semibold" style={{ marginBottom: 8, lineHeight: 1.4 }}>{alert.reason}</p>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className="text-xs text-tertiary">TXN: {alert.transactionId}</span>
-              <span className="text-xs text-tertiary">{alert.date}</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {filtered.length === 0 && (
           <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 60, color: 'var(--text-tertiary)' }}>
             <p style={{ fontSize: '2rem', marginBottom: 8 }}>✅</p>
@@ -82,10 +106,10 @@ export default function FraudAlerts() {
         )}
       </div>
 
-      {selectedTransaction && (
-        <TransactionDetail
-          transaction={selectedTransaction}
-          onClose={() => setSelectedTransaction(null)}
+      {selectedAlert && (
+        <AlertDetailPanel
+          alert={selectedAlert}
+          onClose={() => setSelectedAlert(null)}
         />
       )}
     </div>

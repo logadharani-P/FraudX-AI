@@ -3,6 +3,7 @@
     "dashboard": "Dashboard",
     "transactions": "Transactions",
     "fraudAlerts": "Fraud Alerts",
+    "securityCenter": "Security Center",
     "members": "Members",
     "riskAnalysis": "Risk Analysis",
     "riskTreatment": "Risk Treatment",

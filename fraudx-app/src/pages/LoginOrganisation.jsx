@@ -3,31 +3,38 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AnimatedBackground from '../components/AnimatedBackground';
+import MFAVerification from '../components/MFA/MFAVerification';
 import logoImg from '../assets/logo-original.png';
 import './Login.css';
+
+const DEMO_MFA_CODE = '739215';
 
 export default function LoginOrganisation() {
   const [step, setStep] = useState('credentials');
   const [orgId, setOrgId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mfaCode, setMfaCode] = useState('');
+  const [error, setError] = useState('');
   const { login } = useAuth();
   const { t } = useTheme();
   const navigate = useNavigate();
 
   const handleCredentials = (e) => {
     e.preventDefault();
+    setError('');
+    if (!orgId.trim() || !email.trim() || !password.trim()) {
+      setError('Please enter Organisation ID, admin email, and password.');
+      return;
+    }
     setStep('mfa');
   };
 
-  const handleMfa = (e) => {
-    e.preventDefault();
+  const handleMfaSuccess = () => {
     setStep('complete');
     setTimeout(() => {
       login('organisation');
       navigate('/dashboard');
-    }, 1500);
+    }, 1200);
   };
 
   return (
@@ -43,38 +50,43 @@ export default function LoginOrganisation() {
           <form className="login__form animate-fade-in" onSubmit={handleCredentials}>
             <div className="input-group">
               <label className="input-label" htmlFor="org-id">{t('login.orgId')}</label>
-              <input id="org-id" className="input" type="text" placeholder="ORG-300001" value={orgId} onChange={e => setOrgId(e.target.value)} />
+              <input id="org-id" className="input" type="text" placeholder="ORG-300001" value={orgId} onChange={e => { setOrgId(e.target.value); setError(''); }} />
             </div>
             <div className="input-group">
               <label className="input-label" htmlFor="org-email">{t('login.adminEmail')}</label>
-              <input id="org-email" className="input" type="email" placeholder="admin@fraudx.ai" value={email} onChange={e => setEmail(e.target.value)} />
+              <input id="org-email" className="input" type="email" placeholder="admin@fraudx.ai" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} />
             </div>
             <div className="input-group">
               <label className="input-label" htmlFor="org-pwd">{t('login.password')}</label>
-              <input id="org-pwd" className="input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
+              <input id="org-pwd" className="input" type="password" placeholder="••••••••" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} />
             </div>
+            {error && (
+              <div style={{ color: 'var(--risk-high, #EF4444)', fontSize: 'var(--font-size-xs)', padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 'var(--border-radius-md)', textAlign: 'center' }}>
+                {error}
+              </div>
+            )}
             <button type="submit" className="btn btn-primary btn-lg w-full">{t('login.signIn')}</button>
+            <div style={{ textAlign: 'center', marginTop: 8 }}>
+              <span className="text-xs text-tertiary" style={{ fontFamily: 'var(--font-mono)' }}>
+                Demo — ID: ORG-300001 | Email: vikram.mehta@fraudx.ai | Password: fraudx2024
+              </span>
+            </div>
           </form>
         )}
 
         {step === 'mfa' && (
-          <form className="login__form login__mfa animate-fade-in" onSubmit={handleMfa}>
-            <h2 className="login__step-title">{t('login.mfaTitle')}</h2>
-            <p className="text-secondary text-sm">{t('login.mfaDesc')}</p>
-            <div className="mfa-inputs">
-              {[0,1,2,3,4,5].map(i => (
-                <input key={i} className="mfa-input" type="text" maxLength="1" inputMode="numeric"
-                  onChange={e => {
-                    const val = mfaCode.split('');
-                    val[i] = e.target.value;
-                    setMfaCode(val.join(''));
-                    if (e.target.value && e.target.nextElementSibling) e.target.nextElementSibling.focus();
-                  }}
-                />
-              ))}
+          <div>
+            <div className="login__step-check" style={{ marginBottom: 16, justifyContent: 'center' }}>
+              <span className="login__check">✓</span>
+              <span>Credentials verified</span>
             </div>
-            <button type="submit" className="btn btn-primary btn-lg w-full">Verify</button>
-          </form>
+            <MFAVerification
+              demoCode={DEMO_MFA_CODE}
+              roleName="Organisation"
+              onSuccess={handleMfaSuccess}
+              onCancel={() => setStep('credentials')}
+            />
+          </div>
         )}
 
         {step === 'complete' && (
@@ -86,8 +98,6 @@ export default function LoginOrganisation() {
             </div>
           </div>
         )}
-
-        <p className="login__demo-note">Demo Mode — Click Sign In to continue</p>
       </div>
       <div className="welcome__orb welcome__orb--1" />
       <div className="welcome__orb welcome__orb--2" />

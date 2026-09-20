@@ -6,21 +6,29 @@ import logoImg from '../../assets/logo-original.png';
 import './Sidebar.css';
 
 const NAV_ITEMS = [
-  { path: '/dashboard', icon: 'dashboard', labelKey: 'nav.dashboard' },
-  { path: '/transactions', icon: 'transactions', labelKey: 'nav.transactions' },
-  { path: '/fraud-alerts', icon: 'alerts', labelKey: 'nav.fraudAlerts' },
-  { path: '/members', icon: 'members', labelKey: 'nav.members' },
-  { type: 'divider' },
-  { path: '/risk-analysis', icon: 'risk', labelKey: 'nav.riskAnalysis' },
-  { path: '/risk-treatment', icon: 'treatment', labelKey: 'nav.riskTreatment' },
-  { type: 'divider' },
-  { path: '/ai-agent', icon: 'ai', labelKey: 'nav.aiAgent' },
-  { path: '/reports', icon: 'reports', labelKey: 'nav.reports' },
-  { type: 'divider' },
-  { path: '/settings', icon: 'settings', labelKey: 'nav.settings' },
+  { path: '/dashboard', icon: 'dashboard', labelKey: 'nav.dashboard', roles: ['customer', 'analyst', 'organisation'] },
+  { path: '/transactions', icon: 'transactions', labelKey: 'nav.transactions', roles: ['customer', 'analyst', 'organisation'] },
+  { path: '/fraud-alerts', icon: 'alerts', labelKey: 'nav.fraudAlerts', roles: ['analyst', 'organisation'] },
+  { path: '/security-center', icon: 'security', labelKey: 'nav.securityCenter', roles: ['analyst', 'organisation'] },
+  { path: '/members', icon: 'members', labelKey: 'nav.members', roles: ['analyst', 'organisation'] },
+  { type: 'divider', roles: ['analyst', 'organisation'] },
+  { path: '/risk-analysis', icon: 'risk', labelKey: 'nav.riskAnalysis', roles: ['customer', 'analyst', 'organisation'] },
+  { path: '/risk-treatment', icon: 'treatment', labelKey: 'nav.riskTreatment', roles: ['analyst', 'organisation'] },
+  { type: 'divider', roles: ['customer', 'analyst', 'organisation'] },
+  { path: '/ai-agent', icon: 'ai', labelKey: 'nav.aiAgent', roles: ['customer', 'analyst', 'organisation'] },
+  { path: '/reports', icon: 'reports', labelKey: 'nav.reports', roles: ['analyst', 'organisation'] },
+  { type: 'divider', roles: ['customer', 'analyst', 'organisation'] },
+  { path: '/settings', icon: 'settings', labelKey: 'nav.settings', roles: ['customer', 'analyst', 'organisation'] },
 ];
 
 const ICONS = {
+  security: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="M12 8v4" />
+      <path d="M12 16h.01" />
+    </svg>
+  ),
   dashboard: (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="2" width="7" height="8" rx="1.5"/>
@@ -99,11 +107,28 @@ export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth();
   const { t } = useTheme();
   const navigate = useNavigate();
+  const userRole = user?.role || 'customer';
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
+
+  // Filter nav items by role
+  const visibleItems = NAV_ITEMS.filter(item => {
+    if (!item.roles) return true;
+    return item.roles.includes(userRole);
+  });
+
+  // Remove leading/trailing/consecutive dividers
+  const cleanedItems = visibleItems.filter((item, idx, arr) => {
+    if (item.type !== 'divider') return true;
+    // Remove if first or last
+    if (idx === 0 || idx === arr.length - 1) return false;
+    // Remove consecutive dividers
+    if (arr[idx - 1]?.type === 'divider') return false;
+    return true;
+  });
 
   return (
     <>
@@ -114,7 +139,7 @@ export default function Sidebar({ isOpen, onClose }) {
         </div>
 
         <nav className="sidebar__nav">
-          {NAV_ITEMS.map((item, idx) =>
+          {cleanedItems.map((item, idx) =>
             item.type === 'divider' ? (
               <div key={`d-${idx}`} className="sidebar__divider" />
             ) : (
@@ -143,7 +168,7 @@ export default function Sidebar({ isOpen, onClose }) {
             </span>
             <div className="sidebar__user-info">
               <span className="sidebar__user-name">{user?.name || 'User'}</span>
-              <span className="sidebar__user-role">{user?.role || 'Role'}</span>
+              <span className="sidebar__user-role">{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Role'}</span>
             </div>
           </NavLink>
           <button className="sidebar__item sidebar__logout" onClick={handleLogout} aria-label={t('nav.logout')}>

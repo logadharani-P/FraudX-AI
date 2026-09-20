@@ -16,18 +16,58 @@ const LANGUAGE_NAMES = {
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('fraudx-theme') || 'luminous');
+  const [accent, setAccent] = useState(() => localStorage.getItem('fraudx-accent') || 'blue');
+  const [animations, setAnimations] = useState(() => localStorage.getItem('fraudx-animations') || 'full');
+  const [density, setDensity] = useState(() => localStorage.getItem('fraudx-density') || 'comfortable');
+  const [fontSize, setFontSize] = useState(() => localStorage.getItem('fraudx-font-size') || 'default');
+  const [highContrast, setHighContrast] = useState(() => localStorage.getItem('fraudx-high-contrast') === 'true');
   const [language, setLanguage] = useState(() => localStorage.getItem('fraudx-lang') || 'en');
 
+  // Handle system theme detection
   useEffect(() => {
+    let effectiveTheme = theme;
+    if (highContrast) {
+      effectiveTheme = 'high-contrast';
+    } else if (theme === 'system') {
+      const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      effectiveTheme = isDark ? 'midnight' : 'luminous';
+    }
+
     const themeMap = {
       luminous: '',
       midnight: 'midnight',
       aurora: 'aurora',
       'secure-light': 'secure-light',
+      'high-contrast': 'high-contrast',
     };
-    document.documentElement.setAttribute('data-theme', themeMap[theme] || '');
+
+    document.documentElement.setAttribute('data-theme', themeMap[effectiveTheme] || '');
     localStorage.setItem('fraudx-theme', theme);
-  }, [theme]);
+  }, [theme, highContrast]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-accent', accent);
+    localStorage.setItem('fraudx-accent', accent);
+  }, [accent]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-animations', animations);
+    localStorage.setItem('fraudx-animations', animations);
+  }, [animations]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-density', density);
+    localStorage.setItem('fraudx-density', density);
+  }, [density]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-font-size', fontSize);
+    localStorage.setItem('fraudx-font-size', fontSize);
+  }, [fontSize]);
+
+  useEffect(() => {
+    localStorage.setItem('fraudx-high-contrast', highContrast.toString());
+  }, [highContrast]);
 
   useEffect(() => {
     localStorage.setItem('fraudx-lang', language);
@@ -66,11 +106,21 @@ export function ThemeProvider({ children }) {
   const value = useMemo(() => ({
     theme,
     setTheme,
+    accent,
+    setAccent,
+    animations,
+    setAnimations,
+    density,
+    setDensity,
+    fontSize,
+    setFontSize,
+    highContrast,
+    setHighContrast,
     language,
     setLanguage,
     t,
     languages: LANGUAGE_NAMES,
-  }), [theme, language, t]);
+  }), [theme, accent, animations, density, fontSize, highContrast, language, t]);
 
   return (
     <ThemeContext.Provider value={value}>

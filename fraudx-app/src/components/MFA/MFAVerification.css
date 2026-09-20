@@ -1,0 +1,199 @@
+/* ================================================
+   MFA Verification Styles
+   ================================================ */
+
+.mfa-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.mfa-visual {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--border-radius-full);
+  background: var(--gradient-brand-subtle);
+  border: 1px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+  color: var(--brand-blue);
+}
+
+.mfa-visual__shield-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: var(--border-radius-full);
+  border: 2px dashed rgba(74, 123, 247, 0.35);
+  animation: spin 18s linear infinite;
+}
+
+.mfa-visual--success {
+  background: var(--risk-low-bg);
+  border-color: var(--risk-low);
+  color: var(--risk-low);
+}
+
+.mfa-visual--error {
+  background: var(--risk-high-bg);
+  border-color: var(--risk-high);
+  color: var(--risk-high);
+}
+
+.mfa-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+  text-align: center;
+}
+
+.mfa-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.5;
+  margin-bottom: var(--space-6);
+  max-width: 340px;
+}
+
+.mfa-digits {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+}
+
+.mfa-digit-input {
+  width: 46px;
+  height: 56px;
+  text-align: center;
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.mfa-digit-input:focus {
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 0 4px rgba(74, 123, 247, 0.15);
+  background: var(--bg-card);
+  outline: none;
+}
+
+.mfa-digit-input.has-error {
+  border-color: var(--risk-high);
+  background: var(--risk-high-bg);
+}
+
+.mfa-error-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--risk-high-bg);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: var(--risk-high);
+  padding: 8px 14px;
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-4);
+  width: 100%;
+  text-align: left;
+}
+
+.mfa-resend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.mfa-resend-btn {
+  background: none;
+  border: none;
+  color: var(--brand-blue);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--border-radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.mfa-resend-btn:disabled {
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+.mfa-resend-btn:not(:disabled):hover {
+  text-decoration: underline;
+}
+
+.mfa-demo-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(74, 123, 247, 0.08);
+  border: 1px dashed rgba(74, 123, 247, 0.3);
+  border-radius: var(--border-radius-md);
+  margin-top: var(--space-4);
+}
+
+.mfa-demo-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--brand-blue);
+}
+
+.mfa-demo-code {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  padding: 2px 10px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-primary);
+}
+
+.mfa-demo-disclaimer {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.mfa-progress {
+  width: 100%;
+  height: 4px;
+  background: var(--border-primary);
+  border-radius: var(--border-radius-full);
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+
+.mfa-progress-bar {
+  height: 100%;
+  background: var(--gradient-brand);
+  transition: width 0.3s ease;
+}

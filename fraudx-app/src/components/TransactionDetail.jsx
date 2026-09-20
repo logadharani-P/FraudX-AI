@@ -1,10 +1,44 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
 import './TransactionDetail.css';
+
+// Human-readable anomaly explanations
+const ANOMALY_EXPLANATIONS = {
+  'Unusual transaction amount detected': 'The transaction amount is unusually high compared with this member\'s previous activity.',
+  'Rapid transaction sequence identified': 'Multiple transactions were made in quick succession, which is atypical for this account.',
+  'Transaction from unusual location': 'This transaction originated from a location not typically associated with this member\'s activity.',
+  'New device used for transaction': 'This transaction was initiated from a device not previously used with this account.',
+  'Transaction at unusual time': 'This transaction occurred at an unusual time when the member does not typically transact.',
+  'Higher than normal transaction frequency': 'Transaction frequency is significantly higher than the member\'s normal activity pattern.',
+  'Suspicious network pattern detected': 'The AI engine detected a suspicious pattern involving linked accounts or recipients.',
+  'Suspicious activity detected': 'General suspicious activity flagged by the AI engine based on multiple risk indicators.',
+};
+
+function explainAnomaly(factor) {
+  return ANOMALY_EXPLANATIONS[factor] || factor;
+}
 
 export default function TransactionDetail({ transaction: txn, onClose }) {
   const { t } = useTheme();
+  const { user } = useAuth();
+  const { getAlertForTransaction, getTreatment } = useData();
   if (!txn) return null;
+
+  const isCustomer = user?.role === 'customer';
+  const alert = getAlertForTransaction(txn.id);
+  const treatment = alert ? getTreatment(alert.id) : null;
+
+  // Determine effective status
+  let effectiveStatus = txn.status;
+  if (treatment) {
+    if (treatment.id === 'block') effectiveStatus = 'Blocked';
+    else if (treatment.id === 'whitelist') effectiveStatus = 'Whitelisted';
+    else if (treatment.id === 'freeze') effectiveStatus = 'Frozen';
+    else if (treatment.id === 'escalate') effectiveStatus = 'Escalated';
+    else if (treatment.id === 'monitor') effectiveStatus = 'Enhanced Monitoring';
+  }
 
   const Section = ({ title, children }) => (
     <div className="txn-detail__section">
@@ -51,8 +85,8 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
 
           <Section title={t('transactionDetail.locationSection')}>
             <Field label="Recorded Location" value={txn.location} />
-            <Field label="Latitude" value={txn.lat.toFixed(4)} mono />
-            <Field label="Longitude" value={txn.lng.toFixed(4)} mono />
+            {txn.lat && <Field label="Latitude" value={txn.lat.toFixed(4)} mono />}
+            {txn.lng && <Field label="Longitude" value={txn.lng.toFixed(4)} mono />}
             <p className="txn-detail__demo-note">📍 {t('transactionDetail.demoLocation')}</p>
           </Section>
 
@@ -72,7 +106,10 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
               <div className="txn-detail__anomalies">
                 <span className="txn-detail__field-label">{t('transactionDetail.detectedAnomalies')}</span>
                 {txn.anomalyFactors.map((f, i) => (
-                  <div key={i} className="txn-detail__anomaly-item">⚠️ {f}</div>
+                  <div key={i} className="txn-detail__anomaly-item" style={{ borderLeft: '3px solid var(--risk-medium, #F59E0B)', padding: '8px 12px', background: 'var(--bg-tertiary)', borderRadius: 'var(--border-radius-md, 8px)', marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginBottom: 2 }}>⚠️ {f}</div>
+                    <div style={{ fontSize: 'var(--font-size-sm)', lineHeight: 1.5 }}>{explainAnomaly(f)}</div>
+                  </div>
                 ))}
               </div>
             )}
@@ -80,10 +117,21 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
 
           <Section title={t('transactionDetail.statusSection')}>
             <div className="txn-detail__status">
-              <span className={`badge badge-${txn.status === 'Completed' ? 'success' : txn.status === 'Flagged' ? 'high' : 'medium'}`}>
-                {txn.status}
+              <span className={`badge badge-${
+                effectiveStatus === 'Completed' ? 'success'
+                : effectiveStatus === 'Blocked' ? 'critical'
+                : effectiveStatus === 'Whitelisted' ? 'low'
+                : effectiveStatus === 'Flagged' ? 'high'
+                : 'medium'
+              }`}>
+                {effectiveStatus}
               </span>
             </div>
+            {treatment && (
+              <div style={{ marginTop: 8, fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
+                {treatment.icon} {treatment.label} by {treatment.performedBy || 'System'}
+              </div>
+            )}
           </Section>
         </div>
       </div>
