@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -8,104 +8,87 @@ const GREETINGS = {
   en: {
     nameGreeting: (name) => `Hello ${name}. Welcome to FraudX AI. How can I help you right now?`,
     genericGreeting: () => `Hello! Welcome to FraudX AI. How can I help you right now?`,
-    heading: (name) => name ? `Hello, ${name}!` : `Hello!`,
-    subtext: `Welcome to FraudX AI.`,
-    prompt: `How can I help you right now?`,
-    guideText: `Next Step: Review your live transaction stream or check your account risk assessment.`,
-    nextBtn: `Take Me to Transactions →`,
+    welcomeHeading: (name, timeOfDay) => name ? `Good ${timeOfDay}, ${name}` : `Welcome to FraudX AI`,
+    speechQuote: `Welcome to FraudX AI. How can I help you right now?`,
     statusSpeaking: `AI is speaking...`,
     statusPaused: `Speech paused`,
-    statusReady: `AI Assistant Ready`,
-    tapToHear: `🔊 Tap to hear welcome`,
-    replay: `🔊 Replay Welcome`,
-    pause: `⏸ Pause`,
-    resume: `▶️ Resume`,
-    mute: `🔇 Mute`,
-    navConfirmation: (page) => `Navigating to your ${page} now.`
+    statusReady: `Ready to help`,
+    statusListening: `Listening for question...`,
+    tapToEnable: `Voice is ready — tap anywhere to enable audio`,
+    replay: `Replay Greeting`,
+    pause: `Pause`,
+    resume: `Resume`,
+    mute: `Mute Voice`,
+    unmute: `Unmute Voice`,
   },
   hi: {
     nameGreeting: (name) => `नमस्ते ${name}. फ्रॉडएक्स एआई में आपका स्वागत है। मैं आपकी क्या मदद कर सकता हूँ?`,
     genericGreeting: () => `नमस्ते! फ्रॉडएक्स एआई में आपका स्वागत है। मैं आपकी क्या मदद कर सकता हूँ?`,
-    heading: (name) => name ? `नमस्ते, ${name}!` : `नमस्ते!`,
-    subtext: `फ्रॉडएक्स एआई में आपका स्वागत है।`,
-    prompt: `मैं आपकी क्या मदद कर सकता हूँ?`,
-    guideText: `अगला कदम: अपने लेन-देन की समीक्षा करें या जोखिम स्थिति जांचें।`,
-    nextBtn: `लेन-देन देखें →`,
+    welcomeHeading: (name) => name ? `नमस्ते, ${name}` : `फ्रॉडएक्स एआई में स्वागत है`,
+    speechQuote: `फ्रॉडएक्स एआई में आपका स्वागत है। मैं आपकी क्या मदद कर सकता हूँ?`,
     statusSpeaking: `एआई बोल रहा है...`,
     statusPaused: `आवाज रुकी हुई है`,
-    statusReady: `एआई सहायक तैयार है`,
-    tapToHear: `🔊 स्वागत संदेश सुनें`,
-    replay: `🔊 पुनः सुनें`,
-    pause: `⏸ रोकें`,
-    resume: `▶️ जारी रखें`,
-    mute: `🔇 म्यूट`,
-    navConfirmation: (page) => `अब ${page} पृष्ठ खोला जा रहा है।`
+    statusReady: `सहायता के लिए तैयार`,
+    statusListening: `सुन रहा हूँ...`,
+    tapToEnable: `ऑडियो सक्षम करने के लिए कहीं भी टैप करें`,
+    replay: `पुनः सुनें`,
+    pause: `रोकें`,
+    resume: `जारी रखें`,
+    mute: `म्यूट`,
+    unmute: `अनम्यूट`,
   },
   ta: {
     nameGreeting: (name) => `வணக்கம் ${name}. FraudX AI-க்கு நல்வரவு. இன்று நான் உங்களுக்கு எவ்வாறு உதவ முடியும்?`,
     genericGreeting: () => `வணக்கம்! FraudX AI-க்கு நல்வரவு. இன்று நான் உங்களுக்கு எவ்வாறு உதவ முடியும்?`,
-    heading: (name) => name ? `வணக்கம், ${name}!` : `வணக்கம்!`,
-    subtext: `FraudX AI-க்கு நல்வரவு.`,
-    prompt: `இன்று நான் உங்களுக்கு எவ்வாறு உதவ முடியும்?`,
-    guideText: `அடுத்த கட்டம்: உங்கள் பணப் பரிவர்த்தனைகள் அல்லது கணக்கு பாதுகாப்பை மதிப்பாய்வு செய்யவும்.`,
-    nextBtn: `பரிவர்த்தனைகளை பார்க்க →`,
+    welcomeHeading: (name) => name ? `வணக்கம், ${name}` : `FraudX AI-க்கு நல்வரவு`,
+    speechQuote: `FraudX AI-க்கு நல்வரவு. இன்று நான் உங்களுக்கு எவ்வாறு உதவ முடியும்?`,
     statusSpeaking: `AI பேசுகிறது...`,
     statusPaused: `ஒலி இடைநிறுத்தப்பட்டது`,
-    statusReady: `AI உதவியாளர் தயார்`,
-    tapToHear: `🔊 குரல் வரவேற்பைக் கேளுங்கள்`,
-    replay: `🔊 மீண்டும் கேள்`,
-    pause: `⏸ இடைநிறுத்து`,
-    resume: `▶️ தொடரவும்`,
-    mute: `🔇 முடக்கு`,
-    navConfirmation: (page) => `இப்போது ${page} பக்கத்திற்குச் செல்கிறது.`
+    statusReady: `உதவ தயார்`,
+    statusListening: `கேட்கிறது...`,
+    tapToEnable: `ஆடியோவை இயக்க எங்கு வேண்டுமானாலும் தட்டவும்`,
+    replay: `மீண்டும் கேள்`,
+    pause: `இடைநிறுத்து`,
+    resume: `தொடரவும்`,
+    mute: `முடக்கு`,
+    unmute: `ஒலி இயக்கு`,
   },
   te: {
     nameGreeting: (name) => `నమస్కారం ${name}. FraudX AI కి స్వాగతం. ఈరోజు నేను మీకు ఎలా సహాయపడగలను?`,
     genericGreeting: () => `నమస్కారం! FraudX AI కి స్వాగతం. ఈరోజు నేను మీకు ఎలా సహాయపడగలను?`,
-    heading: (name) => name ? `నమస్కారం, ${name}!` : `నమస్కారం!`,
-    subtext: `FraudX AI కి స్వాగతం.`,
-    prompt: `ఈరోజు నేను మీకు ఎలా సహాయపడగలను?`,
-    guideText: `తదుపరి దశ: మీ లావాదేవీలు లేదా ఖాతా రిస్క్ స్థాయిని సమీక్షించండి.`,
-    nextBtn: `లావాదేవీలను చూడండి →`,
+    welcomeHeading: (name) => name ? `నమస్కారం, ${name}` : `FraudX AI కి స్వాగతం`,
+    speechQuote: `FraudX AI కి స్వాగతం. ఈరోజు నేను మీకు ఎలా సహాయపడగలను?`,
     statusSpeaking: `AI మాట్లాడుతోంది...`,
     statusPaused: `వాయిస్ పాజ్ చేయబడింది`,
-    statusReady: `AI అసిస్టెంట్ సిద్ధంగా ఉంది`,
-    tapToHear: `🔊 స్వాగతం వినండి`,
-    replay: `🔊 మళ్ళీ వినండి`,
-    pause: `⏸ పాజ్`,
-    resume: `▶️ కొనసాగించు`,
-    mute: `🔇 మ్యూట్`,
-    navConfirmation: (page) => `ఇప్పుడు ${page} పేజీకి నావిగేట్ చేస్తోంది.`
+    statusReady: `సహాయం చేయడానికి సిద్ధంగా ఉంది`,
+    statusListening: `వింటోంది...`,
+    tapToEnable: `ఆడియోని ప్రారంభించడానికి ఎక్కడైనా నొక్కండి`,
+    replay: `మళ్ళీ వినండి`,
+    pause: `పాజ్`,
+    resume: `కొనసాగించు`,
+    mute: `మ్యూట్`,
+    unmute: `అన్‌మ్యూట్`,
   }
 };
 
 const PERSONA_CONFIGS = {
   female: {
     id: 'female',
-    name: 'Aria (Female AI)',
-    face: '👩‍💼',
-    cssClass: 'ai-welcome-card__avatar--female',
-    badge: 'Female Voice (Aria)',
-    pitch: 1.08,
-    rate: 0.96
+    name: 'Aria (Female Voice)',
+    pitch: 1.06,
+    rate: 0.95,
   },
   male: {
     id: 'male',
-    name: 'Alex (Male AI)',
-    face: '👨‍💼',
-    cssClass: 'ai-welcome-card__avatar--male',
-    badge: 'Male Voice (Alex)',
+    name: 'Alex (Male Voice)',
     pitch: 0.92,
-    rate: 0.95
+    rate: 0.95,
   },
   cyber: {
     id: 'cyber',
-    name: 'CyberX (Neural Bot)',
-    face: '🤖',
-    cssClass: 'ai-welcome-card__avatar--cyber',
-    badge: 'Cyber Voice',
+    name: 'CyberX (Neural Voice)',
     pitch: 1.0,
-    rate: 0.98
+    rate: 0.98,
   }
 };
 
@@ -114,7 +97,7 @@ export default function AIWelcomeCard() {
   const { language, setLanguage } = useTheme();
   const navigate = useNavigate();
 
-  // Voice Persona state (female / male / cyber)
+  // Voice Persona
   const [persona, setPersona] = useState(() => localStorage.getItem('fraudx_ai_persona') || 'female');
 
   // Customer Name resolution
@@ -130,12 +113,13 @@ export default function AIWelcomeCard() {
   const langTexts = GREETINGS[currentLang];
   const personaConfig = PERSONA_CONFIGS[persona] || PERSONA_CONFIGS.female;
 
-  // Spoken text and Visual text per selected language
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+
+  const welcomeHeading = langTexts.welcomeHeading(customerName, timeOfDay);
   const spokenGreeting = customerName
     ? langTexts.nameGreeting(customerName)
     : langTexts.genericGreeting();
-
-  const visualHeading = langTexts.heading(customerName);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -147,14 +131,11 @@ export default function AIWelcomeCard() {
 
   // Load and cache voices
   useEffect(() => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      return;
-    }
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
     const updateVoices = () => {
       try {
-        const availableVoices = window.speechSynthesis.getVoices();
-        voicesRef.current = availableVoices;
+        voicesRef.current = window.speechSynthesis.getVoices();
       } catch (err) {
         console.warn('Speech synthesis getVoices error:', err);
       }
@@ -172,7 +153,7 @@ export default function AIWelcomeCard() {
     };
   }, []);
 
-  const getBestVoice = (langCode, targetPersona) => {
+  const getBestVoice = useCallback((langCode, targetPersona) => {
     const voices = voicesRef.current.length > 0 
       ? voicesRef.current 
       : (typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis.getVoices() : []);
@@ -182,11 +163,9 @@ export default function AIWelcomeCard() {
     const isTargetFemale = targetPersona === 'female';
     const isTargetMale = targetPersona === 'male';
 
-    // 1. Match selected language (e.g. 'hi', 'ta', 'te', 'en')
     const langVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith(langCode));
 
     if (langVoices.length > 0) {
-      // Find gender match within language
       if (isTargetFemale) {
         const femaleVoice = langVoices.find(v => {
           const name = v.name.toLowerCase();
@@ -205,7 +184,6 @@ export default function AIWelcomeCard() {
       return langVoices[0];
     }
 
-    // 2. Fallback to English voices with gender matching
     const englishVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
     if (englishVoices.length > 0) {
       if (isTargetFemale) {
@@ -226,9 +204,9 @@ export default function AIWelcomeCard() {
     }
 
     return voices[0];
-  };
+  }, []);
 
-  const speakText = (text, onFinishCallback) => {
+  const speakText = useCallback((text, onFinishCallback) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       if (onFinishCallback) onFinishCallback();
       return;
@@ -284,14 +262,13 @@ export default function AIWelcomeCard() {
       setAutoplayBlocked(true);
       if (onFinishCallback) onFinishCallback();
     }
-  };
+  }, [currentLang, persona, isMuted, personaConfig, getBestVoice]);
 
-  // Play main welcome greeting
-  const playVoiceGreeting = () => {
+  const playVoiceGreeting = useCallback(() => {
     speakText(spokenGreeting);
-  };
+  }, [speakText, spokenGreeting]);
 
-  // Initial session trigger
+  // Automatic speech trigger on initial customer session mount
   useEffect(() => {
     if (user?.role !== 'customer') return;
 
@@ -308,10 +285,10 @@ export default function AIWelcomeCard() {
           if (!window.speechSynthesis?.speaking && !hasPlayedOnce) {
             setAutoplayBlocked(true);
           }
-        }, 1200);
+        }, 1100);
 
         return () => clearTimeout(checkTimer);
-      }, 450);
+      }, 400);
 
       return () => {
         clearTimeout(timer);
@@ -320,286 +297,244 @@ export default function AIWelcomeCard() {
         }
       };
     }
-  }, [user]);
+  }, [user, playVoiceGreeting, hasPlayedOnce]);
 
-  // Handle persona change
+  // Global first-interaction fallback listener for browser autoplay restriction
+  useEffect(() => {
+    if (!autoplayBlocked) return;
+
+    const handleFirstUserInteraction = () => {
+      setAutoplayBlocked(false);
+      playVoiceGreeting();
+    };
+
+    window.addEventListener('click', handleFirstUserInteraction, { once: true });
+    window.addEventListener('keydown', handleFirstUserInteraction, { once: true });
+
+    return () => {
+      window.removeEventListener('click', handleFirstUserInteraction);
+      window.removeEventListener('keydown', handleFirstUserInteraction);
+    };
+  }, [autoplayBlocked, playVoiceGreeting]);
+
+  // Controls Handlers
+  const handleReplay = () => {
+    if (isMuted) setIsMuted(false);
+    playVoiceGreeting();
+  };
+
+  const handlePauseResume = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (isSpeaking) {
+      window.speechSynthesis.pause();
+      setIsPaused(true);
+      setIsSpeaking(false);
+    } else if (isPaused) {
+      window.speechSynthesis.resume();
+      setIsPaused(false);
+      setIsSpeaking(true);
+    } else {
+      playVoiceGreeting();
+    }
+  };
+
+  const handleToggleMute = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      if (!isMuted) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+        setIsPaused(false);
+        setIsMuted(true);
+      } else {
+        setIsMuted(false);
+        playVoiceGreeting();
+      }
+    }
+  };
+
   const handlePersonaChange = (newPersona) => {
     setPersona(newPersona);
     localStorage.setItem('fraudx_ai_persona', newPersona);
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
-    // Replay greeting with the new voice persona
     setTimeout(() => {
       speakText(spokenGreeting);
     }, 150);
   };
 
-  // Handle language change
-  const handleLanguageChange = (newLang) => {
-    setLanguage(newLang);
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-    const targetTexts = GREETINGS[newLang] || GREETINGS.en;
-    const newSpoken = customerName ? targetTexts.nameGreeting(customerName) : targetTexts.genericGreeting();
-    setTimeout(() => {
-      speakText(newSpoken);
-    }, 150);
-  };
-
-  // Controls Handlers
-  const handlePlayReplay = () => {
-    if (isMuted) setIsMuted(false);
-    playVoiceGreeting();
-  };
-
-  const handlePause = () => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.pause();
-      setIsPaused(true);
-      setIsSpeaking(false);
-    }
-  };
-
-  const handleResume = () => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.resume();
-      setIsPaused(false);
-      setIsSpeaking(true);
-    }
-  };
-
-  const handleMute = () => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-    setIsSpeaking(false);
-    setIsPaused(false);
-    setIsMuted(true);
-  };
-
-  // Voice-assisted navigation to next page
-  const handleNavigateWithVoice = (path, pageName, promptText) => {
-    const confirmationText = langTexts.navConfirmation(pageName);
-    speakText(confirmationText, () => {
-      if (promptText) {
-        navigate(path, { state: { initialPrompt: promptText } });
-      } else {
-        navigate(path);
-      }
-    });
-    // Ensure immediate or quick navigation fallback
-    setTimeout(() => {
-      if (promptText) {
-        navigate(path, { state: { initialPrompt: promptText } });
-      } else {
-        navigate(path);
-      }
-    }, 400);
-  };
-
   return (
-    <div className="ai-welcome-card animate-fade-in-up">
-      <div className="ai-welcome-card__ambient" />
+    <div className="ai-radiant-card animate-fade-in-up">
+      {/* Radiant ambient glow & particle beams */}
+      <div className="ai-radiant-ambient" />
+      <div className="ai-radiant-shimmer" />
 
-      {/* Header with Persona & Language Switchers and Audio Controls */}
-      <div className="ai-welcome-card__header">
-        <div className="ai-welcome-card__brand">
-          <span className="ai-welcome-card__brand-tag">
-            {personaConfig.face} FraudX AI Assistant
+      {/* Subtle Autoplay Fallback Notice */}
+      {autoplayBlocked && !isSpeaking && (
+        <div className="ai-autoplay-bar animate-fade-in" onClick={handleReplay}>
+          <span>🔊 {langTexts.tapToEnable}</span>
+        </div>
+      )}
+
+      {/* Top Header Row with Persona & Controls */}
+      <div className="ai-radiant-card__top">
+        <div className="ai-live-badge">
+          <span className={`ai-pulse-dot ${isSpeaking ? 'ai-pulse-dot--active' : ''}`} />
+          <span className="ai-live-text">
+            {isSpeaking ? langTexts.statusSpeaking : isPaused ? langTexts.statusPaused : langTexts.statusReady}
           </span>
-          <div className="ai-welcome-card__wave" title={isSpeaking ? 'AI Voice Active' : 'AI Voice Idle'}>
-            <span className={`ai-wave-bar ${isSpeaking ? 'ai-wave-bar--active' : ''}`} />
-            <span className={`ai-wave-bar ${isSpeaking ? 'ai-wave-bar--active' : ''}`} />
-            <span className={`ai-wave-bar ${isSpeaking ? 'ai-wave-bar--active' : ''}`} />
-            <span className={`ai-wave-bar ${isSpeaking ? 'ai-wave-bar--active' : ''}`} />
-            <span className={`ai-wave-bar ${isSpeaking ? 'ai-wave-bar--active' : ''}`} />
-          </div>
         </div>
 
-        <div className="ai-welcome-card__toolbar">
-          {/* Voice Persona Switcher (Girl / Boy / Cyber) */}
-          <div className="ai-select-pill" title="Switch AI Voice Persona & Face">
-            <span>🗣️ Voice:</span>
-            <select
-              value={persona}
-              onChange={(e) => handlePersonaChange(e.target.value)}
-              aria-label="Select AI Voice & Avatar Persona"
-            >
-              <option value="female">👩‍💼 Aria (Female Voice)</option>
-              <option value="male">👨‍💼 Alex (Male Voice)</option>
-              <option value="cyber">🤖 CyberX (Neural Bot)</option>
-            </select>
-          </div>
+        <div className="ai-controls-cluster">
+          {/* Persona selector */}
+          <select
+            className="ai-compact-select"
+            value={persona}
+            onChange={(e) => handlePersonaChange(e.target.value)}
+            aria-label="Select AI Voice"
+          >
+            <option value="female">Aria (Female)</option>
+            <option value="male">Alex (Male)</option>
+            <option value="cyber">CyberX (Neural)</option>
+          </select>
 
-          {/* Language Switcher */}
-          <div className="ai-select-pill" title="Switch AI Language">
-            <span>🌐</span>
-            <select
-              value={currentLang}
-              onChange={(e) => handleLanguageChange(e.target.value)}
-              aria-label="Select AI Language"
-            >
-              <option value="en">English</option>
-              <option value="hi">हिन्दी (Hindi)</option>
-              <option value="ta">தமிழ் (Tamil)</option>
-              <option value="te">తెలుగు (Telugu)</option>
-            </select>
-          </div>
+          {/* Language selector */}
+          <select
+            className="ai-compact-select"
+            value={currentLang}
+            onChange={(e) => setLanguage(e.target.value)}
+            aria-label="Select AI Language"
+          >
+            <option value="en">EN</option>
+            <option value="hi">हिन्दी</option>
+            <option value="ta">தமிழ்</option>
+            <option value="te">తెలుగు</option>
+          </select>
 
-          {/* Audio Controls */}
-          {autoplayBlocked && !isSpeaking && (
-            <button
-              type="button"
-              className="ai-control-btn ai-control-btn--highlight"
-              onClick={handlePlayReplay}
-              title="Click to play AI voice greeting"
-            >
-              {langTexts.tapToHear}
-            </button>
-          )}
+          {/* Compact Icon Action Controls */}
+          <button
+            type="button"
+            className={`ai-icon-btn ${isSpeaking ? 'ai-icon-btn--active' : ''}`}
+            onClick={handleReplay}
+            title={langTexts.replay}
+            aria-label={langTexts.replay}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+          </button>
 
-          {isSpeaking && (
-            <>
-              <button
-                type="button"
-                className="ai-control-btn ai-control-btn--active"
-                onClick={handlePause}
-                title="Pause AI speech"
-              >
-                {langTexts.pause}
-              </button>
-              <button
-                type="button"
-                className="ai-control-btn"
-                onClick={handleMute}
-                title="Mute AI speech"
-              >
-                {langTexts.mute}
-              </button>
-            </>
-          )}
+          <button
+            type="button"
+            className={`ai-icon-btn ${isSpeaking ? 'ai-icon-btn--active' : ''}`}
+            onClick={handlePauseResume}
+            title={isSpeaking ? langTexts.pause : langTexts.resume}
+            aria-label="Pause or Resume"
+          >
+            {isSpeaking ? (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="6" y="4" width="4" height="16" />
+                <rect x="14" y="4" width="4" height="16" />
+              </svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+            )}
+          </button>
 
-          {isPaused && (
-            <>
-              <button
-                type="button"
-                className="ai-control-btn ai-control-btn--highlight"
-                onClick={handleResume}
-                title="Resume AI speech"
-              >
-                {langTexts.resume}
-              </button>
-              <button
-                type="button"
-                className="ai-control-btn"
-                onClick={handleMute}
-                title="Stop AI speech"
-              >
-                {langTexts.mute}
-              </button>
-            </>
-          )}
-
-          {!isSpeaking && !isPaused && !autoplayBlocked && (
-            <button
-              type="button"
-              className="ai-control-btn"
-              onClick={handlePlayReplay}
-              title="Replay AI voice welcome"
-            >
-              {langTexts.replay}
-            </button>
-          )}
+          <button
+            type="button"
+            className={`ai-icon-btn ${isMuted ? 'ai-icon-btn--muted' : ''}`}
+            onClick={handleToggleMute}
+            title={isMuted ? langTexts.unmute : langTexts.mute}
+            aria-label="Mute or Unmute"
+          >
+            {isMuted ? (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="1" y1="1" x2="23" y2="23" />
+                <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+                <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Body with Dynamic Face Logo (Girl / Boy / Cyber) & Visual Greeting */}
-      <div className="ai-welcome-card__body">
-        <div className="ai-welcome-card__avatar-wrap">
-          {isSpeaking && <div className="ai-avatar-glow" />}
-          <div className={`ai-avatar-ring ${isSpeaking ? 'ai-avatar-ring--active' : ''}`} />
-          <div className={`ai-welcome-card__avatar ${personaConfig.cssClass} ${isSpeaking ? 'ai-welcome-card__avatar--speaking' : ''}`}>
-            <span className="ai-welcome-card__avatar-face">{personaConfig.face}</span>
+      {/* Main Center Area with Radiant AI Orb & Spoken Message */}
+      <div className="ai-radiant-card__center">
+        {/* Glowing Neural AI Orb */}
+        <div className={`ai-radiant-orb-wrap ${isSpeaking ? 'ai-radiant-orb-wrap--speaking' : ''}`}>
+          <div className="ai-orb-ring-outer" />
+          <div className="ai-orb-ring-inner" />
+          <div className="ai-orb-core">
+            <span className="ai-orb-sparkle">✦</span>
+          </div>
+
+          {/* Dynamic Waveform Visualizer */}
+          <div className={`ai-mini-wave ${isSpeaking ? 'ai-mini-wave--active' : ''}`}>
+            <span className="ai-wave-bar" />
+            <span className="ai-wave-bar" />
+            <span className="ai-wave-bar" />
+            <span className="ai-wave-bar" />
+            <span className="ai-wave-bar" />
           </div>
         </div>
 
-        <div className="ai-welcome-card__content">
-          <div className="ai-welcome-card__status-bar">
-            <span className="ai-status-indicator">
-              <span className={`ai-status-dot ${isSpeaking ? 'ai-status-dot--pulsing' : ''}`} />
-              {isSpeaking ? langTexts.statusSpeaking : isPaused ? langTexts.statusPaused : langTexts.statusReady}
-            </span>
-            <span className="ai-persona-badge">
-              {personaConfig.badge}
-            </span>
-          </div>
-
-          <h2 className="ai-welcome-card__greeting">{visualHeading}</h2>
-          <p className="ai-welcome-card__subtext">{langTexts.subtext}</p>
-          <p className="ai-welcome-card__prompt">{langTexts.prompt}</p>
-
-          {/* Page Assist Guide Row (Assists user to take and move to the next page) */}
-          <div className="ai-welcome-card__guide-row">
-            <span className="ai-guide-text">
-              ✨ <strong>Assistant Guide:</strong> {langTexts.guideText}
-            </span>
-            <button
-              type="button"
-              className="ai-guide-next-btn"
-              onClick={() => handleNavigateWithVoice('/transactions', 'Transactions')}
-            >
-              {langTexts.nextBtn}
-            </button>
-          </div>
-
-          {/* Quick Action Navigation Buttons */}
-          <div className="ai-welcome-card__actions">
-            <button
-              type="button"
-              className="ai-action-btn ai-action-btn--primary"
-              onClick={() => handleNavigateWithVoice('/transactions', 'Transactions')}
-            >
-              📊 View My Transactions
-            </button>
-            <button
-              type="button"
-              className="ai-action-btn"
-              onClick={() => handleNavigateWithVoice('/ai-agent', 'AI Agent', 'Explain my latest transaction')}
-            >
-              🔍 Explain a Transaction
-            </button>
-            <button
-              type="button"
-              className="ai-action-btn"
-              onClick={() => handleNavigateWithVoice('/ai-agent', 'AI Agent', 'What does my risk score mean?')}
-            >
-              🛡️ Explain My Risk
-            </button>
-            <button
-              type="button"
-              className="ai-action-btn"
-              onClick={() => handleNavigateWithVoice('/ai-agent', 'AI Agent', 'What is MFA?')}
-            >
-              🔐 What is MFA?
-            </button>
-            <button
-              type="button"
-              className="ai-action-btn"
-              onClick={() => handleNavigateWithVoice('/profile', 'Profile')}
-            >
-              👤 My Profile
-            </button>
-            <button
-              type="button"
-              className="ai-action-btn"
-              onClick={() => handleNavigateWithVoice('/ai-agent', 'AI Agent')}
-            >
-              💬 Ask AI
-            </button>
-          </div>
+        {/* Greeting Text */}
+        <div className="ai-radiant-text-wrap">
+          <h2 className="ai-radiant-heading">{welcomeHeading}</h2>
+          <p className="ai-radiant-quote">
+            "{langTexts.speechQuote}"
+          </p>
         </div>
+      </div>
+
+      {/* Quick Action Navigation Buttons */}
+      <div className="ai-radiant-card__actions">
+        <button
+          type="button"
+          className="ai-chip-btn ai-chip-btn--primary"
+          onClick={() => navigate('/transactions')}
+        >
+          📊 View My Transactions
+        </button>
+        <button
+          type="button"
+          className="ai-chip-btn"
+          onClick={() => navigate('/ai-agent', { state: { initialPrompt: 'How can I understand my transactions?' } })}
+        >
+          🔍 Understand My Account
+        </button>
+        <button
+          type="button"
+          className="ai-chip-btn"
+          onClick={() => navigate('/ai-agent', { state: { initialPrompt: 'What does my risk score mean?' } })}
+        >
+          🛡️ Explain My Risk
+        </button>
+        <button
+          type="button"
+          className="ai-chip-btn"
+          onClick={() => navigate('/ai-agent', { state: { initialPrompt: 'What is MFA?' } })}
+        >
+          🔐 What is MFA?
+        </button>
+        <button
+          type="button"
+          className="ai-chip-btn"
+          onClick={() => navigate('/ai-agent')}
+        >
+          💬 Ask AI Assistant
+        </button>
       </div>
     </div>
   );

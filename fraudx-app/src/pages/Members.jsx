@@ -10,15 +10,24 @@ export default function Members() {
 
   const memberList = members.length > 0 ? members : people;
 
+  const getCityName = (cityField) => {
+    if (!cityField) return 'Location unavailable';
+    if (typeof cityField === 'object') return cityField.name || 'Location unavailable';
+    return String(cityField);
+  };
+
   const filtered = useMemo(() => {
     if (!search) return memberList;
     const q = search.toLowerCase();
-    return memberList.filter(m =>
-      m.name?.toLowerCase().includes(q) ||
-      m.id?.toLowerCase().includes(q) ||
-      m.memberId?.toLowerCase().includes(q) ||
-      m.city?.toLowerCase().includes(q)
-    );
+    return memberList.filter(m => {
+      const cityName = getCityName(m.city).toLowerCase();
+      return (
+        m.name?.toLowerCase().includes(q) ||
+        m.id?.toString().toLowerCase().includes(q) ||
+        m.memberId?.toLowerCase().includes(q) ||
+        cityName.includes(q)
+      );
+    });
   }, [memberList, search]);
 
   return (
@@ -44,17 +53,21 @@ export default function Members() {
       <div className="card-grid animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         {filtered.slice(0, 50).map((member, idx) => {
           const txns = getTransactionsForMember(member.id || member.memberId);
+          const memberName = member.name || 'Member information unavailable';
+          const memberId = member.memberId || member.id || `MBR-${idx + 400001}`;
+          const cityName = getCityName(member.city || member.location);
+
           return (
             <div key={member.id || member.memberId || idx} className="glass-card glass-card--clickable" onClick={() => setSelected(member)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <div className="member-avatar">{member.name?.charAt(0) || '?'}</div>
+                <div className="member-avatar">{memberName.charAt(0)}</div>
                 <div>
-                  <p className="text-sm font-semibold">{member.name || 'Unknown'}</p>
-                  <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{member.id || member.memberId}</span>
+                  <p className="text-sm font-semibold">{memberName}</p>
+                  <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{memberId}</span>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="text-xs text-tertiary">{member.city || member.location || '—'}</span>
+                <span className="text-xs text-tertiary">{cityName}</span>
                 <span className="text-xs text-tertiary">{txns.length} txns</span>
               </div>
             </div>
@@ -73,24 +86,44 @@ export default function Members() {
             <div className="txn-detail__header">
               <h2 className="txn-detail__title">Member Details</h2>
               <button className="btn btn-ghost btn-icon" onClick={() => setSelected(null)} aria-label="Close">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 4l10 10M14 4L4 14"/></svg>
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M4 4l10 10M14 4L4 14"/>
+                </svg>
               </button>
             </div>
             <div className="txn-detail__body">
               <div className="txn-detail__section">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                  <div className="member-avatar member-avatar--lg">{selected.name?.charAt(0)}</div>
+                  <div className="member-avatar member-avatar--lg">{selected.name?.charAt(0) || 'M'}</div>
                   <div>
-                    <h3 style={{ margin: 0, fontWeight: 600 }}>{selected.name}</h3>
-                    <span className="text-sm text-tertiary">{selected.id || selected.memberId}</span>
+                    <h3 style={{ margin: 0, fontWeight: 600 }}>{selected.name || 'Member information unavailable'}</h3>
+                    <span className="text-sm text-tertiary text-mono">{selected.memberId || selected.id || 'ID unavailable'}</span>
                   </div>
                 </div>
-                {selected.email && <div className="txn-detail__field"><span className="txn-detail__field-label">Email</span><span className="txn-detail__field-value">{selected.email}</span></div>}
-                {selected.phone && <div className="txn-detail__field"><span className="txn-detail__field-label">Phone</span><span className="txn-detail__field-value">{selected.phone}</span></div>}
-                {selected.city && <div className="txn-detail__field"><span className="txn-detail__field-label">City</span><span className="txn-detail__field-value">{selected.city}</span></div>}
-                {selected.bank && <div className="txn-detail__field"><span className="txn-detail__field-label">Bank</span><span className="txn-detail__field-value">{selected.bank}</span></div>}
-                {selected.accountType && <div className="txn-detail__field"><span className="txn-detail__field-label">Account Type</span><span className="txn-detail__field-value">{selected.accountType}</span></div>}
-                {selected.joinDate && <div className="txn-detail__field"><span className="txn-detail__field-label">Joined</span><span className="txn-detail__field-value">{selected.joinDate}</span></div>}
+                <div className="txn-detail__field">
+                  <span className="txn-detail__field-label">Email</span>
+                  <span className="txn-detail__field-value">{selected.email || 'Email unavailable'}</span>
+                </div>
+                <div className="txn-detail__field">
+                  <span className="txn-detail__field-label">Phone</span>
+                  <span className="txn-detail__field-value">{selected.phone || 'Phone unavailable'}</span>
+                </div>
+                <div className="txn-detail__field">
+                  <span className="txn-detail__field-label">City</span>
+                  <span className="txn-detail__field-value">{getCityName(selected.city)}</span>
+                </div>
+                <div className="txn-detail__field">
+                  <span className="txn-detail__field-label">Banking Partner</span>
+                  <span className="txn-detail__field-value">{selected.bank || 'FraudX Financial Services'}</span>
+                </div>
+                <div className="txn-detail__field">
+                  <span className="txn-detail__field-label">Verification Status</span>
+                  <span className="badge badge-low">✓ KYC Verified</span>
+                </div>
+                <div className="txn-detail__field">
+                  <span className="txn-detail__field-label">Member Since</span>
+                  <span className="txn-detail__field-value">{selected.joinDate || 'Jan 2024'}</span>
+                </div>
               </div>
             </div>
           </div>

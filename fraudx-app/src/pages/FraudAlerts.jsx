@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import AlertDetailPanel from '../components/AlertDetailPanel';
 
 export default function FraudAlerts() {
-  const { alerts, getTreatment } = useData();
+  const { alerts, transactions, getTreatment } = useData();
   const { t } = useTheme();
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
@@ -15,7 +15,13 @@ export default function FraudAlerts() {
       if (filter !== 'All' && alert.riskLevel !== filter) return false;
       if (search) {
         const q = search.toLowerCase();
-        return alert.id?.toLowerCase().includes(q) || alert.reason?.toLowerCase().includes(q) || alert.transactionId?.toLowerCase().includes(q) || alert.senderName?.toLowerCase().includes(q) || alert.receiverName?.toLowerCase().includes(q);
+        return (
+          alert.id?.toLowerCase().includes(q) ||
+          alert.reason?.toLowerCase().includes(q) ||
+          alert.transactionId?.toLowerCase().includes(q) ||
+          alert.senderName?.toLowerCase().includes(q) ||
+          alert.receiverName?.toLowerCase().includes(q)
+        );
       }
       return true;
     });
@@ -58,8 +64,9 @@ export default function FraudAlerts() {
 
       <div className="card-grid animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         {filtered.map(alert => {
+          const txn = transactions.find(t => t.id === alert.transactionId);
           const treatment = getTreatment(alert.id);
-          let displayStatus = alert.status;
+          let displayStatus = alert.status || 'Open';
           if (treatment) {
             if (treatment.id === 'block') displayStatus = 'Blocked';
             else if (treatment.id === 'whitelist') displayStatus = 'Whitelisted';
@@ -67,6 +74,10 @@ export default function FraudAlerts() {
             else if (treatment.id === 'escalate') displayStatus = 'Escalated';
             else if (treatment.id === 'monitor') displayStatus = 'Monitoring';
           }
+
+          const sender = alert.senderName || txn?.senderName || 'Member';
+          const receiver = alert.receiverName || txn?.receiverName || 'Counterparty';
+          const amountFormatted = txn?.amountFormatted || (alert.amount ? `₹${alert.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : 'Amount unavailable');
 
           return (
             <div
@@ -90,11 +101,9 @@ export default function FraudAlerts() {
                 <span className="text-xs text-tertiary">TXN: {alert.transactionId}</span>
                 <span className="text-xs text-tertiary">{alert.date}</span>
               </div>
-              {alert.senderName && (
-                <div style={{ marginTop: 6 }}>
-                  <span className="text-xs text-tertiary">{alert.senderName} → {alert.receiverName} • {alert.amount ? `₹${alert.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : ''}</span>
-                </div>
-              )}
+              <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border-secondary)' }}>
+                <span className="text-xs text-secondary">{sender} → {receiver} • <strong>{amountFormatted}</strong></span>
+              </div>
             </div>
           );
         })}

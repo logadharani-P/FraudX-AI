@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import LogoutFeedbackModal from '../LogoutFeedbackModal';
 import logoImg from '../../assets/logo-original.png';
 import './Sidebar.css';
 
@@ -11,8 +12,8 @@ const NAV_ITEMS = [
   { path: '/fraud-alerts', icon: 'alerts', labelKey: 'nav.fraudAlerts', roles: ['analyst', 'organisation'] },
   { path: '/security-center', icon: 'security', labelKey: 'nav.securityCenter', roles: ['analyst', 'organisation'] },
   { path: '/members', icon: 'members', labelKey: 'nav.members', roles: ['analyst', 'organisation'] },
-  { type: 'divider', roles: ['analyst', 'organisation'] },
-  { path: '/risk-analysis', icon: 'risk', labelKey: 'nav.riskAnalysis', roles: ['analyst', 'organisation'] },
+  { type: 'divider', roles: ['customer', 'analyst', 'organisation'] },
+  { path: '/risk-analysis', icon: 'risk', labelKey: 'nav.riskAnalysis', roles: ['customer', 'analyst', 'organisation'] },
   { path: '/risk-treatment', icon: 'treatment', labelKey: 'nav.riskTreatment', roles: ['analyst', 'organisation'] },
   { type: 'divider', roles: ['customer', 'analyst', 'organisation'] },
   { path: '/ai-agent', icon: 'ai', labelKey: 'nav.aiAgent', roles: ['customer', 'analyst', 'organisation'] },
@@ -107,9 +108,15 @@ export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth();
   const { t } = useTheme();
   const navigate = useNavigate();
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const userRole = user?.role || 'customer';
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setShowFeedbackModal(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setShowFeedbackModal(false);
     logout();
     navigate('/');
   };
@@ -171,12 +178,19 @@ export default function Sidebar({ isOpen, onClose }) {
               <span className="sidebar__user-role">{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Role'}</span>
             </div>
           </NavLink>
-          <button className="sidebar__item sidebar__logout" onClick={handleLogout} aria-label={t('nav.logout')}>
+          <button className="sidebar__item sidebar__logout" onClick={handleLogoutClick} aria-label={t('nav.logout')}>
             <span className="sidebar__icon">{ICONS.logout}</span>
             <span className="sidebar__label">{t('nav.logout')}</span>
           </button>
         </div>
       </aside>
+
+      {/* Logout Feedback Dialog */}
+      <LogoutFeedbackModal
+        isOpen={showFeedbackModal}
+        onConfirmLogout={handleConfirmLogout}
+        onCancel={() => setShowFeedbackModal(false)}
+      />
     </>
   );
 }

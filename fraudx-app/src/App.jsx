@@ -58,7 +58,7 @@ export default function App() {
           <RoleRoute allowedRoles={['analyst', 'organisation']}><Members /></RoleRoute>
         } />
         <Route path="/risk-analysis" element={
-          <RoleRoute allowedRoles={['analyst', 'organisation']}><RiskAnalysis /></RoleRoute>
+          <RoleRoute allowedRoles={['customer', 'analyst', 'organisation']}><RiskAnalysis /></RoleRoute>
         } />
         <Route path="/risk-treatment" element={
           <RoleRoute allowedRoles={['analyst', 'organisation']}><RiskTreatment /></RoleRoute>

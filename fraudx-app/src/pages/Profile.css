@@ -1,0 +1,238 @@
+/* ============================================================
+   FRAUDX AI — Redesigned Profile Page Styling
+   ============================================================ */
+
+.profile-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-bottom: 60px;
+}
+
+/* 1. Centered Large Circular Hero Section */
+.profile-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 36px 20px 28px;
+  margin-bottom: 24px;
+}
+
+.profile-hero__avatar-container {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-hero__avatar-glow {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(74, 123, 247, 0.35) 0%, rgba(139, 92, 246, 0.15) 60%, transparent 80%);
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.profile-hero__avatar-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4A7BF7 0%, #8B5CF6 50%, #06B6D4 100%);
+  padding: 3px;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.profile-hero__avatar-container:hover .profile-hero__avatar-ring {
+  transform: scale(1.05) rotate(180deg);
+  box-shadow: 0 0 24px rgba(74, 123, 247, 0.5);
+}
+
+.profile-hero__avatar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.15), 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.profile-hero__initials {
+  font-size: 34px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #ffffff 30%, #93C5FD 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.profile-hero__name {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+  color: var(--text-primary);
+}
+
+.profile-hero__email {
+  font-size: var(--font-size-sm, 14px);
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+}
+
+.profile-hero__badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* 2. Sequential Reveal Cards Flow */
+.profile-sections-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.profile-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-xl, 16px);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-sm, 0 2px 10px rgba(0, 0, 0, 0.04));
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.profile-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(74, 123, 247, 0.4);
+  box-shadow: 0 8px 28px -6px rgba(74, 123, 247, 0.15), var(--shadow-md);
+}
+
+.profile-card__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.profile-card__icon {
+  font-size: 18px;
+  transition: transform 0.2s ease;
+}
+
+.profile-card:hover .profile-card__icon {
+  transform: scale(1.15);
+}
+
+.profile-card__title {
+  font-size: var(--font-size-sm, 14px);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.profile-card__text {
+  font-size: var(--font-size-sm, 13px);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Grid within cards */
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.profile-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--border-radius-md, 8px);
+  padding: 10px 14px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.profile-item:hover {
+  border-color: var(--brand-blue, #4A7BF7);
+  background: var(--bg-card);
+}
+
+.profile-item__label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.profile-item__value {
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* Activity Timeline */
+.profile-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-timeline-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--border-radius-md, 8px);
+  padding: 10px 14px;
+}
+
+.profile-timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand-blue, #4A7BF7);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.profile-timeline-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-timeline-action {
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.profile-timeline-time {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 640px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
