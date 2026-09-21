@@ -573,7 +573,7 @@ export default function AIWelcomeCard() {
             <button
               type="button"
               className="ai-action-btn"
-              onClick={() => handleNavigateWithVoice('/risk-analysis', 'Risk Analysis')}
+              onClick={() => handleNavigateWithVoice('/ai-agent', 'AI Agent', 'What does my risk score mean?')}
             >
               🛡️ Explain My Risk
             </button>

@@ -127,7 +127,22 @@ export default function AIAgent() {
       return `I couldn't find a transaction with ID \`${txnId}\` in the available dataset. Please check the identifier and try again.`;
     }
 
-    // 2. Customer: "View My Transactions" / "Show my recent transactions" / "Explain a transaction"
+    // 2. Customer: "Understand my transactions" / "View My Transactions" / "Show my recent transactions" / "Explain a transaction"
+    if (q.includes('understand') && (q.includes('transaction') || q.includes('account'))) {
+      if (isCustomer) {
+        let res = `**How to Understand Your Transactions**\n\n`;
+        res += `Every transaction in your FraudX account displays:\n`;
+        res += `• **Transaction ID & Timestamp:** Unique tracking reference and time of execution.\n`;
+        res += `• **Amount & Recipient:** The funds transferred and receiving institution.\n`;
+        res += `• **Risk Assessment:** Real-time AI evaluation (0–34 Low, 35–59 Medium, 60–79 High, 80–100 Critical).\n`;
+        res += `• **Status:** Current processing state (Completed, Flagged, or Under Review).\n\n`;
+        if (customerTxns.length > 0) {
+          res += `You have **${customerTxns.length} recorded transactions** on your account. Click any row in **Transactions** to open a detailed breakdown with location, device, and verified authentication indicators.`;
+        }
+        return res;
+      }
+    }
+
     if (q.includes('explain') && (q.includes('transaction') || q.includes('latest'))) {
       if (isCustomer) {
         if (customerTxns.length === 0) {
@@ -193,7 +208,7 @@ export default function AIAgent() {
       return `**What is Multi-Factor Authentication (MFA)?**\n\nMulti-Factor Authentication is an essential security layer that requires two or more verification methods before granting access to your account:\n\n1. **Something You Know** — Your secret password or PIN.\n2. **Something You Have** — A 6-digit verification code sent to your registered device or authenticator.\n3. **Something You Are** — Biometric verification (e.g., face or fingerprint matching for analyst roles).\n\n**Why it matters:** Even if someone discovers your password, they cannot access your account without the physical verification code.`;
     }
 
-    // 5. "What does my risk score mean?" / "Explain risk score"
+    // 5. "What does my risk score mean?" / "Explain risk score" / "Explain this risk score"
     if (q.includes('risk score') || (q.includes('explain') && q.includes('risk')) || q.includes('scoring')) {
       return `**Understanding Risk Scores (0 to 100)**\n\nEvery transaction is evaluated in real-time by the FraudX AI engine:\n\n• **0–34 (Low Risk):** Normal activity matching historical patterns. Approved automatically.\n• **35–59 (Medium Risk):** Minor anomalies detected (e.g., new merchant or timing shift). Monitored closely.\n• **60–79 (High Risk):** Significant risk indicators (e.g., sudden amount spike, foreign location). Flagged for review.\n• **80–100 (Critical Risk):** Strong indicators of fraud or compromise. Immediate treatment or escalation required.\n\nFactors analyzed include transaction volume, device fingerprints, velocity, and recipient network trust.`;
     }
@@ -217,7 +232,34 @@ export default function AIAgent() {
       return `**Benefits of FraudX AI Membership**:\n\n• **Real-Time AI Protection:** Automatic 24/7 scanning against fraud and identity theft.\n• **Zero Unauthorized Liability:** Instant alerts for anomalous transactions.\n• **Instant MFA Security:** Two-factor authorization on all high-value transactions.\n• **Multi-Language Access:** Native support in English, Tamil, Hindi, and Telugu.\n• **Comprehensive Records:** Transparent risk insights and exportable statements.`;
     }
 
-    // 9. Navigation Commands (Voice / Text Page Navigation Assist)
+    // 9. Analyst / Org: "Why was this transaction flagged?", "What anomalies were detected?", "Show related activity", "Summarize this investigation"
+    if (isAnalyst || isOrg) {
+      if (q.includes('why was') && (q.includes('flagged') || q.includes('alert') || q.includes('risky'))) {
+        return `**Why Transactions Are Flagged by AI Engine**:\n\nTransactions are flagged based on multi-dimensional anomaly detection:\n\n• **Amount Anomalies:** Sudden transactions 3.5x+ above member's historical average.\n• **Velocity & Timing:** Rapid successive transfers or unexpected off-hours execution.\n• **Location & Device:** Transfers from unrecognized geolocations or newly seen devices.\n• **Network Indicators:** Recipients linked with high-risk or previously flagged accounts.\n\n*Note: High-risk transactions require human review by an authorized analyst.*`;
+      }
+
+      if (q.includes('anomal') && (q.includes('detected') || q.includes('what') || q.includes('pattern') || q.includes('factor'))) {
+        return `**Detected Anomaly Factors in Active Pipeline**:\n\n1. **Unusual Transaction Amount:** High deviation from baseline spending.\n2. **Rapid Transaction Sequence:** Multiple transfers in a compressed timeframe.\n3. **Geographic Inconsistency:** Origin IP/city inconsistent with user profile.\n4. **New Device Authentication:** Unregistered hardware fingerprint during transfer.\n5. **Unusual Transaction Timing:** Out-of-pattern execution hours.`;
+      }
+
+      if (q.includes('related') && (q.includes('activity') || q.includes('transaction') || q.includes('activity'))) {
+        return `**Related Activity & Network Analysis**:\n\n• The FraudX engine correlates transactions across common senders, receivers, and device IDs.\n• You can inspect connected transactions directly inside each transaction's detail drawer or the **Fraud Alerts** console.\n• If no connected activity is found in available data, the system explicitly reports: *"Related activity is not available from the current data."*`;
+      }
+
+      if (q.includes('summarize') && (q.includes('investigation') || q.includes('case') || q.includes('alert'))) {
+        return `**Investigation Summary**:\n\n• **Total Monitored Transactions:** ${stats.totalTransactions?.toLocaleString() || 0}\n• **Active Flagged Alerts:** ${alerts.filter(a => a.status === 'Open').length} cases requiring review\n• **Investigation Pipeline:** Alert Generated → Transaction Reviewed → Behaviour Compared → Related Activity Reviewed → Member Verification → Analyst Decision → Case Closed\n• **Available Treatments:** Block Transaction, Freeze Account, Escalate to Senior Analyst, Enhanced Monitoring, Whitelist.`;
+      }
+
+      if (q.includes('what happened before') || q.includes('before this alert')) {
+        return `**Pre-Alert Behaviour Baseline**:\n\nPrior to alert generation, the member's account exhibited normal transaction volume and standard geolocation patterns. The AI engine detected a sudden deviation in amount and transfer velocity that exceeded the threshold for automated approval.`;
+      }
+
+      if (q.includes('security') || q.includes('audit') || q.includes('attack') || q.includes('overview')) {
+        return `**Security & Telemetry Overview**:\n\n• **System Status:** Telemetry Active & Monitoring\n• **Authentication Stream:** Operational\n• **MFA Token Validation:** Enforced\n• **Recent Logged Activity:** Review full immutable event logs in the **Security Center**.`;
+      }
+    }
+
+    // 10. Navigation Commands (Voice / Text Page Navigation Assist)
     if (q.includes('take me to') || q.includes('go to') || q.includes('navigate to') || q.includes('open page') || q.includes('next page')) {
       if (q.includes('transaction')) {
         return `📊 **Navigating to Transactions**\n\nYou can review all your transaction records, search by sender/receiver, filter by risk level, and inspect detailed receipts.\n\n👉 Click **Transactions** in the left sidebar or click the Transactions button on your Dashboard to view them.`;
@@ -240,40 +282,29 @@ export default function AIAgent() {
       return `🧭 **Navigation Assistant**\n\nHere are the available sections in FraudX AI:\n• **Dashboard:** Home overview & AI Welcome\n• **Transactions:** Live transaction stream & receipts\n• **Risk Analysis:** Anomaly distribution & risk trends\n• **Security Center:** Authentication telemetry & MFA\n• **Profile:** Your KYC & account credentials\n• **Settings:** Multilingual & theme preferences`;
     }
 
-    // 10. "What is FraudX AI?" / "About this project" / "How does this project work?"
+    // 11. "What is FraudX AI?" / "About this project" / "How does this project work?"
     if (q.includes('what is fraudx') || q.includes('about fraudx') || q.includes('about this project') || q.includes('how does fraudx work') || q.includes('what does this project do') || q.includes('explain fraudx')) {
       return `**About FraudX AI — Financial Fraud Detection Platform**\n\nFraudX AI is an end-to-end intelligent security platform designed to safeguard financial transactions against modern fraud vectors:\n\n• 🧠 **AI-Powered Anomaly Engine:** Scans every transaction in real-time using Isolation Forest and Ensemble Neural models, assigning a risk score from 0 (Safe) to 100 (Critical).\n• ⚡ **Sub-Second Processing:** Anomaly classification completes in under 50 milliseconds with deep factor explainability.\n• 🔐 **Adaptive Multi-Factor Authentication (MFA):** Dynamically challenges high-risk transfers with 6-digit OTPs and biometric verification.\n• 🌐 **Multilingual Voice Experience:** Full native support for **English, हिन्दी (Hindi), தமிழ் (Tamil), and తెలుగు (Telugu)** with customized female (Aria), male (Alex), and neural voice personas.\n• 🛡️ **Role-Based Security:** Specialized workflows for **Customers** (account monitoring), **Analysts** (investigations), and **Organisations** (enterprise risk telemetry).`;
     }
 
-    // 11. "How does machine learning / AI detection work?"
+    // 12. "How does machine learning / AI detection work?"
     if (q.includes('how does fraud detection work') || q.includes('algorithm') || q.includes('machine learning') || q.includes('ml model') || q.includes('detection model')) {
       return `**How FraudX AI Detection Engine Works**:\n\n1. **Data Ingestion:** Streams transaction metadata including sender, recipient, amount, timestamp, channel, IP geolocation, and device fingerprints.\n2. **Feature Engineering:** Compares incoming transfer parameters against historical user baselines (e.g. 30-day velocity, median amount, typical hours).\n3. **ML Classification:**\n   • **Isolation Forest:** Identifies outliers in multi-dimensional feature space.\n   • **Neural Risk Scorer:** Computes probabilistic risk weight (0–100).\n4. **Risk Thresholds:**\n   • **0–34 (Low):** Approved seamlessly.\n   • **35–59 (Medium):** Logged with telemetry alert.\n   • **60–79 (High):** Flagged and requires MFA step-up.\n   • **80–100 (Critical):** Auto-frozen pending investigator review.`;
     }
 
-    // 12. "What languages and voices are supported?"
+    // 13. "What languages and voices are supported?"
     if (q.includes('language') || q.includes('voice') || q.includes('persona') || q.includes('girl') || q.includes('boy')) {
       return `**FraudX AI Multilingual & Voice Personas**:\n\n• **Supported Languages:**\n  1. 🇬🇧 **English** (en)\n  2. 🇮🇳 **हिन्दी / Hindi** (hi)\n  3. 🇮🇳 **தமிழ் / Tamil** (ta)\n  4. 🇮🇳 **తెలుగు / Telugu** (te)\n\n• **Voice & Avatar Personas:**\n  • 👩‍💼 **Aria (Female Voice):** Friendly and natural female assistant with dynamic girl avatar logo.\n  • 👨‍💼 **Alex (Male Voice):** Articulate and calm male assistant with dynamic boy avatar logo.\n  • 🤖 **CyberX (Neural Bot):** High-precision synthetic security voice.\n\nYou can switch voice personas and languages on the Customer Dashboard or in Settings.`;
     }
 
-    // 13. "What roles are supported?" / "User roles"
+    // 14. "What roles are supported?" / "User roles"
     if (q.includes('role') || q.includes('analyst') || q.includes('organisation') || q.includes('customer role')) {
       return `**FraudX AI Role Architecture**:\n\n• 👤 **Customer Portal (e.g., Arjun Sharma):** Personal transaction feed, personal risk breakdown, personalized AI voice greeting, and account MFA security.\n• 🔍 **Analyst Portal (e.g., Priya Iyer):** Real-time fraud alert triage, anomaly factor breakdowns, recipient graph inspection, and risk treatments.\n• 🏢 **Organisation Portal (e.g., Vikram Mehta):** Executive telemetry dashboard, organization-wide volume monitoring, and compliance reporting.`;
     }
 
-    // 14. "Contact Support"
+    // 15. "Contact Support"
     if (q.includes('contact') || q.includes('support') || q.includes('help desk')) {
       return `**FraudX Security Support**:\n\n• **Email:** support@fraudx.ai\n• **Security Desk:** +91 1800-FRAUDX-AI\n• **Operating Hours:** 24/7 Real-Time Fraud Monitoring\n\nIf you believe your account has been compromised, you can freeze your transactions immediately from the Settings page.`;
-    }
-
-    // 15. Analyst: "Why was TXN-XXXX flagged?" or "What factors contributed..."
-    if (isAnalyst || isOrg) {
-      if (q.includes('contribute') || q.includes('factor') || q.includes('flagged')) {
-        return `**AI Anomaly Factors Breakdown**:\n\nFlagged cases in the current pipeline are driven by:\n\n1. **Amount Deviations (34%)** — Amounts exceeding 3.5x sender historical average.\n2. **Velocity Spikes (22%)** — Multiple rapid transfers within a 5-minute window.\n3. **Geographic Inconsistency (18%)** — IP / location mismatch against usual transaction hubs.\n4. **Unregistered Devices (15%)** — High-value transfers initiated from first-seen hardware tokens.\n\nYou can apply automated treatments (Block, Freeze, Whitelist, Escalate) in the **Risk Treatment** console.`;
-      }
-
-      if (q.includes('security') || q.includes('audit') || q.includes('attack')) {
-        return `**Security & Telemetry Status**:\n\n• Application Monitoring: **Active**\n• Authentication Stream: **Operational**\n• MFA Token Validation: **Enforced**\n• Telemetry: 142 successful logins, 3 failed attempts logged.\n\nInspect full telemetry in the **Security Center** section.`;
-      }
     }
 
     // Greetings

@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { path: '/security-center', icon: 'security', labelKey: 'nav.securityCenter', roles: ['analyst', 'organisation'] },
   { path: '/members', icon: 'members', labelKey: 'nav.members', roles: ['analyst', 'organisation'] },
   { type: 'divider', roles: ['analyst', 'organisation'] },
-  { path: '/risk-analysis', icon: 'risk', labelKey: 'nav.riskAnalysis', roles: ['customer', 'analyst', 'organisation'] },
+  { path: '/risk-analysis', icon: 'risk', labelKey: 'nav.riskAnalysis', roles: ['analyst', 'organisation'] },
   { path: '/risk-treatment', icon: 'treatment', labelKey: 'nav.riskTreatment', roles: ['analyst', 'organisation'] },
   { type: 'divider', roles: ['customer', 'analyst', 'organisation'] },
   { path: '/ai-agent', icon: 'ai', labelKey: 'nav.aiAgent', roles: ['customer', 'analyst', 'organisation'] },
