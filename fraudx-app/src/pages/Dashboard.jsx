@@ -4,6 +4,7 @@ import { useData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import AIWelcomeCard from '../components/AIWelcomeCard';
 import './Dashboard.css';
 
 const CHART_COLORS = ['#4A7BF7', '#2ECC87', '#8B5CF6', '#F59E0B', '#22D3EE', '#EF4444'];
@@ -109,6 +110,9 @@ export default function Dashboard() {
         <h1 className="heading-2">{getGreeting()}</h1>
         <p className="text-secondary">{subtitle}</p>
       </div>
+
+      {/* Customer AI Voice Welcome Experience */}
+      {isCustomer && <AIWelcomeCard />}
 
       <div className="dashboard__stats">
         {statCards.map((card, i) => (

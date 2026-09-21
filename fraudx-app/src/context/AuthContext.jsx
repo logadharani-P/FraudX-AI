@@ -55,12 +55,25 @@ export function AuthProvider({ children }) {
 
   const login = (role) => {
     const demoUser = DEMO_USERS[role];
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('fraudx_welcomed_' + (demoUser?.id || role));
+      sessionStorage.removeItem('fraudx_welcomed_customer');
+    }
     setUser(demoUser);
     setSelectedRole(role);
     setIsAuthenticated(true);
   };
 
   const logout = () => {
+    if (typeof window !== 'undefined') {
+      if (user?.id) {
+        sessionStorage.removeItem('fraudx_welcomed_' + user.id);
+      }
+      sessionStorage.removeItem('fraudx_welcomed_customer');
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
     setUser(null);
     setSelectedRole(null);
     setIsAuthenticated(false);
