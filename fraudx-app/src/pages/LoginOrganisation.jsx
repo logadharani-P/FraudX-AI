@@ -4,10 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AnimatedBackground from '../components/AnimatedBackground';
 import MFAVerification from '../components/MFA/MFAVerification';
-import logoImg from '../assets/logo-original.png';
+import logoImg from '../assets/logo.svg';
 import './Login.css';
-
-const DEMO_MFA_CODE = '739215';
 
 export default function LoginOrganisation() {
   const [tab, setTab] = useState('signin'); // 'signin' or 'signup'
@@ -300,7 +298,7 @@ export default function LoginOrganisation() {
               <span>Credentials verified</span>
             </div>
             <MFAVerification
-              demoCode={DEMO_MFA_CODE}
+              userEmail={email || 'vikram.mehta@fraudx.ai'}
               roleName="Organisation"
               onSuccess={handleMfaSuccess}
               onCancel={() => setStep('credentials')}

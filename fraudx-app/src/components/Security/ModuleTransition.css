@@ -1,0 +1,345 @@
+/* ================================================
+   FRAUDX AI — Premium Security Module Transition
+   SECURE ACCESS -> AUTHENTICATION -> MODULE OPENED
+   Duration: ~760ms (Snappy, responsive, professional)
+   ================================================ */
+
+.module-transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+  user-select: none;
+  overflow: hidden;
+  background: rgba(11, 17, 32, 0.78);
+  backdrop-filter: blur(12px) saturate(130%);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  opacity: 0;
+  transition: opacity 180ms ease-out;
+}
+
+.module-transition-overlay--enter,
+.module-transition-overlay--secure,
+.module-transition-overlay--unlock {
+  opacity: 1;
+}
+
+.module-transition-overlay--release {
+  opacity: 0;
+  transition: opacity 160ms ease-out 40ms;
+}
+
+/* Reduced Motion Minimal Fallback */
+.module-transition-overlay--reduced {
+  opacity: 1;
+  background: rgba(11, 17, 32, 0.65);
+  backdrop-filter: blur(6px);
+  transition: opacity 120ms ease;
+}
+
+.module-transition-reduced-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(30, 41, 59, 0.92);
+  border: 1px solid rgba(74, 123, 247, 0.4);
+  padding: 10px 22px;
+  border-radius: 9999px;
+  color: #F1F5F9;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.module-transition-reduced-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px #10B981;
+}
+
+/* Ambient Subtle Lighting */
+.module-transition-ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.module-transition-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.28;
+  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease;
+}
+
+.module-transition-blob--blue {
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, #4A7BF7 0%, transparent 70%);
+  transform: translate(-20px, -15px) scale(0.95);
+}
+
+.module-transition-blob--cyan {
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, #22D3EE 0%, transparent 70%);
+  transform: translate(25px, 20px) scale(0.9);
+}
+
+.module-transition-overlay--unlock .module-transition-blob {
+  opacity: 0.45;
+  transform: scale(1.1);
+}
+
+/* Center Container */
+.module-transition-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 20px;
+}
+
+/* Orbital Scanning Rings */
+.module-transition-ring-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 170px;
+  height: 170px;
+  pointer-events: none;
+  transition: border-color 250ms ease;
+}
+
+.module-transition-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.module-transition-ring--outer {
+  border: 1.5px dashed rgba(74, 123, 247, 0.35);
+  animation: ringSpinClockwise 6s linear infinite;
+}
+
+.module-transition-ring--inner {
+  inset: 16px;
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-top-color: #22D3EE;
+  animation: ringSpinCounter 4s linear infinite;
+}
+
+.module-transition-ring-wrapper.unlock .module-transition-ring--outer {
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.25);
+}
+
+@keyframes ringSpinClockwise {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ringSpinCounter {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+/* Security Lock Core */
+.module-transition-lock-wrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scale(0.9);
+  opacity: 0;
+  animation: lockEnter 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes lockEnter {
+  0% {
+    transform: scale(0.75);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.module-transition-lock-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 6px 20px rgba(74, 123, 247, 0.3));
+  transition: filter 250ms ease;
+}
+
+/* Shackle Unlocking Animation */
+.lock-shackle {
+  transition: transform 320ms cubic-bezier(0.34, 1.4, 0.64, 1), stroke 250ms ease;
+  transform-origin: 34px 30px;
+}
+
+.module-transition-lock-wrapper.unlocked .lock-shackle {
+  transform: translateY(-13px) rotate(-14deg);
+  stroke: #10B981;
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.7));
+}
+
+.module-transition-lock-wrapper.unlocked .module-transition-lock-svg {
+  filter: drop-shadow(0 0 28px rgba(16, 185, 129, 0.45));
+}
+
+.module-transition-lock-wrapper.unlocked .lock-body {
+  stroke: #10B981;
+  animation: lockPulse 300ms ease-out;
+}
+
+@keyframes lockPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+.core-pulse-active {
+  animation: coreGlow 350ms ease-in-out infinite alternate;
+}
+
+@keyframes coreGlow {
+  from { opacity: 0.7; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1.3); }
+}
+
+/* Clearance & Module Title Badge */
+.module-transition-badge {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 220ms ease-out, transform 220ms ease-out;
+  text-align: center;
+}
+
+.module-transition-overlay--secure .module-transition-badge,
+.module-transition-overlay--unlock .module-transition-badge,
+.module-transition-overlay--release .module-transition-badge {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.module-transition-security-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(74, 123, 247, 0.3);
+  border-radius: 9999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: border-color 220ms ease;
+}
+
+.module-transition-badge--granted .module-transition-security-tag {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.security-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38BDF8;
+  box-shadow: 0 0 8px #38BDF8;
+  animation: dotPulse 1s ease-in-out infinite;
+}
+
+.security-pulse-dot.granted {
+  background: #10B981;
+  box-shadow: 0 0 10px #10B981;
+}
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+}
+
+.security-text {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  transition: color 220ms ease;
+}
+
+.module-transition-badge--granted .security-text {
+  color: #34D399;
+}
+
+.module-transition-title {
+  font-family: var(--font-family, 'Inter', sans-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, #FFFFFF 40%, #BAE6FD 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Page Reveal Entrance */
+.module-page-reveal {
+  animation: pageEntranceReveal 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes pageEntranceReveal {
+  0% {
+    opacity: 0.4;
+    transform: translateY(8px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Strict prefers-reduced-motion support */
+@media (prefers-reduced-motion: reduce) {
+  .module-transition-overlay {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    transition: opacity 100ms ease;
+  }
+  .module-transition-ring-wrapper,
+  .module-transition-ambient,
+  .lock-shackle,
+  .security-pulse-dot {
+    animation: none !important;
+    transform: none !important;
+  }
+  .module-page-reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

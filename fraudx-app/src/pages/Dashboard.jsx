@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
-import { useNavigate } from 'react-router-dom';
+import { useModuleTransition } from '../context/TransitionContext';
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import AIWelcomeCard from '../components/AIWelcomeCard';
 import './Dashboard.css';
@@ -13,7 +13,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { stats, transactions, alerts, members } = useData();
   const { t } = useTheme();
-  const navigate = useNavigate();
+  const { navigateWithTransition } = useModuleTransition();
   const isCustomer = user?.role === 'customer';
 
   // Find customer's member entry by matching name
@@ -194,11 +194,11 @@ export default function Dashboard() {
           <div className="dashboard__card dashboard__card--wide animate-fade-in-up" style={{ animationDelay: '400ms' }}>
             <div className="dashboard__card-header">
               <h3 className="dashboard__card-title">{t('dashboard.fraudAlerts')}</h3>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/fraud-alerts')}>View All</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigateWithTransition('/fraud-alerts')}>View All</button>
             </div>
             <div className="dashboard__alerts">
               {recentAlerts.map(alert => (
-                <div key={alert.id} className="dashboard__alert-row" onClick={() => navigate('/fraud-alerts')}>
+                <div key={alert.id} className="dashboard__alert-row" onClick={() => navigateWithTransition('/fraud-alerts')}>
                   <div className="dashboard__alert-info">
                     <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{alert.id}</span>
                     <span className="text-sm font-medium">{alert.reason}</span>
@@ -216,11 +216,11 @@ export default function Dashboard() {
           <div className="dashboard__card dashboard__card--wide animate-fade-in-up" style={{ animationDelay: '400ms' }}>
             <div className="dashboard__card-header">
               <h3 className="dashboard__card-title">Recent Transactions</h3>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/transactions')}>View All</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigateWithTransition('/transactions')}>View All</button>
             </div>
             <div className="dashboard__alerts">
               {roleTransactions.slice(0, 5).map(txn => (
-                <div key={txn.id} className="dashboard__alert-row" onClick={() => navigate('/transactions')}>
+                <div key={txn.id} className="dashboard__alert-row" onClick={() => navigateWithTransition('/transactions')}>
                   <div className="dashboard__alert-info">
                     <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{txn.id}</span>
                     <span className="text-sm font-medium">{txn.senderName} → {txn.receiverName}</span>

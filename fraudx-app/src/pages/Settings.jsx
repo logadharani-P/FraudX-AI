@@ -4,12 +4,83 @@ import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 
 const THEMES = [
-  { key: 'luminous', label: 'Luminous', desc: 'Clean and bright', preview: 'linear-gradient(135deg, #F8FBFF 0%, #FFFFFF 100%)' },
-  { key: 'midnight', label: 'Midnight', desc: 'Dark and sleek', preview: 'linear-gradient(135deg, #0B1120 0%, #1E293B 100%)' },
-  { key: 'aurora', label: 'Aurora', desc: 'Soft purple tones', preview: 'linear-gradient(135deg, #F5F0FF 0%, #EDE9FE 100%)' },
-  { key: 'secure-light', label: 'Secure Light', desc: 'Minimal professional', preview: 'linear-gradient(135deg, #FAFBFC 0%, #F3F5F7 100%)' },
-  { key: 'high-contrast', label: 'High Contrast', desc: 'Ultra-accessible dark', preview: 'linear-gradient(135deg, #000000 0%, #181818 100%)' },
-  { key: 'system', label: 'System Default', desc: 'Matches device settings', preview: 'linear-gradient(135deg, #E2E8F0 0%, #64748B 100%)' },
+  {
+    key: 'aurora',
+    label: 'Aurora Security',
+    tag: 'DEFAULT',
+    desc: 'Midnight navy, deep blue, cyber cyan & soft violet',
+    bg: '#0B1120',
+    card: '#131D33',
+    primary: '#4A7BF7',
+    accent: '#00E5FF',
+    swatches: ['#0B1120', '#4A7BF7', '#00E5FF', '#8B5CF6'],
+  },
+  {
+    key: 'emerald',
+    label: 'Emerald Trust',
+    tag: 'TRUST',
+    desc: 'Deep emerald, forest green, mint & subtle gold',
+    bg: '#061A14',
+    card: '#0C2B22',
+    primary: '#10B981',
+    accent: '#34D399',
+    swatches: ['#061A14', '#10B981', '#34D399', '#F59E0B'],
+  },
+  {
+    key: 'midnight',
+    label: 'Midnight Intelligence',
+    tag: 'DEFENSE',
+    desc: 'Dark navy, indigo, electric blue & intelligence purple',
+    bg: '#070A13',
+    card: '#0F172A',
+    primary: '#6366F1',
+    accent: '#38BDF8',
+    swatches: ['#070A13', '#6366F1', '#38BDF8', '#818CF8'],
+  },
+  {
+    key: 'pearl',
+    label: 'Pearl Finance',
+    tag: 'LIGHT',
+    desc: 'White, pearl, soft blue & subtle cyan executive view',
+    bg: '#F8FAFC',
+    card: '#FFFFFF',
+    primary: '#2563EB',
+    accent: '#0284C7',
+    swatches: ['#F8FAFC', '#2563EB', '#0284C7', '#94A3B8'],
+  },
+  {
+    key: 'sapphire',
+    label: 'Sapphire Glass',
+    tag: 'GLASS',
+    desc: 'Sapphire, cyan, deep ocean blue & frosted glass surfaces',
+    bg: '#04132B',
+    card: '#08214D',
+    primary: '#0284C7',
+    accent: '#38BDF8',
+    swatches: ['#04132B', '#0284C7', '#38BDF8', '#0EA5E9'],
+  },
+  {
+    key: 'high-contrast',
+    label: 'High Contrast',
+    tag: 'A11Y',
+    desc: 'Ultra-accessible high-contrast security theme',
+    bg: '#000000',
+    card: '#121212',
+    primary: '#00FFFF',
+    accent: '#FFFF00',
+    swatches: ['#000000', '#00FFFF', '#FFFF00', '#FFFFFF'],
+  },
+  {
+    key: 'system',
+    label: 'System Default',
+    tag: 'AUTO',
+    desc: 'Matches device color scheme preference automatically',
+    bg: '#0F172A',
+    card: '#1E293B',
+    primary: '#4A7BF7',
+    accent: '#06B6D4',
+    swatches: ['#0F172A', '#4A7BF7', '#06B6D4', '#94A3B8'],
+  },
 ];
 
 const ACCENTS = [
@@ -79,33 +150,122 @@ export default function Settings() {
         <p className="text-secondary text-xs" style={{ marginBottom: 18 }}>Select your preferred workspace theme and color accents</p>
 
         {/* Theme Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 20 }}>
-          {THEMES.map(th => (
-            <button
-              key={th.key}
-              onClick={() => {
-                setTheme(th.key);
-                if (th.key === 'high-contrast') setHighContrast(true);
-                else setHighContrast(false);
-              }}
-              style={{
-                background: 'var(--bg-card)',
-                border: (theme === th.key || (th.key === 'high-contrast' && highContrast)) ? '2px solid var(--brand-blue)' : '1px solid var(--border-primary)',
-                borderRadius: 'var(--border-radius-md)',
-                padding: 12,
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'var(--transition-fast)',
-              }}
-            >
-              <div style={{ width: '100%', height: 36, borderRadius: 6, background: th.preview, marginBottom: 8, border: '1px solid var(--border-secondary)' }} />
-              <p className="text-sm font-semibold" style={{ margin: '0 0 2px', color: 'var(--text-primary)' }}>{th.label}</p>
-              <p className="text-xs text-tertiary" style={{ margin: 0 }}>{th.desc}</p>
-              {(theme === th.key || (th.key === 'high-contrast' && highContrast)) && (
-                <span className="text-xs font-semibold" style={{ color: 'var(--brand-blue)', display: 'inline-block', marginTop: 4 }}>✓ Active</span>
-              )}
-            </button>
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 14, marginBottom: 24 }}>
+          {THEMES.map(th => {
+            const isActive = (theme === th.key) || (th.key === 'high-contrast' && highContrast);
+            return (
+              <button
+                key={th.key}
+                type="button"
+                onClick={() => {
+                  setTheme(th.key);
+                  if (th.key === 'high-contrast') setHighContrast(true);
+                  else setHighContrast(false);
+                }}
+                style={{
+                  background: 'var(--bg-card)',
+                  border: isActive ? '2px solid var(--brand-blue)' : '1px solid var(--border-primary)',
+                  borderRadius: 'var(--border-radius-lg)',
+                  padding: 14,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                  transition: 'all 240ms cubic-bezier(0.16, 1, 0.3, 1)',
+                  boxShadow: isActive ? '0 4px 20px var(--brand-blue-glow), 0 0 0 1px var(--brand-blue)' : 'var(--shadow-sm)',
+                  transform: isActive ? 'translateY(-2px)' : 'none',
+                }}
+              >
+                {/* Visual Swatch Preview Box */}
+                <div
+                  style={{
+                    width: '100%',
+                    height: 52,
+                    borderRadius: 8,
+                    background: th.bg,
+                    border: '1px solid var(--border-secondary)',
+                    padding: 8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 5 }}>
+                      {th.swatches.map((color, idx) => (
+                        <span
+                          key={idx}
+                          style={{
+                            width: 14,
+                            height: 14,
+                            borderRadius: '50%',
+                            background: color,
+                            display: 'inline-block',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            boxShadow: idx === 1 || idx === 2 ? `0 0 6px ${color}88` : 'none',
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {th.tag && (
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          letterSpacing: '0.05em',
+                          textTransform: 'uppercase',
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          background: isActive ? 'var(--brand-blue)' : 'rgba(255,255,255,0.12)',
+                          color: '#FFFFFF',
+                        }}
+                      >
+                        {th.tag}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Mini UI Representation Bar */}
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <div style={{ width: '45%', height: 6, borderRadius: 3, background: th.card, border: `1px solid ${th.primary}44` }} />
+                    <div style={{ width: '25%', height: 6, borderRadius: 3, background: th.primary }} />
+                    <div style={{ width: '15%', height: 6, borderRadius: 3, background: th.accent }} />
+                  </div>
+                </div>
+
+                {/* Theme Name & Description */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <p className="text-sm font-semibold" style={{ margin: 0, color: 'var(--text-primary)' }}>
+                      {th.label}
+                    </p>
+                    {isActive && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: 'var(--brand-blue)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                        }}
+                      >
+                        ✓ Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-tertiary" style={{ margin: 0, lineHeight: 1.35 }}>
+                    {th.desc}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Accent Color Picker */}

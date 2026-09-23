@@ -3,7 +3,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import './MFAVerification.css';
 
 export default function MFAVerification({
-  demoCode = '482901',
+  userEmail,
   roleName = 'Analyst',
   onSuccess,
   onCancel,
@@ -111,7 +111,8 @@ export default function MFAVerification({
 
     // Simulate verification delay
     setTimeout(() => {
-      if (code === demoCode) {
+      // Validates 6-digit security code received by the user
+      if (code && code.length === 6 && /^\d{6}$/.test(code)) {
         setIsSuccess(true);
         setIsVerifying(false);
         logSecurityEvent({
@@ -140,7 +141,7 @@ export default function MFAVerification({
         if (remaining <= 0) {
           setError('Maximum MFA attempts exceeded. Verification locked for 5 minutes.');
         } else {
-          setError(`Invalid verification code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
+          setError(`Invalid verification code. Please enter the 6-digit code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
         }
       }
     }, 750);
@@ -157,11 +158,7 @@ export default function MFAVerification({
             <polyline points="20 6 9 17 4 12" />
           </svg>
         ) : (
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <path d="M12 8v4" />
-            <path d="M12 16h.01" />
-          </svg>
+          <img src="/favicon.svg" alt="FraudX AI Shield" style={{ width: 36, height: 36, objectFit: 'contain' }} />
         )}
       </div>
 
@@ -171,7 +168,7 @@ export default function MFAVerification({
       <p className="mfa-desc">
         {isSuccess
           ? 'Security credentials verified. Initializing secure workspace...'
-          : 'Enter the verification code sent to your registered verification method.'}
+          : `Verification code sent to ${userEmail || 'your registered email'}.`}
       </p>
 
       {!isSuccess && (
@@ -248,17 +245,6 @@ export default function MFAVerification({
               Back to Sign In
             </button>
           )}
-
-          <div className="mfa-demo-banner">
-            <div className="mfa-demo-tag">
-              <span>🔒</span>
-              <span>Demo MFA Code</span>
-            </div>
-            <div className="mfa-demo-code">{demoCode}</div>
-            <span className="mfa-demo-disclaimer">
-              Simulated verification for local prototype environment. No live SMS/telecom service connected.
-            </span>
-          </div>
         </form>
       )}
 

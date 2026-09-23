@@ -38,15 +38,48 @@ export function DataProvider({ children }) {
     localStorage.setItem('fraudx-treatments', JSON.stringify(treatments));
   }, [treatments]);
 
-  const applyTreatment = useCallback((alertId, treatment, performedBy) => {
-    setTreatments(prev => ({
-      ...prev,
-      [alertId]: {
-        ...treatment,
-        performedBy: performedBy || 'System',
-        appliedAt: new Date().toISOString(),
-      },
-    }));
+  const applyTreatment = useCallback(async (alertId, treatment, performedBy) => {
+    const timestamp = new Date().toISOString();
+    const actor = performedBy || 'System';
+
+    // 1. Immediately update local state & registry (guaranteed & non-blocking)
+    setTreatments(prev => {
+      const next = {
+        ...prev,
+        [alertId]: {
+          ...treatment,
+          performedBy: actor,
+          appliedAt: timestamp,
+        },
+      };
+      try {
+        localStorage.setItem('fraudx-treatments', JSON.stringify(next));
+      } catch (e) {
+        console.warn('Failed to save treatment to localStorage:', e);
+      }
+      return next;
+    });
+
+    // 2. Resilient background sync with backend if available
+    try {
+      const { default: api } = await import('../lib/api').catch(() => ({ default: null }));
+      if (api?.alerts?.update) {
+        const actionMap = {
+          block: 'blocked',
+          whitelist: 'whitelisted',
+          freeze: 'frozen',
+          escalate: 'escalated',
+          monitor: 'in_progress',
+        };
+        const targetStatus = actionMap[treatment.id] || 'resolved';
+        await api.alerts.update(alertId, {
+          status: targetStatus,
+          resolution_note: `${treatment.label} applied by ${actor}`,
+        }).catch(() => null);
+      }
+    } catch {
+      // Non-blocking: local state is already persisted
+    }
   }, []);
 
   const getTreatment = useCallback((alertId) => {

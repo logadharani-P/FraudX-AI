@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
 import { NotificationProvider } from './context/NotificationContext'
+import { TransitionProvider } from './context/TransitionContext'
 import './styles/variables.css'
 import './styles/global.css'
 import './index.css'
@@ -15,11 +16,13 @@ createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <DataProvider>
-            <NotificationProvider>
-              <App />
-            </NotificationProvider>
-          </DataProvider>
+          <TransitionProvider>
+            <DataProvider>
+              <NotificationProvider>
+                <App />
+              </NotificationProvider>
+            </DataProvider>
+          </TransitionProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

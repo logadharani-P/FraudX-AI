@@ -13,19 +13,30 @@ settings = get_settings()
 db_url = settings.database_url
 is_sqlite = db_url.startswith("sqlite")
 
-engine_kwargs = {}
-if is_sqlite:
-    engine_kwargs["connect_args"] = {"check_same_thread": False}
-else:
-    engine_kwargs["pool_pre_ping"] = True
-    engine_kwargs["pool_size"] = 10
-    engine_kwargs["max_overflow"] = 20
+try:
+    engine_kwargs = {}
+    if is_sqlite:
+        engine_kwargs["connect_args"] = {"check_same_thread": False}
+    else:
+        engine_kwargs["pool_pre_ping"] = True
+        engine_kwargs["pool_size"] = 10
+        engine_kwargs["max_overflow"] = 20
 
-engine = create_engine(
-    db_url,
-    echo=False,
-    **engine_kwargs
-)
+    engine = create_engine(
+        db_url,
+        echo=False,
+        **engine_kwargs
+    )
+    # Attempt dialect load check
+    engine.connect()
+except Exception:
+    db_url = "sqlite:///./fraudx.db"
+    is_sqlite = True
+    engine = create_engine(
+        db_url,
+        echo=False,
+        connect_args={"check_same_thread": False}
+    )
 
 SessionLocal = sessionmaker(
     autocommit=False,

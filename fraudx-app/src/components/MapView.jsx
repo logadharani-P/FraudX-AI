@@ -10,16 +10,21 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
+// Authentic OpenStreetMap Tile Layers — 100% Free, No API Key Required
 const MAP_TILES = {
-  dark: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
-    name: 'Neural Dark',
+  standard: {
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+    name: '🗺️ OpenStreetMap',
+    maxZoom: 19,
+    subdomains: ['a', 'b', 'c'],
   },
-  light: {
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
-    name: 'Luminous Light',
+  humanitarian: {
+    url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors, Tiles &copy; HOT',
+    name: '🌐 Humanitarian OSM',
+    maxZoom: 19,
+    subdomains: ['a', 'b', 'c'],
   },
 };
 
@@ -28,8 +33,7 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
   const mapInstanceRef = useRef(null);
   const tileLayerRef = useRef(null);
   const markersGroupRef = useRef(null);
-  const [mapStyle, setMapStyle] = useState('dark');
-  const [isLoading, setIsLoading] = useState(true);
+  const [mapStyle, setMapStyle] = useState('standard');
 
   // Filter transactions with valid coordinates
   const validTxns = useMemo(() => {
@@ -50,14 +54,18 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
       const map = L.map(mapContainerRef.current, {
         center: [20.5937, 78.9629], // Geographic center of India
         zoom: 5,
+        minZoom: 3,
+        maxZoom: 19,
         zoomControl: false, // We supply custom styled controls
         scrollWheelZoom: true,
       });
 
-      const tileLayer = L.tileLayer(MAP_TILES[mapStyle].url, {
-        attribution: MAP_TILES[mapStyle].attribution,
-        subdomains: 'abcd',
-        maxZoom: 19,
+      const currentTile = MAP_TILES[mapStyle] || MAP_TILES.standard;
+      const tileLayer = L.tileLayer(currentTile.url, {
+        attribution: currentTile.attribution,
+        subdomains: currentTile.subdomains || ['a', 'b', 'c'],
+        maxZoom: currentTile.maxZoom || 19,
+        crossOrigin: true,
       }).addTo(map);
 
       const markersGroup = L.layerGroup().addTo(map);
@@ -65,13 +73,38 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
       mapInstanceRef.current = map;
       tileLayerRef.current = tileLayer;
       markersGroupRef.current = markersGroup;
-      setIsLoading(false);
+
+      // Force layout invalidation once painted so tiles fill edge-to-edge
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 150);
+
+      // Auto-fit initial bounds if markers are present
+      if (validTxns.length > 0) {
+        const bounds = L.latLngBounds(validTxns.slice(0, 100).map(t => [t.lat, t.lng]));
+        map.fitBounds(bounds, { padding: [35, 35], maxZoom: 11 });
+      }
     } catch (err) {
       console.error('Error initializing MapView:', err);
-      setIsLoading(false);
+    }
+
+    // Resize observer to ensure full map responsiveness without grey edges
+    let resizeObserver = null;
+    if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      });
+      resizeObserver.observe(mapContainerRef.current);
     }
 
     return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -82,7 +115,8 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
   // Update Tile Layer on Style Change
   useEffect(() => {
     if (!mapInstanceRef.current || !tileLayerRef.current) return;
-    tileLayerRef.current.setUrl(MAP_TILES[mapStyle].url);
+    const nextTile = MAP_TILES[mapStyle] || MAP_TILES.standard;
+    tileLayerRef.current.setUrl(nextTile.url);
   }, [mapStyle]);
 
   // Render Markers
@@ -188,9 +222,34 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
   }, [validTxns]);
 
   return (
-    <div className="fraudx-map-wrapper" style={{ position: 'relative', width: '100%', borderRadius: 'var(--border-radius-xl, 16px)', overflow: 'hidden', border: '1px solid var(--border-primary, rgba(255,255,255,0.1))', background: 'var(--bg-card, #121826)' }}>
+    <div
+      className="fraudx-map-wrapper"
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: 'var(--border-radius-xl, 16px)',
+        overflow: 'hidden',
+        border: '1px solid var(--border-primary, rgba(255,255,255,0.1))',
+        background: '#E5E7EB',
+      }}
+    >
       {/* Map Header Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', borderBottom: '1px solid var(--border-primary, rgba(255,255,255,0.08))', zIndex: 10 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 14px',
+          background: 'rgba(15, 23, 42, 0.88)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: '1px solid var(--border-primary, rgba(255,255,255,0.08))',
+          zIndex: 10,
+          flexShrink: 0,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: '1.1rem' }}>🗺️</span>
           <div>
@@ -215,11 +274,11 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
           <button
             type="button"
             className="btn btn-ghost btn-xs"
-            onClick={() => setMapStyle(s => s === 'dark' ? 'light' : 'dark')}
+            onClick={() => setMapStyle(s => s === 'standard' ? 'humanitarian' : 'standard')}
             title="Toggle Map Style"
             style={{ fontSize: '0.75rem', padding: '4px 8px' }}
           >
-            {mapStyle === 'dark' ? '☀️ Light Mode' : '🌙 Neural Dark'}
+            {mapStyle === 'standard' ? '🌐 Humanitarian OSM' : '🗺️ OpenStreetMap'}
           </button>
           <button
             type="button"
@@ -234,16 +293,18 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
             <button
               type="button"
               onClick={handleZoomIn}
-              style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#FFF', padding: '3px 8px', cursor: 'pointer', fontWeight: 700 }}
+              style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: '#FFF', padding: '3px 9px', cursor: 'pointer', fontWeight: 700 }}
               title="Zoom In"
+              aria-label="Zoom in"
             >
               +
             </button>
             <button
               type="button"
               onClick={handleZoomOut}
-              style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderLeft: '1px solid rgba(255,255,255,0.15)', color: '#FFF', padding: '3px 8px', cursor: 'pointer', fontWeight: 700 }}
+              style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderLeft: '1px solid rgba(255,255,255,0.15)', color: '#FFF', padding: '3px 9px', cursor: 'pointer', fontWeight: 700 }}
               title="Zoom Out"
+              aria-label="Zoom out"
             >
               −
             </button>
@@ -256,48 +317,29 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
         ref={mapContainerRef}
         style={{
           width: '100%',
-          height: '380px',
-          background: '#0B1120',
+          flex: 1,
+          minHeight: 0,
+          background: '#E5E7EB',
           position: 'relative',
         }}
       />
 
-      {/* Empty / Unavailable Location State Banner */}
-      {validTxns.length === 0 && !isLoading && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: 'rgba(15, 23, 42, 0.92)',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
-          padding: '20px 24px',
-          borderRadius: 12,
-          textAlign: 'center',
-          backdropFilter: 'blur(10px)',
-          zIndex: 1000,
-          maxWidth: '340px',
-        }}>
-          <div style={{ fontSize: '2rem', marginBottom: 6 }}>📍</div>
-          <h4 style={{ margin: '0 0 4px', fontSize: '0.95rem', color: 'var(--text-primary, #F8FAFC)' }}>Location Unavailable</h4>
-          <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary, #94A3B8)', lineHeight: 1.4 }}>
-            Selected transaction records do not contain geocoded latitude/longitude coordinates in active dataset.
-          </p>
-        </div>
-      )}
-
       {/* Risk Legend Footbar */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 16,
-        padding: '6px 12px',
-        background: 'rgba(15, 23, 42, 0.75)',
-        borderTop: '1px solid var(--border-primary, rgba(255,255,255,0.06))',
-        fontSize: '0.72rem',
-        color: 'var(--text-secondary, #94A3B8)',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 16,
+          padding: '6px 12px',
+          background: 'rgba(15, 23, 42, 0.88)',
+          borderTop: '1px solid var(--border-primary, rgba(255,255,255,0.06))',
+          fontSize: '0.72rem',
+          color: 'var(--text-secondary, #94A3B8)',
+          flexShrink: 0,
+          zIndex: 10,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E' }} />
           <span>Low Risk (0–34)</span>

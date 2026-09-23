@@ -141,47 +141,7 @@
   text-decoration: underline;
 }
 
-.mfa-demo-banner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: 100%;
-  padding: 10px 14px;
-  background: rgba(74, 123, 247, 0.08);
-  border: 1px dashed rgba(74, 123, 247, 0.3);
-  border-radius: var(--border-radius-md);
-  margin-top: var(--space-4);
-}
 
-.mfa-demo-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--brand-blue);
-}
-
-.mfa-demo-code {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-base);
-  font-weight: 700;
-  letter-spacing: 3px;
-  color: var(--text-primary);
-  background: var(--bg-card);
-  padding: 2px 10px;
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-primary);
-}
-
-.mfa-demo-disclaimer {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  text-align: center;
-}
 
 .mfa-progress {
   width: 100%;

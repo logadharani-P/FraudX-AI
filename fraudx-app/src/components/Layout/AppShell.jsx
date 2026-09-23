@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import AnimatedBackground from '../AnimatedBackground';
 import NotificationCenter from '../Notifications/NotificationCenter';
+import ModuleAccessTransition from '../Security/ModuleAccessTransition';
 import { useAuth } from '../../context/AuthContext';
+import { useModuleTransition } from '../../context/TransitionContext';
 import './AppShell.css';
 
 export default function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { navigateWithTransition } = useModuleTransition();
+  const location = useLocation();
 
   const roleTitle = user?.role === 'customer'
     ? 'Customer Portal'
@@ -20,6 +23,7 @@ export default function AppShell() {
   return (
     <div className="app-shell">
       <AnimatedBackground />
+      <ModuleAccessTransition />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="app-shell__content">
         <header className="app-shell__header">
@@ -46,7 +50,7 @@ export default function AppShell() {
             {/* Quick Profile Link */}
             <button
               type="button"
-              onClick={() => navigate('/profile')}
+              onClick={() => navigateWithTransition('/profile')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -69,7 +73,7 @@ export default function AppShell() {
           </div>
         </header>
 
-        <div className="app-shell__page">
+        <div key={location.pathname} className="app-shell__page module-page-reveal">
           <Outlet />
         </div>
       </main>

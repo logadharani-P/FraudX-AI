@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AnimatedBackground from '../components/AnimatedBackground';
-import logoImg from '../assets/logo-original.png';
+import MFAVerification from '../components/MFA/MFAVerification';
+import logoImg from '../assets/logo.svg';
 import './Login.css';
 
 export default function LoginCustomer() {
   const [tab, setTab] = useState('signin'); // 'signin' or 'signup'
+  const [step, setStep] = useState('credentials'); // 'credentials', 'mfa', 'complete'
+  const [authenticatedCustomer, setAuthenticatedCustomer] = useState(null);
   
   // Sign in state
   const [identifier, setIdentifier] = useState('');
@@ -45,7 +48,15 @@ export default function LoginCustomer() {
       return;
     }
 
-    navigate('/dashboard');
+    setAuthenticatedCustomer(res.user);
+    setStep('mfa');
+  };
+
+  const handleMfaSuccess = () => {
+    setStep('complete');
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 1200);
   };
 
   const handleSignUp = (e) => {
@@ -105,24 +116,26 @@ export default function LoginCustomer() {
         </div>
 
         {/* Tab switch */}
-        <div className="login__tabs">
-          <button
-            type="button"
-            className={`login__tab ${tab === 'signin' ? 'login__tab--active' : ''}`}
-            onClick={() => { setTab('signin'); setSignInError(''); }}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            className={`login__tab ${tab === 'signup' ? 'login__tab--active' : ''}`}
-            onClick={() => { setTab('signup'); setSignUpError(''); setSignUpSuccess(null); }}
-          >
-            Register Account
-          </button>
-        </div>
+        {step === 'credentials' && (
+          <div className="login__tabs">
+            <button
+              type="button"
+              className={`login__tab ${tab === 'signin' ? 'login__tab--active' : ''}`}
+              onClick={() => { setTab('signin'); setSignInError(''); }}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              className={`login__tab ${tab === 'signup' ? 'login__tab--active' : ''}`}
+              onClick={() => { setTab('signup'); setSignUpError(''); setSignUpSuccess(null); }}
+            >
+              Register Account
+            </button>
+          </div>
+        )}
 
-        {tab === 'signin' ? (
+        {step === 'credentials' && tab === 'signin' ? (
           <form className="login__form animate-fade-in" onSubmit={handleSignIn}>
             <div className="input-group">
               <label className="input-label" htmlFor="customer-id">{t('login.customerId')}</label>
@@ -286,6 +299,31 @@ export default function LoginCustomer() {
               </>
             )}
           </form>
+        )}
+
+        {step === 'mfa' && (
+          <div>
+            <div className="login__step-check" style={{ marginBottom: 16, justifyContent: 'center' }}>
+              <span className="login__check">✓</span>
+              <span>Credentials verified</span>
+            </div>
+            <MFAVerification
+              userEmail={authenticatedCustomer?.email || 'arjun.mehta@email.com'}
+              roleName="Customer"
+              onSuccess={handleMfaSuccess}
+              onCancel={() => setStep('credentials')}
+            />
+          </div>
+        )}
+
+        {step === 'complete' && (
+          <div className="login__complete animate-fade-in">
+            <div className="login__step-check"><span className="login__check">✓</span><span>{t('login.mfaVerified')}</span></div>
+            <div className="login__access-msg">
+              <div className="login__access-spinner" />
+              <span>Redirecting to your customer dashboard...</span>
+            </div>
+          </div>
         )}
       </div>
       <div className="welcome__orb welcome__orb--1" />

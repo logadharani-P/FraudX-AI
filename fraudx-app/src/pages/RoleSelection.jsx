@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AnimatedBackground from '../components/AnimatedBackground';
-import logoImg from '../assets/logo-original.png';
+import logoImg from '../assets/logo.svg';
 import './RoleSelection.css';
 
 const ROLE_ICONS = {

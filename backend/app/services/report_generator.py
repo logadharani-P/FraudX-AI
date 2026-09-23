@@ -10,18 +10,24 @@ from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    Table,
-    TableStyle,
-    KeepTogether,
-    HRFlowable,
-)
+try:
+    from reportlab.lib.pagesizes import letter, A4
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import (
+        SimpleDocTemplate,
+        Paragraph,
+        Spacer,
+        Table,
+        TableStyle,
+        KeepTogether,
+        HRFlowable,
+    )
+except ImportError:
+    letter, A4 = None, None
+    colors = None
+    getSampleStyleSheet, ParagraphStyle = None, None
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether, HRFlowable = None, None, None, None, None, None, None
 
 from app.models.transaction import Transaction, RiskLevel
 from app.models.alert import Alert, AlertStatus

@@ -1,16 +1,58 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect, useMemo, useCallback, Component } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useModuleTransition } from '../context/TransitionContext';
+import api from '../lib/api';
 import './AIAgent.css';
 
-export default function AIAgent() {
-  const { stats, transactions, alerts } = useData();
-  const { user } = useAuth();
+// Safety Error Boundary to ensure the AI Agent never crashes to a blank screen
+class AIAgentErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('AIAgent caught error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="page-container ai-agent-page" style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <div className="glass-card" style={{ maxWidth: 500, padding: 32, textAlign: 'center' }}>
+            <span style={{ fontSize: 36 }}>🛡️</span>
+            <h2 className="heading-3" style={{ marginTop: 12, marginBottom: 8 }}>AI Assistant Recovery</h2>
+            <p className="text-secondary text-sm" style={{ marginBottom: 16 }}>
+              The AI Agent encountered an unexpected initialization state.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => this.setState({ hasError: false, error: null })}
+            >
+              🔄 Reload AI Agent
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function AIAgentInner() {
+  const { stats = {}, transactions = [], alerts = [] } = useData() || {};
+  const { user } = useAuth() || {};
   const { t } = useTheme();
   const location = useLocation();
-  const navigate = useNavigate();
+  const { navigateWithTransition } = useModuleTransition();
 
   const role = user?.role || 'customer';
   const isCustomer = role === 'customer';
@@ -21,23 +63,25 @@ export default function AIAgent() {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [activeSpeechText, setActiveSpeechText] = useState('');
+  const [, setActiveSpeechText] = useState('');
 
   // Customer-specific transactions
   const customerTxns = useMemo(() => {
-    if (!isCustomer || !user?.name) return [];
+    if (!isCustomer || !user?.name || !Array.isArray(transactions)) return [];
     return transactions.filter(t => t.senderName === user.name || t.receiverName === user.name);
   }, [isCustomer, user, transactions]);
 
   const openAlertsCount = useMemo(() => {
+    if (!Array.isArray(alerts)) return 0;
     return alerts.filter(a => a.status === 'Open').length;
   }, [alerts]);
 
   const highRiskCount = useMemo(() => {
+    if (!Array.isArray(transactions)) return 0;
     return transactions.filter(t => t.riskLevel === 'High' || t.riskLevel === 'Critical').length;
   }, [transactions]);
 
-  // Initial welcome
+  // Initial welcome message
   const initialWelcome = useMemo(() => {
     if (isCustomer) {
       return `Welcome to FraudX AI Assistant 👋\n\nI can help you review your transactions, understand your personal risk scoring, explain MFA security, or navigate directly to any page.\n\nTry asking me to *"Show my latest transaction"* or *"Open my transactions"*.`;
@@ -49,7 +93,7 @@ export default function AIAgent() {
       return `Welcome back, ${user?.name || 'Analyst'}.\n\nAll real-time streams are currently operating within nominal risk thresholds. You can query any transaction or audit log.`;
     }
     if (isOrg) {
-      const totalVol = ((stats.totalAmount || 0) / 1000).toFixed(1);
+      const totalVol = (((stats?.totalAmount || 0)) / 1000).toFixed(1);
       return `Welcome back, ${user?.name || 'Admin'}.\n\nHere is your current enterprise overview:\n• Total Volume Monitored: **₹${totalVol}K**\n• High-Risk Monitored Transactions: **${highRiskCount}**\n• Flagged Alerts Requiring Review: **${openAlertsCount}**\n• Telemetry Status: **Active & Compliant**`;
     }
     return `Welcome back. What would you like to review today?`;
@@ -169,51 +213,52 @@ export default function AIAgent() {
     ];
   }, [isCustomer, isAnalyst]);
 
-  const generateResponse = useCallback((query) => {
+  // Client-side grounded queries: Navigation & local dataset retrieval
+  const checkClientHandled = useCallback((query) => {
     const q = query.toLowerCase().trim();
 
-    // Direct Navigation Triggers
+    // 1. Direct Navigation Triggers
     if (q.includes('open') || q.includes('take me to') || q.includes('go to') || q.includes('navigate to')) {
       if (q.includes('transaction')) {
-        setTimeout(() => navigate('/transactions'), 900);
-        return `Navigating to **Transactions** console now... 🚀`;
+        setTimeout(() => navigateWithTransition('/transactions'), 600);
+        return { handled: true, response: `Navigating to **Transactions** console now... 🚀` };
       }
       if (q.includes('risk analysis') || q.includes('risk assessment')) {
-        setTimeout(() => navigate('/risk-analysis'), 900);
-        return `Opening your **Risk Analysis** dashboard now... 📊`;
+        setTimeout(() => navigateWithTransition('/risk-analysis'), 600);
+        return { handled: true, response: `Opening your **Risk Analysis** dashboard now... 📊` };
       }
       if (q.includes('fraud alert') || q.includes('alert')) {
         if (isCustomer) {
-          return `🔒 Fraud alert investigation consoles are restricted to authorized fraud analysts and administrators.`;
+          return { handled: true, response: `🔒 Fraud alert investigation consoles are restricted to authorized fraud analysts and administrators.` };
         }
-        setTimeout(() => navigate('/fraud-alerts'), 900);
-        return `Navigating to **Fraud Alerts** investigation pipeline... ⚠️`;
+        setTimeout(() => navigateWithTransition('/fraud-alerts'), 600);
+        return { handled: true, response: `Navigating to **Fraud Alerts** investigation pipeline... ⚠️` };
       }
       if (q.includes('treatment') || q.includes('risk treatment')) {
         if (isCustomer) {
-          return `🔒 Risk treatment controls are restricted to authorized fraud analysts.`;
+          return { handled: true, response: `🔒 Risk treatment controls are restricted to authorized fraud analysts.` };
         }
-        setTimeout(() => navigate('/risk-treatment'), 900);
-        return `Opening **Risk Treatment** module... 🛡️`;
+        setTimeout(() => navigateWithTransition('/risk-treatment'), 600);
+        return { handled: true, response: `Opening **Risk Treatment** module... 🛡️` };
       }
       if (q.includes('report')) {
         if (isCustomer) {
-          return `🔒 Enterprise reporting centers are restricted to analyst and organisation portals.`;
+          return { handled: true, response: `🔒 Enterprise reporting centers are restricted to analyst and organisation portals.` };
         }
-        setTimeout(() => navigate('/reports'), 900);
-        return `Opening **Reports** center... 📋`;
+        setTimeout(() => navigateWithTransition('/reports'), 600);
+        return { handled: true, response: `Opening **Reports** center... 📋` };
       }
       if (q.includes('profile')) {
-        setTimeout(() => navigate('/profile'), 900);
-        return `Opening your **Profile** page now... 👤`;
+        setTimeout(() => navigateWithTransition('/profile'), 600);
+        return { handled: true, response: `Opening your **Profile** page now... 👤` };
       }
       if (q.includes('setting')) {
-        setTimeout(() => navigate('/settings'), 900);
-        return `Opening **Settings** panel... ⚙️`;
+        setTimeout(() => navigateWithTransition('/settings'), 600);
+        return { handled: true, response: `Opening **Settings** panel... ⚙️` };
       }
     }
 
-    // 1. Transaction Lookups (e.g. TXN-100005)
+    // 2. Transaction Lookups (e.g. TXN-100005)
     const txnMatch = q.match(/txn-(\d+)/i);
     if (txnMatch) {
       const txnId = `TXN-${txnMatch[1]}`;
@@ -222,7 +267,10 @@ export default function AIAgent() {
       if (txn) {
         // Customer authorization boundary check
         if (isCustomer && txn.senderName !== user?.name && txn.receiverName !== user?.name) {
-          return `🔒 **Access Restricted**\n\nFor privacy and security, you can only inspect transactions associated with your own account (${user?.name || 'Customer'}). \`${txnId}\` belongs to another account.`;
+          return {
+            handled: true,
+            response: `🔒 **Access Restricted**\n\nFor privacy and security, you can only inspect transactions associated with your own account (${user?.name || 'Customer'}). \`${txnId}\` belongs to another account.`
+          };
         }
 
         let response = `**Transaction Analysis for \`${txnId}\`**\n\n`;
@@ -240,16 +288,16 @@ export default function AIAgent() {
           });
         }
 
-        return response;
+        return { handled: true, response };
       }
-      return `I couldn't find a transaction with ID \`${txnId}\` in the available dataset. Please verify the identifier and try again.`;
+      return { handled: true, response: `I couldn't find a transaction with ID \`${txnId}\` in the available dataset. Please verify the identifier and try again.` };
     }
 
-    // 2. Customer: "Show my latest transaction"
+    // 3. Customer: "Show my latest transaction"
     if (q.includes('latest transaction') || q.includes('recent transaction') || (q.includes('my') && q.includes('transaction'))) {
       if (isCustomer) {
         if (customerTxns.length === 0) {
-          return `You currently have **0 recorded transactions** on your account (${user?.name || 'Customer'}).`;
+          return { handled: true, response: `You currently have **0 recorded transactions** on your account (${user?.name || 'Customer'}).` };
         }
         const latest = customerTxns[0];
         let res = `**Your Latest Transaction Record (${latest.id})**:\n\n`;
@@ -259,46 +307,42 @@ export default function AIAgent() {
         res += `• **Timestamp:** ${latest.date} at ${latest.time}\n`;
         res += `• **Status:** ${latest.status}\n\n`;
         res += `Would you like me to open the full **Transactions** page?`;
-        return res;
+        return { handled: true, response: res };
       }
     }
 
-    // 3. "What is MFA?"
-    if (q.includes('mfa') || q.includes('multi-factor') || q.includes('two-factor') || q.includes('2fa')) {
-      return `**What is Multi-Factor Authentication (MFA)?**\n\nMulti-Factor Authentication requires two or more independent verification factors:\n\n1. **Something You Know** — Your password or secure PIN.\n2. **Something You Have** — A 6-digit verification token sent to your registered phone or hardware authenticator.\n3. **Something You Are** — Biometric telemetry validation.\n\n**Why it matters:** Even if an unauthorized entity learns your password, they cannot initiate transfers without your second physical factor.`;
+    // 4. "What is MFA?"
+    if (q.includes('what is mfa') || q.includes('mfa code') || q.includes('multi-factor') || q.includes('2fa')) {
+      return {
+        handled: true,
+        response: `**What is Multi-Factor Authentication (MFA)?**\n\nMulti-Factor Authentication requires two or more independent verification factors:\n\n1. **Something You Know** — Your password or secure PIN.\n2. **Something You Have** — A 6-digit verification token sent to your registered phone or hardware authenticator.\n3. **Something You Are** — Biometric telemetry validation.\n\n**Why it matters:** Even if an unauthorized entity learns your password, they cannot initiate transfers without your second physical factor.`
+      };
     }
 
-    // 4. "What does my risk score mean?" / "Explain risk score"
+    // 5. "What does my risk score mean?"
     if (q.includes('risk score') || (q.includes('explain') && q.includes('risk')) || q.includes('scoring')) {
-      return `**Understanding Risk Scores (0 to 100)**\n\nEvery transfer is scored in real-time by the FraudX AI engine:\n\n• **0–34 (Low Risk):** Normal baseline activity. Approved automatically.\n• **35–59 (Medium Risk):** Slight variation detected (e.g. new merchant). Monitored under standard rules.\n• **60–79 (High Risk):** Significant anomaly indicators (e.g. sudden amount spike). Flagged for review.\n• **80–100 (Critical Risk):** Strong anomaly indicators requiring immediate analyst triage.`;
+      return {
+        handled: true,
+        response: `**Understanding Risk Scores (0 to 100)**\n\nEvery transfer is scored in real-time by the FraudX AI engine:\n\n• **0–34 (Low Risk):** Normal baseline activity. Approved automatically.\n• **35–59 (Medium Risk):** Slight variation detected (e.g. new merchant). Monitored under standard rules.\n• **60–79 (High Risk):** Significant anomaly indicators (e.g. sudden amount spike). Flagged for review.\n• **80–100 (Critical Risk):** Strong anomaly indicators requiring immediate analyst triage.`
+      };
     }
 
-    // 5. Analyst / Org: "Why was TXN-XXXXXX flagged?" or "What are the current high-risk transactions?"
-    if (isAnalyst || isOrg) {
-      if (q.includes('high-risk') || q.includes('high risk') || q.includes('overview')) {
-        const topHigh = transactions.filter(t => t.riskLevel === 'High' || t.riskLevel === 'Critical').slice(0, 4);
-        let res = `**Current Monitored High-Risk Transactions (${highRiskCount} Total)**:\n\n`;
-        topHigh.forEach(t => {
-          res += `• **${t.id}**: ${t.amountFormatted} (${t.senderName} → ${t.receiverName}) — *Score: ${t.riskScore}/100 (${t.riskLevel})*\n`;
-        });
-        res += `\nYou can review all open cases in **Fraud Alerts** or apply mitigations in **Risk Treatment**.`;
-        return res;
-      }
-
-      if (q.includes('anomal') || q.includes('pattern')) {
-        return `**Detected Anomaly Factors in Active Pipeline**:\n\n1. **Unusual Transaction Amount:** High deviation from member baseline.\n2. **Rapid Velocity Sequence:** Multiple transfers in compressed timeframe.\n3. **Geographic Inconsistency:** Origin location inconsistent with user profile.\n4. **Unusual Timing:** Out-of-pattern off-hours execution.`;
-      }
+    // 6. Analyst / Org: "What are the current high-risk transactions?"
+    if ((isAnalyst || isOrg) && (q.includes('high-risk') || q.includes('high risk') || q.includes('overview'))) {
+      const topHigh = transactions.filter(t => t.riskLevel === 'High' || t.riskLevel === 'Critical').slice(0, 4);
+      let res = `**Current Monitored High-Risk Transactions (${highRiskCount} Total)**:\n\n`;
+      topHigh.forEach(t => {
+        res += `• **${t.id}**: ${t.amountFormatted} (${t.senderName} → ${t.receiverName}) — *Score: ${t.riskScore}/100 (${t.riskLevel})*\n`;
+      });
+      res += `\nYou can review all open cases in **Fraud Alerts** or apply mitigations in **Risk Treatment**.`;
+      return { handled: true, response: res };
     }
 
-    // Default response
-    if (isCustomer) {
-      return `I can help with your account security and transfers! Try asking:\n\n• *"Show my latest transaction"*\n• *"Open my transactions"*\n• *"Show my risk analysis"*\n• *"What is MFA?"*\n• *"What does my risk score mean?"*`;
-    }
+    return { handled: false, response: null };
+  }, [isCustomer, isAnalyst, isOrg, user, transactions, customerTxns, highRiskCount, navigateWithTransition]);
 
-    return `I'm ready to assist your investigation! Try asking:\n\n• *"Why was TXN-100005 flagged?"*\n• *"Take me to fraud alerts"*\n• *"What are the current high-risk transactions?"*\n• *"Open risk treatment"*\n• *"Show reports"*`;
-  }, [isCustomer, isAnalyst, isOrg, user, transactions, customerTxns, highRiskCount, navigate]);
-
-  const handleSend = useCallback((textToSend) => {
+  // Main message sending handler
+  const handleSend = useCallback(async (textToSend) => {
     const query = typeof textToSend === 'string' ? textToSend : input;
     if (!query.trim()) return;
 
@@ -307,15 +351,69 @@ export default function AIAgent() {
     setInput('');
     setAgentState('thinking');
 
-    setTimeout(() => {
-      const response = generateResponse(userMsg.content);
-      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
-      setAgentState('ready');
-      if (voiceEnabled) {
-        speakText(response);
+    // Check if query is locally handled (navigation or local dataset lookup)
+    const clientResult = checkClientHandled(userMsg.content);
+    if (clientResult.handled) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, { role: 'assistant', content: clientResult.response }]);
+        setAgentState('ready');
+        if (voiceEnabled) {
+          speakText(clientResult.response);
+        }
+      }, 350 + Math.random() * 200);
+      return;
+    }
+
+    // Attempt backend AI service call with timeout
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+      const res = await Promise.race([
+        api.agent.chat(userMsg.content),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('AI service timeout')), 4500)
+        )
+      ]);
+      clearTimeout(timeoutId);
+
+      if (res && res.reply) {
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: res.reply,
+            evidence: res.evidence || [],
+            sources: res.sources || []
+          }
+        ]);
+        setAgentState('ready');
+        if (voiceEnabled) {
+          speakText(res.reply);
+        }
+        return;
       }
-    }, 450 + Math.random() * 250);
-  }, [input, generateResponse, voiceEnabled, speakText]);
+      throw new Error('Empty response from AI service');
+    } catch (err) {
+      console.warn('AI service request failed:', err?.message || err);
+      // DO NOT fabricate response: Show clear professional error state with retry option
+      const errorMsg = {
+        role: 'assistant',
+        content: 'AI service is currently unavailable. Please try again.',
+        isError: true,
+        retryQuery: userMsg.content,
+      };
+      setMessages(prev => [...prev, errorMsg]);
+      setAgentState('ready');
+    }
+  }, [input, checkClientHandled, voiceEnabled, speakText]);
+
+  // Handle retry
+  const handleRetry = useCallback((retryText) => {
+    if (retryText) {
+      handleSend(retryText);
+    }
+  }, [handleSend]);
 
   const handledPromptRef = useRef(false);
   useEffect(() => {
@@ -330,6 +428,7 @@ export default function AIAgent() {
   }, [location.state, handleSend]);
 
   const formatContent = (content) => {
+    if (!content) return null;
     return content.split('\n').map((line, li) => {
       let processed = line.replace(/^#{1,6}\s+/, '');
       processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -412,9 +511,43 @@ export default function AIAgent() {
                   <span>✦</span>
                 </div>
               )}
-              <div className={`ai-message-bubble ${msg.role === 'user' ? 'ai-message-bubble--user' : 'ai-message-bubble--assistant'}`}>
+              <div
+                className={`ai-message-bubble ${
+                  msg.role === 'user'
+                    ? 'ai-message-bubble--user'
+                    : msg.isError
+                    ? 'ai-message-bubble--assistant ai-message-bubble--error'
+                    : 'ai-message-bubble--assistant'
+                }`}
+              >
                 {formatContent(msg.content)}
-                {msg.role === 'assistant' && voiceEnabled && (
+
+                {/* Evidence badges if returned by backend agent */}
+                {msg.evidence && msg.evidence.length > 0 && (
+                  <div className="ai-evidence-list">
+                    {msg.evidence.map((ev, ei) => (
+                      <div key={ei} className={`ai-evidence-card ai-evidence-card--${ev.severity || 'info'}`}>
+                        <strong>{ev.title}:</strong> {ev.description}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Error Retry Option */}
+                {msg.isError && msg.retryQuery && (
+                  <div>
+                    <button
+                      type="button"
+                      className="ai-retry-btn"
+                      onClick={() => handleRetry(msg.retryQuery)}
+                    >
+                      🔄 Retry
+                    </button>
+                  </div>
+                )}
+
+                {/* Voice Replay */}
+                {msg.role === 'assistant' && !msg.isError && voiceEnabled && (
                   <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                       type="button"
@@ -497,5 +630,13 @@ export default function AIAgent() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function AIAgent() {
+  return (
+    <AIAgentErrorBoundary>
+      <AIAgentInner />
+    </AIAgentErrorBoundary>
   );
 }

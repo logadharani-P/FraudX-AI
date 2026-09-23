@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useModuleTransition } from '../../context/TransitionContext';
 import LogoutFeedbackModal from '../LogoutFeedbackModal';
-import logoImg from '../../assets/logo-original.png';
+import logoImg from '../../assets/logo.svg';
 import './Sidebar.css';
 
 const NAV_ITEMS = [
@@ -107,6 +108,7 @@ const ICONS = {
 export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth();
   const { t } = useTheme();
+  const { navigateWithTransition } = useModuleTransition();
   const navigate = useNavigate();
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const userRole = user?.role || 'customer';
@@ -119,6 +121,12 @@ export default function Sidebar({ isOpen, onClose }) {
     setShowFeedbackModal(false);
     logout();
     navigate('/');
+  };
+
+  const handleNavClick = (e, path) => {
+    e.preventDefault();
+    onClose();
+    navigateWithTransition(path);
   };
 
   // Filter nav items by role
@@ -154,7 +162,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) => `sidebar__item ${isActive ? 'sidebar__item--active' : ''}`}
-                onClick={onClose}
+                onClick={(e) => handleNavClick(e, item.path)}
                 aria-label={t(item.labelKey)}
               >
                 <span className="sidebar__icon">{ICONS[item.icon]}</span>
@@ -168,7 +176,7 @@ export default function Sidebar({ isOpen, onClose }) {
           <NavLink
             to="/profile"
             className={({ isActive }) => `sidebar__item sidebar__profile-item ${isActive ? 'sidebar__item--active' : ''}`}
-            onClick={onClose}
+            onClick={(e) => handleNavClick(e, '/profile')}
           >
             <span className="sidebar__avatar">
               {user?.name?.charAt(0) || 'U'}

@@ -1,14 +1,43 @@
-.animated-background {
+.animated-background-wrapper {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: var(--z-background);
+  z-index: var(--z-background, 0);
   pointer-events: none;
-  opacity: 0.6;
+  background: var(--gradient-radial-bg);
+  overflow: hidden;
+  transition: background var(--transition-normal);
+}
+
+.animated-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+[data-theme="pearl"] .animated-background,
+[data-theme="luminous"] .animated-background {
+  opacity: 0.35;
+}
+
+[data-theme="emerald"] .animated-background {
+  opacity: 0.55;
+}
+
+[data-theme="sapphire"] .animated-background {
+  opacity: 0.70;
 }
 
 [data-theme="midnight"] .animated-background {
-  opacity: 0.4;
+  opacity: 0.45;
+}
+
+[data-theme="high-contrast"] .animated-background {
+  opacity: 0.20;
 }

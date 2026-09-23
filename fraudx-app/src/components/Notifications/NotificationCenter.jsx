@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
+import { useModuleTransition } from '../../context/TransitionContext';
 import './NotificationCenter.css';
 
 export default function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
   const [tab, setTab] = useState('all'); // all, fraud, security
   const dropdownRef = useRef(null);
-  const navigate = useNavigate();
+  const { navigateWithTransition } = useModuleTransition();
   const { user } = useAuth();
   const {
     notifications,
@@ -48,9 +48,9 @@ export default function NotificationCenter() {
     markAsRead(notif.id);
     setIsOpen(false);
     if (notif.type === 'fraud') {
-      navigate('/fraud-alerts');
+      navigateWithTransition(isCustomer ? '/transactions' : '/fraud-alerts');
     } else {
-      navigate('/security-center');
+      navigateWithTransition(isCustomer ? '/profile' : '/security-center');
     }
   };
 
@@ -185,7 +185,7 @@ export default function NotificationCenter() {
               className="notif-item-action"
               onClick={() => {
                 setIsOpen(false);
-                navigate(isCustomer ? '/transactions' : '/fraud-alerts');
+                navigateWithTransition(isCustomer ? '/transactions' : '/fraud-alerts');
               }}
             >
               {isCustomer ? 'View All Transactions →' : 'View Fraud Center →'}

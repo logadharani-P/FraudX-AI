@@ -15,7 +15,7 @@ const LANGUAGE_NAMES = {
 };
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem('fraudx-theme') || 'luminous');
+  const [theme, setTheme] = useState(() => localStorage.getItem('fraudx-theme') || 'aurora');
   const [accent, setAccent] = useState(() => localStorage.getItem('fraudx-accent') || 'blue');
   const [animations, setAnimations] = useState(() => localStorage.getItem('fraudx-animations') || 'full');
   const [density, setDensity] = useState(() => localStorage.getItem('fraudx-density') || 'comfortable');
@@ -23,25 +23,29 @@ export function ThemeProvider({ children }) {
   const [highContrast, setHighContrast] = useState(() => localStorage.getItem('fraudx-high-contrast') === 'true');
   const [language, setLanguage] = useState(() => localStorage.getItem('fraudx-lang') || 'en');
 
-  // Handle system theme detection
+  // Handle system theme detection and mapping
   useEffect(() => {
     let effectiveTheme = theme;
     if (highContrast) {
       effectiveTheme = 'high-contrast';
     } else if (theme === 'system') {
       const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      effectiveTheme = isDark ? 'midnight' : 'luminous';
+      effectiveTheme = isDark ? 'aurora' : 'pearl';
     }
 
     const themeMap = {
-      luminous: '',
-      midnight: 'midnight',
       aurora: 'aurora',
-      'secure-light': 'secure-light',
+      emerald: 'emerald',
+      midnight: 'midnight',
+      pearl: 'pearl',
+      sapphire: 'sapphire',
+      luminous: 'pearl',
+      'secure-light': 'pearl',
       'high-contrast': 'high-contrast',
     };
 
-    document.documentElement.setAttribute('data-theme', themeMap[effectiveTheme] || '');
+    const appliedTheme = themeMap[effectiveTheme] || effectiveTheme;
+    document.documentElement.setAttribute('data-theme', appliedTheme);
     localStorage.setItem('fraudx-theme', theme);
   }, [theme, highContrast]);
 

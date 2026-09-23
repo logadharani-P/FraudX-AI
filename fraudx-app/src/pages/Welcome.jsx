@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AnimatedBackground from '../components/AnimatedBackground';
-import logoImg from '../assets/logo-original.png';
+import logoImg from '../assets/logo.svg';
 import { useTheme } from '../context/ThemeContext';
 import './Welcome.css';
 

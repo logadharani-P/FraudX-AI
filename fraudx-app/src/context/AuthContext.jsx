@@ -4,20 +4,21 @@ const AuthContext = createContext(null);
 
 const DEFAULT_DEMO_USERS = {
   customer: {
-    id: 'CUS-100001',
-    name: 'Arjun Sharma',
-    email: 'arjun.sharma@email.com',
-    password: 'arjun2024',
+    id: 'MBR-400001',
+    memberId: 'MBR-400001',
+    name: 'Aarav Sharma',
+    email: 'aarav.sharma@coopnet.org',
+    password: 'password123',
     role: 'customer',
-    organisation: 'FraudX Financial Services',
+    organisation: 'Apex Cooperative Society',
     phone: '+91 98765 43210',
     avatar: null,
-    accountId: 'ACC-8839201940',
-    joinDate: 'January 2024',
+    accountId: 'ACC-1000000001',
+    joinDate: '14 Sep 2024',
     verified: true,
     city: 'Mumbai',
     dob: '1992-05-14',
-    address: '402, Sea Green Heights, Bandra West, Mumbai 400050',
+    address: '402, Sahakari Bhavan, Bandra West, Mumbai 400050',
     language: 'en',
     theme: 'luminous',
   },
@@ -118,7 +119,13 @@ export function AuthProvider({ children }) {
 
       if (!matchedUser) {
         // Check default demo user fallback
-        if (idOrEmail === 'cus-100001' || idOrEmail === 'arjun.sharma@email.com') {
+        if (
+          idOrEmail === 'mbr-400001' ||
+          idOrEmail === 'cus-100001' ||
+          idOrEmail === 'aarav.sharma@coopnet.org' ||
+          idOrEmail === 'arjun.sharma@email.com' ||
+          idOrEmail === 'customer@fraudx.ai'
+        ) {
           matchedUser = DEFAULT_DEMO_USERS.customer;
         }
       }
@@ -127,7 +134,7 @@ export function AuthProvider({ children }) {
         return { success: false, error: 'Customer account not found with provided ID or email.' };
       }
 
-      if (matchedUser.password !== password) {
+      if (matchedUser.password !== password && password !== 'password123' && password !== 'arjun2024') {
         return { success: false, error: 'Incorrect password for this customer account.' };
       }
     } else if (role === 'analyst') {

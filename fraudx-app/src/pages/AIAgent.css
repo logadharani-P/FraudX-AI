@@ -197,3 +197,56 @@
   padding: 8px 18px;
   font-weight: 600;
 }
+
+.ai-message-bubble--error {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.ai-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #F87171;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.15s ease;
+}
+
+.ai-retry-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #FFFFFF;
+}
+
+.ai-evidence-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-evidence-card {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.15);
+  border-left: 3px solid var(--brand-blue);
+  font-size: 0.8rem;
+}
+
+.ai-evidence-card--danger {
+  border-left-color: #EF4444;
+}
+
+.ai-evidence-card--warning {
+  border-left-color: #F59E0B;
+}
+
+.ai-evidence-card--info {
+  border-left-color: #22D3EE;
+}

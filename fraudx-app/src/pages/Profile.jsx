@@ -33,9 +33,7 @@ export default function Profile() {
     return transactions.filter(t => t.senderId === memberId || t.receiverId === memberId);
   }, [customerMember, transactions]);
 
-  if (!user) return null;
-
-  const role = user.role || 'customer';
+  const role = user?.role || 'customer';
   const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
   const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'FX';
 
@@ -101,8 +99,10 @@ export default function Profile() {
     if (role === 'analyst') {
       return `Senior Financial Crime Analyst at ${user.organisation || 'FraudX AI Security Division'}. Authorized for Level-3 investigation workflows, anomaly triage, risk treatment application, and graph correlation.`;
     }
-    return `Chief Security Administrator at ${user.organisation || 'FraudX AI'}. Authorized for organization-wide security telemetry, policy governance, member oversight, and compliance auditing.`;
+    return `Chief Security Administrator at ${user?.organisation || 'FraudX AI'}. Authorized for organization-wide security telemetry, policy governance, member oversight, and compliance auditing.`;
   }, [role, user]);
+
+  if (!user) return null;
 
   return (
     <div className="page-container profile-page">

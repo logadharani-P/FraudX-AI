@@ -104,22 +104,55 @@ export default function AnimatedBackground() {
         ctx.fill();
       });
 
-      // Draw subtle grid
-      ctx.strokeStyle = 'rgba(74, 123, 247, 0.02)';
-      ctx.lineWidth = 0.5;
-      const gridSize = 80;
-      const offsetX = (time * 0.005) % gridSize;
-      for (let x = -gridSize + offsetX; x < canvas.width + gridSize; x += gridSize) {
+      // Draw faint circuit traces (low contrast, no harsh grids)
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.028)';
+      ctx.lineWidth = 1;
+      const circuitOffset = (time * 0.008) % 300;
+      
+      // Circuit trace line 1
+      ctx.beginPath();
+      ctx.moveTo(0, 180 + circuitOffset * 0.2);
+      ctx.lineTo(canvas.width * 0.25, 180 + circuitOffset * 0.2);
+      ctx.lineTo(canvas.width * 0.32, 240 + circuitOffset * 0.2);
+      ctx.lineTo(canvas.width * 0.55, 240 + circuitOffset * 0.2);
+      ctx.stroke();
+
+      // Circuit trace line 2
+      ctx.beginPath();
+      ctx.moveTo(canvas.width, canvas.height * 0.7);
+      ctx.lineTo(canvas.width * 0.75, canvas.height * 0.7);
+      ctx.lineTo(canvas.width * 0.68, canvas.height * 0.7 - 60);
+      ctx.lineTo(canvas.width * 0.45, canvas.height * 0.7 - 60);
+      ctx.stroke();
+
+      // Draw faint security shield watermark (very low contrast)
+      const shieldCenterX = canvas.width * 0.88;
+      const shieldCenterY = canvas.height * 0.78;
+      const shieldScale = Math.min(canvas.width, canvas.height) * 0.18;
+      if (shieldScale > 50) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(74, 123, 247, 0.025)';
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
+        ctx.moveTo(shieldCenterX, shieldCenterY - shieldScale);
+        ctx.lineTo(shieldCenterX + shieldScale * 0.8, shieldCenterY - shieldScale * 0.7);
+        ctx.lineTo(shieldCenterX + shieldScale * 0.8, shieldCenterY + shieldScale * 0.1);
+        ctx.quadraticCurveTo(
+          shieldCenterX + shieldScale * 0.7,
+          shieldCenterY + shieldScale * 0.8,
+          shieldCenterX,
+          shieldCenterY + shieldScale
+        );
+        ctx.quadraticCurveTo(
+          shieldCenterX - shieldScale * 0.7,
+          shieldCenterY + shieldScale * 0.8,
+          shieldCenterX - shieldScale * 0.8,
+          shieldCenterY + shieldScale * 0.1
+        );
+        ctx.lineTo(shieldCenterX - shieldScale * 0.8, shieldCenterY - shieldScale * 0.7);
+        ctx.closePath();
         ctx.stroke();
-      }
-      for (let y = 0; y < canvas.height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
+        ctx.restore();
       }
 
       animationId = requestAnimationFrame(animate);
@@ -133,5 +166,9 @@ export default function AnimatedBackground() {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="animated-background" aria-hidden="true" />;
+  return (
+    <div className="animated-background-wrapper" aria-hidden="true">
+      <canvas ref={canvasRef} className="animated-background" />
+    </div>
+  );
 }

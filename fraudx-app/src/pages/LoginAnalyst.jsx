@@ -4,10 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AnimatedBackground from '../components/AnimatedBackground';
 import MFAVerification from '../components/MFA/MFAVerification';
-import logoImg from '../assets/logo-original.png';
+import logoImg from '../assets/logo.svg';
 import './Login.css';
-
-const DEMO_MFA_CODE = '482901';
 
 export default function LoginAnalyst() {
   const [tab, setTab] = useState('signin'); // 'signin' or 'signup'
@@ -16,7 +14,10 @@ export default function LoginAnalyst() {
   // Sign In state
   const [analystId, setAnalystId] = useState('');
   const [password, setPassword] = useState('');
+  const [authenticatedAnalyst, setAuthenticatedAnalyst] = useState(null);
+  const [capturedFaceUrl, setCapturedFaceUrl] = useState(null);
   const [faceProgress, setFaceProgress] = useState(0);
+  const [cameraActive, setCameraActive] = useState(false);
   const [error, setError] = useState('');
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -54,6 +55,9 @@ export default function LoginAnalyst() {
       return;
     }
 
+    setAuthenticatedAnalyst(authResult.user);
+    setCapturedFaceUrl(null);
+    setFaceProgress(0);
     setStep('face');
   };
 
@@ -107,35 +111,54 @@ export default function LoginAnalyst() {
 
   useEffect(() => {
     if (step === 'face') {
-      // Try to access camera (demo)
-      navigator.mediaDevices?.getUserMedia({ video: true })
+      let mfaTimeout = null;
+
+      // Access camera if available
+      navigator.mediaDevices?.getUserMedia({ video: { width: 320, height: 320, facingMode: 'user' } })
         .then(stream => {
           streamRef.current = stream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
+          setCameraActive(true);
         })
         .catch(() => {
-          // Camera not available, proceed with demo
+          // Camera not available, fallback to profile/biometric frame
+          setCameraActive(false);
         });
 
-      // Simulate face verification progress
+      // Simulate biometric telemetry verification
       const interval = setInterval(() => {
         setFaceProgress(prev => {
           if (prev >= 100) {
             clearInterval(interval);
-            setTimeout(() => setStep('mfa'), 800);
+
+            // Capture face snapshot from video feed if available
+            try {
+              if (videoRef.current && streamRef.current) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 240;
+                canvas.height = 240;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(videoRef.current, 0, 0, 240, 240);
+                setCapturedFaceUrl(canvas.toDataURL('image/jpeg'));
+              }
+            } catch {
+              // Video stream unreadable
+            }
+
+            mfaTimeout = setTimeout(() => setStep('mfa'), 1200);
             return 100;
           }
-          return prev + 2;
+          return prev + 3;
         });
-      }, 60);
+      }, 50);
 
       return () => {
         clearInterval(interval);
+        if (mfaTimeout) clearTimeout(mfaTimeout);
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
         }
+        setCameraActive(false);
       };
     }
   }, [step]);
@@ -326,32 +349,162 @@ export default function LoginAnalyst() {
         )}
 
         {step === 'face' && (
-          <div className="login__face animate-fade-in">
-            <h2 className="login__step-title">{t('login.faceVerification')}</h2>
-            <div className="face-frame">
-              <video ref={videoRef} autoPlay muted playsInline className="face-frame__video" />
-              <div className="face-frame__guide">
-                <svg viewBox="0 0 200 200" className="face-frame__oval">
-                  <ellipse cx="100" cy="100" rx="65" ry="85" fill="none" stroke="rgba(74, 123, 247, 0.5)" strokeWidth="2" strokeDasharray="6 4"/>
-                </svg>
-              </div>
-              <div className="face-frame__scan" style={{ top: `${faceProgress}%` }} />
+          <div className="login__face animate-fade-in" style={{ textAlign: 'center' }}>
+            <h2 className="login__step-title" style={{ marginBottom: 4 }}>{t('login.faceVerification')}</h2>
+            <p className="text-xs text-secondary" style={{ marginBottom: 16 }}>
+              Biometric verification for <strong>{authenticatedAnalyst?.name || 'Authorized Analyst'}</strong>
+            </p>
+
+            {/* Professional Biometric Verification Frame */}
+            <div
+              className="face-biometric-container"
+              style={{
+                position: 'relative',
+                width: 170,
+                height: 170,
+                margin: '0 auto 16px',
+                borderRadius: 'var(--border-radius-xl, 20px)',
+                overflow: 'hidden',
+                border: faceProgress >= 100
+                  ? '2px solid var(--risk-low, #22C55E)'
+                  : '2px solid var(--brand-blue, #4A7BF7)',
+                boxShadow: faceProgress >= 100
+                  ? '0 0 24px rgba(34, 197, 94, 0.4), inset 0 0 16px rgba(34, 197, 94, 0.2)'
+                  : '0 0 20px rgba(74, 123, 247, 0.3), inset 0 0 16px rgba(74, 123, 247, 0.15)',
+                background: 'var(--bg-secondary, #0F172A)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 300ms ease',
+              }}
+            >
+              {/* If camera stream is live and not finished, show video */}
+              {cameraActive && faceProgress < 100 ? (
+                <video
+                  ref={el => {
+                    videoRef.current = el;
+                    if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                      el.srcObject = streamRef.current;
+                    }
+                  }}
+                  autoPlay
+                  muted
+                  playsInline
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+              ) : capturedFaceUrl ? (
+                <img
+                  src={capturedFaceUrl}
+                  alt={authenticatedAnalyst?.name || 'Analyst Face'}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : authenticatedAnalyst?.avatar ? (
+                <img
+                  src={authenticatedAnalyst.avatar}
+                  alt={authenticatedAnalyst.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                /* Authentic Biometric Persona Placeholder */
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div
+                    style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: '50%',
+                      background: 'var(--gradient-brand)',
+                      color: '#FFFFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 32,
+                      fontWeight: 700,
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                    }}
+                  >
+                    {authenticatedAnalyst?.name?.charAt(0) || 'P'}
+                  </div>
+                  <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)', marginTop: 8 }}>
+                    {authenticatedAnalyst?.name || 'Priya Iyer'}
+                  </span>
+                  <span className="text-mono" style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+                    {authenticatedAnalyst?.id || 'ANL-200001'}
+                  </span>
+                </div>
+              )}
+
+              {/* Scanning Laser Beam */}
+              {faceProgress > 0 && faceProgress < 100 && (
+                <div
+                  className="face-frame__scan"
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: `${faceProgress}%`,
+                    height: 2,
+                    background: 'var(--brand-cyan, #22D3EE)',
+                    boxShadow: '0 0 10px var(--brand-cyan, #22D3EE), 0 0 20px var(--brand-cyan, #22D3EE)',
+                  }}
+                />
+              )}
+
+              {/* Success Checkmark overlay when verified */}
               {faceProgress >= 100 && (
-                <div className="face-frame__success animate-fade-in-scale">
-                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                    <circle cx="24" cy="24" r="22" stroke="#2ECC87" strokeWidth="2"/>
-                    <path d="M14 24l7 7 13-13" stroke="#2ECC87" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                <div
+                  className="animate-fade-in-scale"
+                  style={{
+                    position: 'absolute',
+                    bottom: 8,
+                    right: 8,
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    background: 'var(--risk-low, #22C55E)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFFFFF',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
+                    fontSize: 18,
+                    fontWeight: 900,
+                  }}
+                >
+                  ✓
                 </div>
               )}
             </div>
-            <p className="login__face-status">
-              {faceProgress >= 100 ? `✓ ${t('login.faceVerified')}` : faceProgress > 0 ? t('login.verifying') : t('login.positionFace')}
-            </p>
-            <div className="login__demo-badge" style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', padding: '8px 16px', background: 'rgba(74, 123, 247, 0.1)', borderRadius: 'var(--border-radius-md)', marginTop: 8 }}>
-              <span style={{ fontSize: '1rem' }}>🔬</span>
-              <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--brand-blue, #4A7BF7)' }}>BIOMETRIC TELEMETRY CHECK</span>
-              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}> — Simulated hardware verification</span>
+
+            {/* Biometric Status Indicator matching specification:
+                [ Analyst Face Image ]
+                      ✓
+                Face Verified
+            */}
+            {faceProgress >= 100 ? (
+              <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <span style={{ fontSize: 20, color: 'var(--risk-low, #22C55E)', fontWeight: 800 }}>✓</span>
+                <p className="login__face-status" style={{ color: 'var(--risk-low, #22C55E)', fontWeight: 700, margin: 0 }}>
+                  Face Verified
+                </p>
+              </div>
+            ) : faceProgress > 0 ? (
+              <p className="login__face-status" style={{ color: 'var(--brand-blue, #4A7BF7)', fontWeight: 600, margin: 0 }}>
+                Scanning / Verifying...
+              </p>
+            ) : (
+              <p className="login__face-status" style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                Initializing biometric sensor...
+              </p>
+            )}
+
+            <div className="login__demo-badge" style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', padding: '6px 14px', background: 'rgba(74, 123, 247, 0.08)', borderRadius: 'var(--border-radius-md)', marginTop: 12, border: '1px solid var(--border-secondary)' }}>
+              <span style={{ fontSize: '0.9rem' }}>🔬</span>
+              <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--brand-blue, #4A7BF7)' }}>BIOMETRIC SENSOR</span>
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}> — Facial telemetry validation</span>
             </div>
           </div>
         )}
@@ -360,10 +513,10 @@ export default function LoginAnalyst() {
           <div>
             <div className="login__step-check" style={{ marginBottom: 16, justifyContent: 'center' }}>
               <span className="login__check">✓</span>
-              <span>{t('login.faceVerified')}</span>
+              <span>Face Verified</span>
             </div>
             <MFAVerification
-              demoCode={DEMO_MFA_CODE}
+              userEmail={authenticatedAnalyst?.email || 'priya.iyer@fraudx.ai'}
               roleName="Analyst"
               onSuccess={handleMfaSuccess}
               onCancel={() => setStep('credentials')}

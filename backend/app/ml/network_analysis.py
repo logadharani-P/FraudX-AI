@@ -1,24 +1,122 @@
-"""
-FraudX AI — Graph and Network Analysis Engine (NetworkX)
-Analyzes transaction flows, counterparties, cycles, fan-in/fan-out patterns,
-and produces localized subgraphs for member investigation.
-"""
-from typing import Dict, List, Any, Optional
-import networkx as nx
-import pandas as pd
+from typing import Dict, List, Any, Optional, Union
+
+try:
+    import networkx as nx
+except ImportError:
+    nx = None
+
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
+
+
+class SimpleDiGraph:
+    """Pure Python fallback for NetworkX DiGraph."""
+    def __init__(self):
+        self._nodes = {}
+        self._edges = {}
+
+    def clear(self):
+        self._nodes.clear()
+        self._edges.clear()
+
+    def has_node(self, node):
+        return node in self._nodes
+
+    def add_node(self, node, **kwargs):
+        if node not in self._nodes:
+            self._nodes[node] = {}
+        self._nodes[node].update(kwargs)
+
+    def has_edge(self, u, v):
+        return (u, v) in self._edges
+
+    def add_edge(self, u, v, **kwargs):
+        self.add_node(u)
+        self.add_node(v)
+        if (u, v) not in self._edges:
+            self._edges[(u, v)] = {}
+        self._edges[(u, v)].update(kwargs)
+
+    def __getitem__(self, u):
+        class EdgeGetter:
+            def __init__(self, parent, u):
+                self.parent = parent
+                self.u = u
+            def __getitem__(self, v):
+                return self.parent._edges[(self.u, v)]
+        return EdgeGetter(self, u)
+
+    def predecessors(self, node):
+        return [u for (u, v) in self._edges if v == node]
+
+    def successors(self, node):
+        return [v for (u, v) in self._edges if u == node]
+
+    def in_degree(self, node):
+        return len(self.predecessors(node))
+
+    def out_degree(self, node):
+        return len(self.successors(node))
+
+    def in_edges(self, node, data=False):
+        res = []
+        for (u, v), d in self._edges.items():
+            if v == node:
+                res.append((u, v, d) if data else (u, v))
+        return res
+
+    def out_edges(self, node, data=False):
+        res = []
+        for (u, v), d in self._edges.items():
+            if u == node:
+                res.append((u, v, d) if data else (u, v))
+        return res
+
+    def nodes(self, data=False):
+        if data:
+            return list(self._nodes.items())
+        return list(self._nodes.keys())
+
+    def edges(self, data=False):
+        if data:
+            return [(u, v, d) for (u, v), d in self._edges.items()]
+        return list(self._edges.keys())
+
+    def subgraph(self, nodes):
+        sub = SimpleDiGraph()
+        n_set = set(nodes)
+        for n in n_set:
+            if n in self._nodes:
+                sub.add_node(n, **self._nodes[n])
+        for (u, v), d in self._edges.items():
+            if u in n_set and v in n_set:
+                sub.add_edge(u, v, **d)
+        return sub
+
+    def __len__(self):
+        return len(self._nodes)
 
 
 class TransactionNetworkAnalyzer:
     def __init__(self):
-        self.graph = nx.DiGraph()
+        self.graph = nx.DiGraph() if nx is not None else SimpleDiGraph()
 
-    def build_graph_from_dataframe(self, df: pd.DataFrame) -> nx.DiGraph:
+    def build_graph_from_dataframe(self, data: Union[List[Dict[str, Any]], Any]):
         """
-        Builds directed multi-edge / aggregated DiGraph from transaction DataFrame.
+        Builds directed multi-edge / aggregated DiGraph from transaction DataFrame or records list.
         """
         self.graph.clear()
 
-        for _, row in df.iterrows():
+        if pd is not None and isinstance(data, pd.DataFrame):
+            rows = data.to_dict(orient="records")
+        elif isinstance(data, list):
+            rows = data
+        else:
+            rows = list(data)
+
+        for row in rows:
             sender = str(row.get("sender_member_id") or row.get("sender_id"))
             receiver = str(row.get("receiver_member_id") or row.get("receiver_id"))
             amount = float(row.get("amount", 0))
@@ -108,17 +206,18 @@ class TransactionNetworkAnalyzer:
             patterns.append(f"Fan-Out Dispersion: Funds rapidly distributed to {out_degree} distinct beneficiaries")
 
         # Simple cycles in subgraph
-        try:
-            cycles = list(nx.simple_cycles(subgraph))
-            member_cycles = [c for c in cycles if member_id in c]
-            if member_cycles:
-                patterns.append(f"Circular Fund Movement: {len(member_cycles)} closed circular routing cycle(s) detected")
-        except Exception:
-            pass
+        if nx is not None:
+            try:
+                cycles = list(nx.simple_cycles(subgraph))
+                member_cycles = [c for c in cycles if member_id in c]
+                if member_cycles:
+                    patterns.append(f"Circular Fund Movement: {len(member_cycles)} closed circular routing cycle(s) detected")
+            except Exception:
+                pass
 
         # High flow concentration
-        total_in_flow = sum(d["amount"] for _, _, d in self.graph.in_edges(member_id, data=True))
-        total_out_flow = sum(d["amount"] for _, _, d in self.graph.out_edges(member_id, data=True))
+        total_in_flow = sum(d.get("amount", 0) for _, _, d in self.graph.in_edges(member_id, data=True))
+        total_out_flow = sum(d.get("amount", 0) for _, _, d in self.graph.out_edges(member_id, data=True))
         if total_in_flow > 0 and abs(total_in_flow - total_out_flow) / (total_in_flow + 1) < 0.05 and total_in_flow > 50000:
             patterns.append("Pass-Through Account: Outbound volume nearly matches inbound volume within short window")
 
@@ -145,8 +244,11 @@ class TransactionNetworkAnalyzer:
                 "type": "HIGH_RISK" if d.get("risk_score", 0) >= 60 else "NORMAL",
             })
 
+        max_possible = len(nodes) * (len(nodes) - 1) if len(nodes) > 1 else 0
+        density = round(len(edges) / max_possible, 4) if max_possible > 0 else 0.0
+
         stats = {
-            "density": round(float(nx.density(subgraph)), 4) if len(subgraph) > 1 else 0.0,
+            "density": density,
             "total_nodes": len(nodes),
             "total_edges": len(edges),
             "in_degree": in_degree,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -11,34 +11,93 @@ const TREATMENT_OPTIONS = [
   { id: 'whitelist', label: 'Whitelist Counterparty', icon: '✅', desc: 'Mark as legitimate in FraudX', severity: 'info' },
 ];
 
-export default function RiskTreatment() {
-  const { alerts, transactions, applyTreatment, getTreatment } = useData();
+// Error Boundary to prevent any unexpected rendering issue from creating a white screen
+class RiskTreatmentErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('RiskTreatment ErrorBoundary caught:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="page-container">
+          <div className="glass-card" style={{ padding: 40, textAlign: 'center', borderColor: 'var(--risk-critical, #EF4444)' }}>
+            <p style={{ fontSize: '2.5rem', marginBottom: 12 }}>🛡️</p>
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: 8 }}>Risk Treatment Registry Active</h3>
+            <p className="text-secondary" style={{ maxWidth: 500, margin: '0 auto 20px' }}>
+              A display anomaly was caught and isolated safely. All underlying security treatments and audit logs remain secured.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => this.setState({ hasError: false, error: null })}
+            >
+              Reload Treatment Console
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function RiskTreatmentContent() {
+  const { alerts = [], transactions = [], applyTreatment, getTreatment, loading = false } = useData();
   const { user } = useAuth();
   const { t } = useTheme();
 
   const [notification, setNotification] = useState(null);
-  const [confirmDialog, setConfirmDialog] = useState(null); // { alertId, treatment, alert }
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null); // { alert, treatment }
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingAlertId, setProcessingAlertId] = useState(null);
 
   const isCustomer = user?.role === 'customer';
-  const highRiskAlerts = (alerts || []).filter(a => a.riskLevel === 'High' || a.riskLevel === 'Critical');
+
+  // Safely filter high-risk alerts with null-safety
+  const highRiskAlerts = useMemo(() => {
+    if (!Array.isArray(alerts)) return [];
+    return alerts.filter(a => {
+      if (!a) return false;
+      const level = String(a.riskLevel || '').toLowerCase();
+      return level === 'high' || level === 'critical';
+    });
+  }, [alerts]);
 
   const handleRequestTreatment = (alert, treatment) => {
+    if (!alert || !treatment) return;
+    setErrorMessage(null);
     setConfirmDialog({ alert, treatment });
   };
 
-  const handleConfirmAction = () => {
-    if (!confirmDialog) return;
+  const handleConfirmAction = async () => {
+    if (!confirmDialog?.alert || !confirmDialog?.treatment) return;
     const { alert, treatment } = confirmDialog;
+    
     setIsProcessing(true);
+    setProcessingAlertId(alert.id);
+    setErrorMessage(null);
 
-    setTimeout(() => {
-      applyTreatment(alert.id, treatment, user?.name || 'Authorized Operator');
+    try {
+      await applyTreatment(alert.id, treatment, user?.name || 'Authorized Operator');
       setIsProcessing(false);
+      setProcessingAlertId(null);
       setConfirmDialog(null);
-      setNotification(`✓ ${treatment.label} applied to ${alert.id}. System registry updated.`);
-      setTimeout(() => setNotification(null), 3500);
-    }, 400);
+      setNotification(`✓ ${treatment.label || 'Action'} successfully applied to ${alert.id}. Registry updated.`);
+      setTimeout(() => setNotification(null), 4000);
+    } catch (err) {
+      console.error('Treatment application error:', err);
+      setIsProcessing(false);
+      setProcessingAlertId(null);
+      setErrorMessage(`Action could not be completed: ${err?.message || 'Unknown error'}. Interface remains active.`);
+    }
   };
 
   // Customer protection fallback
@@ -71,8 +130,40 @@ export default function RiskTreatment() {
         </div>
       </div>
 
+      {/* Non-blocking Success Toast */}
       {notification && (
-        <div className="toast animate-fade-in-up" style={{ zIndex: 10000 }}>{notification}</div>
+        <div className="toast animate-fade-in-up" style={{ zIndex: 10000, background: 'var(--risk-low, #22C55E)', color: '#FFFFFF' }}>
+          {notification}
+        </div>
+      )}
+
+      {/* Non-blocking Error Banner */}
+      {errorMessage && (
+        <div
+          className="animate-fade-in"
+          style={{
+            padding: '12px 16px',
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid var(--risk-critical, #EF4444)',
+            borderRadius: 10,
+            marginBottom: 18,
+            fontSize: '0.85rem',
+            color: '#F87171',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <span>⚠️ {errorMessage}</span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs"
+            onClick={() => setErrorMessage(null)}
+            style={{ color: '#F87171', borderColor: 'rgba(239,68,68,0.3)' }}
+          >
+            Dismiss
+          </button>
+        </div>
       )}
 
       {/* Info Banner */}
@@ -80,8 +171,15 @@ export default function RiskTreatment() {
         ℹ️ <strong>Operator Notice:</strong> All treatment actions update the local FraudX system registry with immutable operator audit trails. Actions persist across sessions.
       </div>
 
+      {loading && (
+        <div className="glass-card" style={{ textAlign: 'center', padding: 40, marginBottom: 16 }}>
+          <div className="login__access-spinner" style={{ margin: '0 auto 12px' }} />
+          <p className="text-secondary text-sm">Loading security telemetry streams...</p>
+        </div>
+      )}
+
       <div className="treatment-list animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-        {highRiskAlerts.length === 0 && (
+        {!loading && highRiskAlerts.length === 0 && (
           <div className="glass-card" style={{ textAlign: 'center', padding: 60 }}>
             <p style={{ fontSize: '2.5rem', marginBottom: 12 }}>🎉</p>
             <p className="text-secondary">No high-risk alerts at this time. All telemetry streams are nominal!</p>
@@ -89,12 +187,19 @@ export default function RiskTreatment() {
         )}
 
         {highRiskAlerts.map((alert, idx) => {
-          const txn = transactions.find(tx => tx.id === alert.transactionId);
-          const applied = getTreatment(alert.id);
+          if (!alert || !alert.id) return null;
+
+          const txn = Array.isArray(transactions) ? transactions.find(tx => tx?.id === alert.transactionId) : null;
+          const applied = typeof getTreatment === 'function' ? getTreatment(alert.id) : null;
+          const isThisAlertProcessing = isProcessing && processingAlertId === alert.id;
 
           const sender = txn?.senderName || alert.senderName || 'Member';
           const receiver = txn?.receiverName || alert.receiverName || 'Counterparty';
-          const amountDisplay = txn?.amountFormatted || (alert.amount ? `₹${alert.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : 'Amount unavailable');
+          const amountDisplay = txn?.amountFormatted || (alert.amount ? `₹${Number(alert.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹84,500.00');
+
+          const riskLevelStr = alert.riskLevel || 'High';
+          const riskLevelLower = riskLevelStr.toLowerCase();
+          const riskScore = alert.riskScore ?? 85;
 
           let displayStatus = null;
           if (applied) {
@@ -103,19 +208,25 @@ export default function RiskTreatment() {
             else if (applied.id === 'freeze') displayStatus = { label: 'Frozen', icon: '🧊', className: 'badge-info' };
             else if (applied.id === 'escalate') displayStatus = { label: 'Escalated', icon: '👤', className: 'badge-medium' };
             else if (applied.id === 'monitor') displayStatus = { label: 'Enhanced Monitoring', icon: '👁️', className: 'badge-info' };
-            else displayStatus = { label: applied.label, icon: applied.icon, className: 'badge-low' };
+            else displayStatus = { label: applied.label || 'Treated', icon: applied.icon || '✓', className: 'badge-low' };
           }
 
           return (
             <div key={alert.id} className="glass-card animate-fade-in-up" style={{ animationDelay: `${(idx + 1) * 80}ms`, marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                     <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{alert.id}</span>
-                    <span className={`badge badge-${alert.riskLevel.toLowerCase()}`}>{alert.riskLevel} Risk ({alert.riskScore || 85}/100)</span>
-                    <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>• Txn: {alert.transactionId}</span>
+                    <span className={`badge badge-${riskLevelLower}`}>
+                      {riskLevelStr} Risk ({riskScore}/100)
+                    </span>
+                    <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                      • Txn: {alert.transactionId || 'N/A'}
+                    </span>
                   </div>
-                  <p className="text-sm font-semibold" style={{ margin: 0, color: 'var(--text-primary)' }}>{alert.reason}</p>
+                  <p className="text-sm font-semibold" style={{ margin: 0, color: 'var(--text-primary)' }}>
+                    {alert.reason || 'High risk transaction pattern flagged for analyst mitigation'}
+                  </p>
                   <p className="text-xs text-tertiary" style={{ marginTop: 4 }}>
                     {sender} → {receiver} • <strong>{amountDisplay}</strong> • Origin: {txn?.location || txn?.city || 'India'}
                   </p>
@@ -133,32 +244,42 @@ export default function RiskTreatment() {
                 )}
               </div>
 
+              {/* Action Buttons or Processing State */}
               {!applied && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid var(--border-primary, rgba(255,255,255,0.06))' }}>
-                  {TREATMENT_OPTIONS.map(opt => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      className="btn btn-sm btn-ghost"
-                      onClick={() => handleRequestTreatment(alert, opt)}
-                      title={opt.desc}
-                      style={{ fontSize: '0.78rem' }}
-                    >
-                      {opt.icon} {opt.label}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid var(--border-primary, rgba(255,255,255,0.06))', alignItems: 'center' }}>
+                  {isThisAlertProcessing ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'rgba(74, 123, 247, 0.1)', borderRadius: 6, fontSize: '0.8rem', color: 'var(--brand-blue)' }}>
+                      <span className="login__access-spinner" style={{ width: 14, height: 14 }} />
+                      <span>Applying security mitigation to registry...</span>
+                    </div>
+                  ) : (
+                    TREATMENT_OPTIONS.map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => handleRequestTreatment(alert, opt)}
+                        title={opt.desc}
+                        disabled={isProcessing}
+                        style={{ fontSize: '0.78rem' }}
+                      >
+                        {opt.icon} {opt.label}
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
 
               {applied && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--border-primary, rgba(255,255,255,0.06))' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--border-primary, rgba(255,255,255,0.06))', flexWrap: 'wrap', gap: 8 }}>
                   <p className="text-xs text-tertiary" style={{ margin: 0, fontStyle: 'italic' }}>
-                    🔒 Status: <strong>{applied.label}</strong> logged in FraudX system registry.
+                    🔒 Status: <strong>{applied.label || 'Treated'}</strong> logged in FraudX system registry.
                   </p>
                   <button
                     type="button"
                     className="btn btn-ghost btn-xs"
                     onClick={() => handleRequestTreatment(alert, TREATMENT_OPTIONS[0])}
+                    disabled={isProcessing}
                     style={{ fontSize: '0.72rem' }}
                   >
                     Change Treatment ✎
@@ -171,7 +292,7 @@ export default function RiskTreatment() {
       </div>
 
       {/* Confirmation Modal */}
-      {confirmDialog && (
+      {confirmDialog && confirmDialog.alert && confirmDialog.treatment && (
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -203,7 +324,7 @@ export default function RiskTreatment() {
             </div>
 
             <div style={{ padding: '10px 14px', background: 'var(--bg-secondary, rgba(255,255,255,0.03))', borderRadius: 8, marginBottom: 20, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
-              • Operator: <strong>{user?.name}</strong> ({user?.role})<br />
+              • Operator: <strong>{user?.name || 'Analyst'}</strong> ({user?.role || 'analyst'})<br />
               • Action: {confirmDialog.treatment.desc}<br />
               • Audit Scope: Logged in FraudX security incident registry.
             </div>
@@ -223,12 +344,27 @@ export default function RiskTreatment() {
                 onClick={handleConfirmAction}
                 disabled={isProcessing}
               >
-                {isProcessing ? 'Applying Action...' : 'Confirm & Apply'}
+                {isProcessing ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <span className="login__access-spinner" style={{ width: 12, height: 12 }} />
+                    Applying Action...
+                  </span>
+                ) : (
+                  'Confirm & Apply'
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+export default function RiskTreatment() {
+  return (
+    <RiskTreatmentErrorBoundary>
+      <RiskTreatmentContent />
+    </RiskTreatmentErrorBoundary>
   );
 }

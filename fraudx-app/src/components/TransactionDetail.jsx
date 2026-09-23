@@ -71,25 +71,23 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
   const [showWhyRisk, setShowWhyRisk] = useState(true);
   const [treatmentNotice, setTreatmentNotice] = useState(null);
 
-  if (!txn) return null;
-
   const role = user?.role || 'customer';
   const isCustomer = role === 'customer';
   const isAnalystOrOrg = role === 'analyst' || role === 'organisation';
 
-  const alert = getAlertForTransaction(txn.id) || {
-    id: `ALT-${txn.id.replace('TXN-', '')}`,
-    riskScore: txn.riskScore || 15,
-    riskLevel: txn.riskLevel || 'Low',
-    reason: txn.anomalyFactors?.[0] || 'Standard transaction evaluation',
-    status: txn.status === 'Completed' ? 'Closed' : 'Open',
-    date: txn.date,
+  const alert = (txn && getAlertForTransaction(txn.id)) || {
+    id: txn ? `ALT-${txn.id.replace('TXN-', '')}` : '',
+    riskScore: txn?.riskScore || 15,
+    riskLevel: txn?.riskLevel || 'Low',
+    reason: txn?.anomalyFactors?.[0] || 'Standard transaction evaluation',
+    status: txn?.status === 'Completed' ? 'Closed' : 'Open',
+    date: txn?.date,
   };
 
-  const treatment = getTreatment(alert.id);
+  const treatment = alert?.id ? getTreatment(alert.id) : null;
 
   // Determine effective status
-  let effectiveStatus = txn.status || 'Completed';
+  let effectiveStatus = txn?.status || 'Completed';
   if (treatment) {
     if (treatment.id === 'block') effectiveStatus = 'Blocked';
     else if (treatment.id === 'whitelist') effectiveStatus = 'Whitelisted';
@@ -99,6 +97,7 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
   }
 
   const handleApplyTreatment = (option) => {
+    if (!alert?.id) return;
     applyTreatment(alert.id, option, user?.name || 'Analyst');
     setTreatmentNotice(`Action applied: ${option.label}`);
     setTimeout(() => setTreatmentNotice(null), 3500);
@@ -106,7 +105,7 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
 
   // Find related transactions (from same sender or receiver, excluding current transaction)
   const relatedTransactions = useMemo(() => {
-    if (!transactions || transactions.length === 0) return [];
+    if (!txn || !transactions || transactions.length === 0) return [];
     return transactions.filter(t => 
       t.id !== txn.id && (
         (txn.senderId && t.senderId === txn.senderId) ||
@@ -116,6 +115,8 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
       )
     ).slice(0, 4);
   }, [transactions, txn]);
+
+  if (!txn) return null;
 
   const anomalyFactors = txn.anomalyFactors && txn.anomalyFactors.length > 0
     ? txn.anomalyFactors
@@ -431,19 +432,39 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
             <Field label="Transaction ID" value={txn.id} mono />
             <Field label="Amount" value={txn.amountFormatted} />
             <Field label="Type / Channel" value={txn.type} />
+            <Field label="Purpose" value={txn.purpose} />
+            {txn.loanRef && <Field label="Loan Reference" value={txn.loanRef} mono />}
             <Field label="Date" value={txn.date} />
             <Field label="Time" value={txn.time} />
             <Field label="System Status" value={effectiveStatus} />
+          </div>
+
+          {/* Account Balances & Simulation */}
+          <div className="txn-detail__card">
+            <h3 className="txn-detail__section-title">💳 Balance & Simulation Baseline</h3>
+            <Field label="Sender Balance (Before)" value={`₹${(txn.oldBalanceOrig || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
+            <Field label="Sender Balance (After)" value={`₹${(txn.newBalanceOrig || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
+            <div className="txn-detail__divider" />
+            <Field label="Receiver Balance (Before)" value={`₹${(txn.oldBalanceDest || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
+            <Field label="Receiver Balance (After)" value={`₹${(txn.newBalanceDest || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
+            {txn.amlsimType && (
+              <>
+                <div className="txn-detail__divider" />
+                <Field label="Simulation Typology" value={`${txn.amlsimType} (Step ${txn.amlsimStep || 1})`} mono />
+              </>
+            )}
           </div>
 
           {/* Participants */}
           <div className="txn-detail__card">
             <h3 className="txn-detail__section-title">{t('transactionDetail.participants')}</h3>
             <Field label="Sender" value={txn.senderName} />
+            <Field label="Sender Member ID" value={txn.senderMemberId} mono />
             <Field label="Sender Account" value={txn.senderAccountId} mono />
             <Field label="Sender Bank" value={txn.senderBank} />
             <div className="txn-detail__divider" />
             <Field label="Receiver" value={txn.receiverName} />
+            <Field label="Receiver Member ID" value={txn.receiverMemberId} mono />
             <Field label="Receiver Account" value={txn.receiverAccountId} mono />
             <Field label="Receiver Bank" value={txn.receiverBank} />
           </div>

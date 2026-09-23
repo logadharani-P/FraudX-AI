@@ -13,7 +13,6 @@ import os
 import sys
 import random
 from datetime import datetime, timedelta
-import pandas as pd
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -33,10 +32,97 @@ from app.models.investigation import (
 from app.models.audit_log import AuditLog
 from app.services.auth_service import get_password_hash
 
-from data.amlsim_generator import generate_amlsim_dataset
-from data.enrich_cooperative import enrich_amlsim_dataset
-from app.ml.isolation_forest import RiskScoringEngine
-from app.ml.network_analysis import TransactionNetworkAnalyzer
+import csv
+import json
+from datetime import datetime, timedelta
+
+def load_fraudx_dataset():
+    csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "Dataset", "fraudx_transactions.csv"))
+    if not os.path.exists(csv_path):
+        # Fallback path if run from backend/
+        csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "Dataset", "fraudx_transactions.csv"))
+    
+    print(f"[*] Loading transactions directly from active dataset: {csv_path}")
+    with open(csv_path, mode="r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        records = list(reader)
+    print(f"    Loaded {len(records)} transactions from {os.path.basename(csv_path)}")
+    return records
+
+
+def generate_members_for_dataset(all_member_ids):
+    INDIAN_CITIES = [
+        {"city": "Mumbai", "state": "Maharashtra", "lat": 19.0760, "lng": 72.8777},
+        {"city": "Pune", "state": "Maharashtra", "lat": 18.5204, "lng": 73.8567},
+        {"city": "Nagpur", "state": "Maharashtra", "lat": 21.1458, "lng": 79.0882},
+        {"city": "Chennai", "state": "Tamil Nadu", "lat": 13.0827, "lng": 80.2707},
+        {"city": "Coimbatore", "state": "Tamil Nadu", "lat": 11.0168, "lng": 76.9558},
+        {"city": "Madurai", "state": "Tamil Nadu", "lat": 9.9252, "lng": 78.1198},
+        {"city": "Bengaluru", "state": "Karnataka", "lat": 12.9716, "lng": 77.5946},
+        {"city": "Mysuru", "state": "Karnataka", "lat": 12.2958, "lng": 76.6394},
+        {"city": "Hyderabad", "state": "Telangana", "lat": 17.3850, "lng": 78.4867},
+        {"city": "Warangal", "state": "Telangana", "lat": 17.9689, "lng": 79.5941},
+        {"city": "Delhi", "state": "Delhi", "lat": 28.7041, "lng": 77.1025},
+        {"city": "Ahmedabad", "state": "Gujarat", "lat": 23.0225, "lng": 72.5714},
+        {"city": "Surat", "state": "Gujarat", "lat": 21.1702, "lng": 72.8311},
+        {"city": "Jaipur", "state": "Rajasthan", "lat": 26.9124, "lng": 75.7873},
+        {"city": "Lucknow", "state": "Uttar Pradesh", "lat": 26.8467, "lng": 80.9462},
+        {"city": "Kochi", "state": "Kerala", "lat": 9.9312, "lng": 76.2673},
+    ]
+
+    FIRST_NAMES = [
+        "Aarav", "Aditi", "Ananya", "Arjun", "Deepak", "Divya", "Ganesh", "Gayatri",
+        "Harish", "Ishaan", "Kavita", "Kiran", "Lakshmi", "Manish", "Meera", "Mukesh",
+        "Naveen", "Neha", "Nikhil", "Pooja", "Pranav", "Priya", "Rahul", "Rajesh",
+        "Ravi", "Riya", "Rohan", "Sanjay", "Saravanan", "Shreya", "Siddharth", "Sneha",
+        "Suresh", "Swati", "Tarun", "Varun", "Venkatesh", "Vidya", "Vikram", "Vimal",
+    ]
+
+    LAST_NAMES = [
+        "Sharma", "Patel", "Reddy", "Iyer", "Kumar", "Singh", "Nair", "Rao",
+        "Joshi", "Deshmukh", "Pillai", "Verma", "Gupta", "Kulkarni", "Mehta", "Bhat",
+        "Menon", "Chauhan", "Sundaram", "Murthy",
+    ]
+
+    BANKS = [
+        "Apex Cooperative Bank", "State Cooperative Agriculture Bank",
+        "District Central Cooperative Bank", "Kisan Rural Credit Society",
+        "Sahakari Urban Bank", "Pragati Grameen Bank",
+    ]
+
+    members_data = []
+    base_date = datetime(2026, 9, 14).date()
+
+    for idx, mid in enumerate(all_member_ids):
+        first = FIRST_NAMES[idx % len(FIRST_NAMES)]
+        last = LAST_NAMES[(idx * 7) % len(LAST_NAMES)]
+        loc = INDIAN_CITIES[idx % len(INDIAN_CITIES)]
+        bank = BANKS[idx % len(BANKS)]
+        mbr_str = f"MBR-{400000 + mid}"
+        acc_num = f"ACC-{1000000000 + ((mid * 9301 + 49297) % 9000000000)}"
+
+        members_data.append({
+            "id": mid,
+            "member_id": mbr_str,
+            "amlsim_account_id": f"C{1000000000 + mid}",
+            "name": f"{first} {last}",
+            "email": f"{first.lower()}.{last.lower()}{10 + (idx % 90)}@coopnet.org",
+            "phone": f"+91 {70000 + (idx * 137) % 30000}{10000 + (idx * 251) % 90000}",
+            "city": loc["city"],
+            "state": loc["state"],
+            "lat": loc["lat"] + round(((idx % 10) - 5) * 0.005, 4),
+            "lng": loc["lng"] + round(((idx % 7) - 3) * 0.005, 4),
+            "bank": bank,
+            "account_id": acc_num,
+            "account_type": "Savings" if idx % 4 != 0 else "Credit Current",
+            "join_date": base_date - timedelta(days=200 + (idx * 13) % 800),
+            "verified": True,
+            "share_capital": float([2500, 5000, 10000, 25000, 50000][idx % 5]),
+            "savings_balance": float(15000 + ((idx * 3791) % 85000)),
+            "loan_outstanding": float([0, 0, 15000, 45000, 120000, 280000][idx % 6]),
+            "risk_status": RiskStatus.low,
+        })
+    return members_data
 
 
 def seed_database():
@@ -51,42 +137,30 @@ def seed_database():
             print(f"[!] Database already contains {existing_txns} transactions. Skipping re-seed.")
             return
 
-        print("[*] Step 1: Generating IBM AMLSim synthetic dataset...")
-        aml_df = generate_amlsim_dataset(num_accounts=120, num_transactions=1500, fraud_pattern_count=30, seed=42)
-        print(f"    Generated {len(aml_df)} AMLSim raw records with {aml_df['isFraud'].sum()} AML pattern flags.")
+        print("[*] Step 1: Ingesting active dataset (Dataset/fraudx_transactions.csv)...")
+        raw_txns = load_fraudx_dataset()
 
-        print("[*] Step 2: Applying Cooperative-Society Synthetic Enrichment...")
-        members_df, txns_df = enrich_amlsim_dataset(aml_df, seed=42)
-        print(f"    Created {len(members_df)} cooperative members and enriched {len(txns_df)} transactions.")
+        # Collect all unique member IDs
+        sender_ids = [int(r["sender_id"]) for r in raw_txns]
+        receiver_ids = [int(r["receiver_id"]) for r in raw_txns]
+        all_member_ids = sorted(list(set(sender_ids + receiver_ids)))
+        print(f"    Identified {len(all_member_ids)} unique cooperative member participants.")
 
-        print("[*] Step 3: Training Pure NumPy Isolation Forest & Computing Behavioral Risk Scores...")
-        scoring_engine = RiskScoringEngine(contamination=0.05, random_state=42)
-        scored_txns_df = scoring_engine.fit_and_score(txns_df)
-        print("    [+] Isolation Forest Scoring Complete!")
-        if scoring_engine.evaluation_metrics:
-            print("    [+] Real Evaluation Metrics on AMLSim Benchmark:")
-            for k, v in scoring_engine.evaluation_metrics.items():
-                print(f"        - {k}: {v}")
+        print("[*] Step 2: Generating Member Directory from Dataset participants...")
+        members_data = generate_members_for_dataset(all_member_ids)
+        member_by_id = {m["id"]: m for m in members_data}
 
-        # Save model artifact
-        model_path = os.path.join(os.path.dirname(__file__), "..", "data", "models", "isolation_forest.pkl")
-        scoring_engine.save_model(model_path)
-
-        # Build initial network graph
-        analyzer = TransactionNetworkAnalyzer()
-        analyzer.build_graph_from_dataframe(scored_txns_df)
-
-        print("[*] Step 4: Seeding Core Users (RBAC)...")
-        # 1. Customer User (linked to first member MBR-400001)
+        print("[*] Step 3: Seeding Core Users (RBAC)...")
+        first_member = members_data[0]
         customer_user = User(
             email="customer@fraudx.ai",
             hashed_password=get_password_hash("password123"),
-            name=members_df.iloc[0]["name"],
+            name=first_member["name"],
             role=UserRole.customer,
-            phone=members_df.iloc[0]["phone"],
-            city=members_df.iloc[0]["city"],
+            phone=first_member["phone"],
+            city=first_member["city"],
             organisation_id="ORG-APEX-01",
-            member_id=members_df.iloc[0]["member_id"],
+            member_id=first_member["member_id"],
             designation="Cooperative Society Member",
             is_active=True,
         )
@@ -121,39 +195,40 @@ def seed_database():
         db.add_all([customer_user, analyst_user, org_user])
         db.flush()
 
-
-        print("[*] Step 5: Seeding Members...")
+        print("[*] Step 4: Seeding Members...")
         member_orm_objects = []
-        for _, m_row in members_df.iterrows():
+        for m_dict in members_data:
             m_orm = Member(
-                id=int(m_row["id"]),
-                member_id=str(m_row["member_id"]),
-                amlsim_account_id=str(m_row["amlsim_account_id"]),
-                name=str(m_row["name"]),
-                email=str(m_row["email"]),
-                phone=str(m_row["phone"]),
-                city=str(m_row["city"]),
-                state=str(m_row["state"]),
-                lat=float(m_row["lat"]),
-                lng=float(m_row["lng"]),
-                bank=str(m_row["bank"]),
-                account_id=str(m_row["account_id"]),
-                account_type=str(m_row["account_type"]),
-                join_date=m_row["join_date"],
-                verified=bool(m_row["verified"]),
-                share_capital=float(m_row["share_capital"]),
-                savings_balance=float(m_row["savings_balance"]),
-                loan_outstanding=float(m_row["loan_outstanding"]),
+                id=m_dict["id"],
+                member_id=m_dict["member_id"],
+                amlsim_account_id=m_dict["amlsim_account_id"],
+                name=m_dict["name"],
+                email=m_dict["email"],
+                phone=m_dict["phone"],
+                city=m_dict["city"],
+                state=m_dict["state"],
+                lat=m_dict["lat"],
+                lng=m_dict["lng"],
+                bank=m_dict["bank"],
+                account_id=m_dict["account_id"],
+                account_type=m_dict["account_type"],
+                join_date=m_dict["join_date"],
+                verified=m_dict["verified"],
+                share_capital=m_dict["share_capital"],
+                savings_balance=m_dict["savings_balance"],
+                loan_outstanding=m_dict["loan_outstanding"],
                 risk_status=RiskStatus.low,
             )
             member_orm_objects.append(m_orm)
         db.add_all(member_orm_objects)
         db.flush()
 
-        print("[*] Step 6: Seeding Transactions & Model Scores...")
+        print("[*] Step 5: Seeding Transactions & Model Scores...")
         txn_orm_objects = []
-        for _, t_row in scored_txns_df.iterrows():
-            r_level_str = str(t_row["risk_level"]).lower()
+        high_risk_txns = []
+
+        for r_dict in raw_txns:
+            r_level_str = str(r_dict.get("risk_level", "low")).strip().lower()
             risk_level_enum = (
                 RiskLevel.critical if r_level_str == "critical"
                 else RiskLevel.high if r_level_str == "high"
@@ -163,51 +238,68 @@ def seed_database():
 
             status_val = TransactionStatus.flagged if risk_level_enum in [RiskLevel.high, RiskLevel.critical] else TransactionStatus.completed
 
+            # Parse anomaly factors safely
+            factors = []
+            raw_factors = r_dict.get("anomaly_factors", "")
+            if raw_factors:
+                try:
+                    factors = json.loads(raw_factors)
+                except Exception:
+                    factors = [raw_factors]
+
+            # Parse timestamp safely
+            ts_str = r_dict.get("timestamp", "2026-09-14 00:00:00")
+            try:
+                ts_dt = datetime.strptime(ts_str.split(".")[0], "%Y-%m-%d %H:%M:%S")
+            except Exception:
+                ts_dt = datetime(2026, 9, 14, 0, 0, 0)
+
             t_orm = Transaction(
-                id=int(t_row["id"]),
-                transaction_id=str(t_row["transaction_id"]),
-                amlsim_step=int(t_row["amlsim_step"]),
-                amlsim_type=str(t_row["amlsim_type"]),
-                amount=float(t_row["amount"]),
-                old_balance_orig=float(t_row["old_balance_orig"]),
-                new_balance_orig=float(t_row["new_balance_orig"]),
-                old_balance_dest=float(t_row["old_balance_dest"]),
-                new_balance_dest=float(t_row["new_balance_dest"]),
-                is_fraud_label=bool(t_row["is_fraud_label"]),
-                is_flagged_fraud=bool(t_row["is_flagged_fraud"]),
-                sender_id=int(t_row["sender_id"]),
-                receiver_id=int(t_row["receiver_id"]),
-                transaction_type=str(t_row["transaction_type"]),
-                device=str(t_row["device"]),
-                location_city=str(t_row["location_city"]),
-                location_state=str(t_row["location_state"]),
-                lat=float(t_row["lat"]),
-                lng=float(t_row["lng"]),
-                purpose=str(t_row["purpose"]) if pd.notna(t_row.get("purpose")) else None,
-                loan_ref=str(t_row["loan_ref"]) if pd.notna(t_row.get("loan_ref")) else None,
-                risk_score=float(t_row["risk_score"]),
+                id=int(r_dict["id"]),
+                transaction_id=str(r_dict["transaction_id"]),
+                amlsim_step=int(r_dict.get("amlsim_step", 1)),
+                amlsim_type=str(r_dict.get("amlsim_type", "TRANSFER")),
+                amount=float(r_dict.get("amount", 0.0)),
+                old_balance_orig=float(r_dict.get("old_balance_orig", 0.0)),
+                new_balance_orig=float(r_dict.get("new_balance_orig", 0.0)),
+                old_balance_dest=float(r_dict.get("old_balance_dest", 0.0)),
+                new_balance_dest=float(r_dict.get("new_balance_dest", 0.0)),
+                is_fraud_label=(str(r_dict.get("is_fraud_label", "0")).strip() in ["1", "true", "True"]),
+                is_flagged_fraud=(str(r_dict.get("is_flagged_fraud", "0")).strip() in ["1", "true", "True"]),
+                sender_id=int(r_dict["sender_id"]),
+                receiver_id=int(r_dict["receiver_id"]),
+                transaction_type=str(r_dict.get("transaction_type", "NEFT")),
+                device=str(r_dict.get("device", "Branch Terminal POS")),
+                location_city=str(r_dict.get("location_city", "Mumbai")),
+                location_state=str(r_dict.get("location_state", "Maharashtra")),
+                lat=float(r_dict.get("lat", 19.076)),
+                lng=float(r_dict.get("lng", 72.8777)),
+                purpose=str(r_dict.get("purpose", "")) if r_dict.get("purpose") else None,
+                loan_ref=str(r_dict.get("loan_ref", "")) if r_dict.get("loan_ref") else None,
+                risk_score=float(r_dict.get("risk_score", 0.0)),
                 risk_level=risk_level_enum,
-                anomaly_score=float(t_row["anomaly_score"]),
-                anomaly_factors=t_row["anomaly_factors"],
+                anomaly_score=float(r_dict.get("anomaly_score", 0.0)),
+                anomaly_factors=factors,
                 status=status_val,
-                timestamp=t_row["timestamp"],
+                timestamp=ts_dt,
             )
             txn_orm_objects.append(t_orm)
+            if float(r_dict.get("risk_score", 0.0)) >= 60.0 or str(r_dict.get("is_fraud_label")) == "1":
+                high_risk_txns.append((t_orm, factors))
 
         db.add_all(txn_orm_objects)
         db.flush()
+        print(f"    [+] Seeded {len(txn_orm_objects)} transactions from active dataset.")
 
-        print("[*] Step 7: Generating Alerts for High/Critical Anomalies...")
-        high_risk_txns = scored_txns_df[scored_txns_df["risk_score"] >= 60.0].copy()
+        print("[*] Step 6: Generating Alerts for High/Critical Anomalies...")
         alert_orm_objects = []
         alert_counter = 1
 
-        for _, hr_row in high_risk_txns.iterrows():
+        for t_orm, factors in high_risk_txns:
             alt_id = f"ALT-{200000 + alert_counter}"
-            score = float(hr_row["risk_score"])
+            score = t_orm.risk_score
             r_level = "Critical" if score >= 80 else "High"
 
-            factors = hr_row["anomaly_factors"]
             f_text = " ".join(factors).lower()
             if "velocity" in f_text:
                 cat = AlertCategory.velocity_anomaly
@@ -221,7 +313,7 @@ def seed_database():
                 cat = AlertCategory.unusual_amount
 
             first_reason = factors[0] if len(factors) > 0 else "Anomalous transaction pattern detected by Isolation Forest"
-            desc = f"AI anomaly assessment flagged transaction {hr_row['transaction_id']} (Rs.{hr_row['amount']:,.2f}) for human analyst review. Score: {score:.1f}/100."
+            desc = f"AI anomaly assessment flagged transaction {t_orm.transaction_id} (Rs.{t_orm.amount:,.2f}) for human analyst review. Score: {score:.1f}/100."
 
             rand_stat = random.random()
             if rand_stat < 0.60:
@@ -232,21 +324,21 @@ def seed_database():
                 res_time, res_by, res_note = None, None, None
             else:
                 alt_status = AlertStatus.resolved
-                res_time = hr_row["timestamp"] + timedelta(hours=random.randint(1, 12))
+                res_time = t_orm.timestamp + timedelta(hours=random.randint(1, 12))
                 res_by = analyst_user.id
-                res_note = "Verified with member via registered phone. Legitimate agricultural equipment purchase."
+                res_note = "Verified with member via registered phone. Legitimate transaction activity."
 
             a_orm = Alert(
                 id=alert_counter,
                 alert_id=alt_id,
-                transaction_id=int(hr_row["id"]),
+                transaction_id=t_orm.id,
                 category=cat,
                 risk_level=r_level,
                 risk_score=score,
                 reason=first_reason,
                 description=desc,
                 status=alt_status,
-                created_at=hr_row["timestamp"],
+                created_at=t_orm.timestamp,
                 resolved_at=res_time,
                 resolved_by=res_by,
                 resolution_note=res_note,
@@ -256,8 +348,9 @@ def seed_database():
 
         db.add_all(alert_orm_objects)
         db.flush()
+        print(f"    [+] Generated {len(alert_orm_objects)} alerts.")
 
-        print("[*] Step 8: Generating Initial Investigations & Action Audits...")
+        print("[*] Step 7: Generating Initial Investigations & Action Audits...")
         investigations = []
         case_counter = 1
         for a_orm in alert_orm_objects[:12]:
@@ -297,15 +390,15 @@ def seed_database():
             actions.append(act)
         db.add_all(actions)
 
-        print("[*] Step 9: Writing Initial Audit Logs...")
+        print("[*] Step 8: Writing Initial Audit Logs...")
         audits = [
             AuditLog(
                 actor="System",
                 actor_role="system",
                 entity_type="Pipeline",
-                entity_id="AMLSim-Ingestion",
+                entity_id="Dataset-Ingestion",
                 action="DATASET_INGESTED",
-                new_value=f"Ingested {len(txns_df)} transactions from IBM AMLSim simulation with cooperative enrichment.",
+                new_value=f"Ingested {len(txn_orm_objects)} transactions directly from Dataset/fraudx_transactions.csv.",
                 created_at=datetime.utcnow(),
             ),
             AuditLog(
@@ -314,7 +407,7 @@ def seed_database():
                 entity_type="ML_Model",
                 entity_id="IsolationForest-v1",
                 action="MODEL_TRAINED",
-                new_value=f"Trained Isolation Forest model. {len(alert_orm_objects)} alerts raised for analyst review.",
+                new_value=f"Isolation Forest evaluation active. {len(alert_orm_objects)} alerts raised for analyst review.",
                 created_at=datetime.utcnow(),
             ),
             AuditLog(
@@ -331,9 +424,9 @@ def seed_database():
 
         # Update member risk statuses based on high-risk transactions
         for m_orm in member_orm_objects:
-            m_txns = scored_txns_df[scored_txns_df["sender_id"] == m_orm.id]
-            if len(m_txns) > 0:
-                max_score = m_txns["risk_score"].max()
+            m_scores = [t.risk_score for t in txn_orm_objects if t.sender_id == m_orm.id and t.risk_score is not None]
+            if m_scores:
+                max_score = max(m_scores)
                 if max_score >= 80:
                     m_orm.risk_status = RiskStatus.critical
                 elif max_score >= 60:
@@ -354,3 +447,4 @@ def seed_database():
 
 if __name__ == "__main__":
     seed_database()
+

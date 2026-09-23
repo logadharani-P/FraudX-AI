@@ -1,37 +1,50 @@
 /* ================================================
-   FRAUDX AI — CSS Design Tokens & Variables
+   FRAUDX AI — Centralized Design Tokens & Theme System 2.0
+   5 Enterprise Themes:
+   1. Aurora Security (Default Hackathon Demo Theme)
+   2. Emerald Trust
+   3. Midnight Intelligence
+   4. Pearl Finance
+   5. Sapphire Glass
+   + High Contrast Accessibility Mode
    ================================================ */
 
 :root {
-  /* ---- Brand Colors ---- */
+  /* ---- Default Theme: Aurora Security ---- */
+  --bg-primary: #0B1120;
+  --bg-secondary: #0F172A;
+  --bg-tertiary: #1E293B;
+  --bg-card: rgba(15, 23, 42, 0.78);
+  --bg-card-hover: rgba(30, 41, 59, 0.88);
+  --bg-sidebar: #090E1A;
+  --bg-input: #131E33;
+  --bg-overlay: rgba(11, 17, 32, 0.94);
+
+  --surface-glass: rgba(15, 23, 42, 0.65);
+  --surface-elevated: #1E293B;
+
+  --primary: #4A7BF7;
+  --secondary: #22D3EE;
+  --accent: #8B5CF6;
+
   --brand-blue: #4A7BF7;
-  --brand-blue-light: #6B93FF;
-  --brand-blue-dark: #3A62C4;
+  --brand-blue-light: #60A5FA;
+  --brand-blue-dark: #2563EB;
   --brand-green: #2ECC87;
-  --brand-green-light: #4FE0A0;
-  --brand-green-dark: #22A36B;
+  --brand-green-light: #34D399;
   --brand-cyan: #22D3EE;
   --brand-violet: #8B5CF6;
   --brand-violet-light: #A78BFA;
 
-  /* ---- Theme: Luminous (Default) ---- */
-  --bg-primary: #F8FBFF;
-  --bg-secondary: #FFFFFF;
-  --bg-tertiary: #F0F6FF;
-  --bg-card: #FFFFFF;
-  --bg-card-hover: #F5F9FF;
-  --bg-sidebar: #FFFFFF;
-  --bg-input: #F5F8FC;
-  --bg-overlay: rgba(248, 251, 255, 0.92);
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-tertiary: #64748B;
+  --text-inverse: #0B1120;
 
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-tertiary: #94A3B8;
-  --text-inverse: #FFFFFF;
+  --border-primary: rgba(74, 123, 247, 0.22);
+  --border-secondary: rgba(255, 255, 255, 0.08);
+  --border-focus: #22D3EE;
 
-  --border-primary: #E2E8F0;
-  --border-secondary: #F1F5F9;
-  --border-focus: var(--brand-blue);
   --border-radius-sm: 8px;
   --border-radius-md: 12px;
   --border-radius-lg: 16px;
@@ -39,22 +52,22 @@
   --border-radius-full: 9999px;
 
   /* ---- Gradients ---- */
-  --gradient-brand: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-green) 100%);
-  --gradient-brand-subtle: linear-gradient(135deg, rgba(74, 123, 247, 0.08) 0%, rgba(46, 204, 135, 0.08) 100%);
-  --gradient-radial-bg: radial-gradient(ellipse at 20% 50%, rgba(74, 123, 247, 0.06) 0%, transparent 50%),
-                         radial-gradient(ellipse at 80% 20%, rgba(46, 204, 135, 0.05) 0%, transparent 50%),
-                         radial-gradient(ellipse at 50% 80%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
-  --gradient-card: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 251, 255, 0.9) 100%);
-  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.4) 100%);
+  --gradient-brand: linear-gradient(135deg, #4A7BF7 0%, #22D3EE 50%, #2ECC87 100%);
+  --gradient-brand-subtle: linear-gradient(135deg, rgba(74, 123, 247, 0.12) 0%, rgba(34, 211, 238, 0.08) 100%);
+  --gradient-radial-bg: radial-gradient(ellipse at 15% 15%, rgba(74, 123, 247, 0.14) 0%, transparent 45%),
+                         radial-gradient(ellipse at 85% 85%, rgba(34, 211, 238, 0.10) 0%, transparent 45%),
+                         radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 55%);
+  --gradient-card: linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.6) 100%);
 
   /* ---- Shadows ---- */
-  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 8px 32px rgba(15, 23, 42, 0.10);
-  --shadow-xl: 0 16px 48px rgba(15, 23, 42, 0.12);
-  --shadow-glow-blue: 0 0 24px rgba(74, 123, 247, 0.15);
-  --shadow-glow-green: 0 0 24px rgba(46, 204, 135, 0.15);
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.32);
+  --shadow-lg: 0 10px 32px rgba(0, 0, 0, 0.42);
+  --shadow-xl: 0 18px 50px rgba(0, 0, 0, 0.55);
+  --shadow-glow-blue: 0 0 28px rgba(74, 123, 247, 0.22);
+  --shadow-glow-green: 0 0 28px rgba(46, 204, 135, 0.2);
 
   /* ---- Spacing ---- */
   --space-1: 4px;
@@ -67,7 +80,6 @@
   --space-10: 40px;
   --space-12: 48px;
   --space-16: 64px;
-  --space-20: 80px;
 
   /* ---- Typography ---- */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -81,24 +93,20 @@
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 1.875rem;
   --font-size-4xl: 2.25rem;
-  --font-size-5xl: 3rem;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-  --line-height-tight: 1.25;
-  --line-height-normal: 1.5;
-  --line-height-relaxed: 1.75;
 
   /* ---- Risk Colors ---- */
   --risk-low: #22C55E;
-  --risk-low-bg: rgba(34, 197, 94, 0.1);
+  --risk-low-bg: rgba(34, 197, 94, 0.12);
   --risk-medium: #F59E0B;
-  --risk-medium-bg: rgba(245, 158, 11, 0.1);
+  --risk-medium-bg: rgba(245, 158, 11, 0.12);
   --risk-high: #EF4444;
-  --risk-high-bg: rgba(239, 68, 68, 0.1);
+  --risk-high-bg: rgba(239, 68, 68, 0.12);
   --risk-critical: #DC2626;
-  --risk-critical-bg: rgba(220, 38, 38, 0.1);
+  --risk-critical-bg: rgba(220, 38, 38, 0.14);
 
   /* ---- Status Colors ---- */
   --status-active: #22C55E;
@@ -117,7 +125,6 @@
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* ---- Z-Index ---- */
   --z-background: -1;
@@ -131,89 +138,220 @@
 }
 
 /* ================================================
-   THEME: Midnight
+   THEME 1: Aurora Security (Default Hackathon Theme)
+   Mood: AI + Security + Innovation
+   ================================================ */
+[data-theme="aurora"] {
+  --bg-primary: #0B1120;
+  --bg-secondary: #0F172A;
+  --bg-tertiary: #1E293B;
+  --bg-card: rgba(15, 23, 42, 0.78);
+  --bg-card-hover: rgba(30, 41, 59, 0.88);
+  --bg-sidebar: #090E1A;
+  --bg-input: #131E33;
+  --bg-overlay: rgba(11, 17, 32, 0.94);
+
+  --surface-glass: rgba(15, 23, 42, 0.65);
+  --surface-elevated: #1E293B;
+
+  --primary: #4A7BF7;
+  --secondary: #22D3EE;
+  --accent: #8B5CF6;
+
+  --brand-blue: #4A7BF7;
+  --brand-green: #2ECC87;
+  --brand-cyan: #22D3EE;
+  --brand-violet: #8B5CF6;
+
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-tertiary: #64748B;
+  --text-inverse: #0B1120;
+
+  --border-primary: rgba(74, 123, 247, 0.22);
+  --border-secondary: rgba(255, 255, 255, 0.08);
+
+  --gradient-brand: linear-gradient(135deg, #4A7BF7 0%, #22D3EE 50%, #2ECC87 100%);
+  --gradient-radial-bg: radial-gradient(ellipse at 15% 15%, rgba(74, 123, 247, 0.14) 0%, transparent 45%),
+                         radial-gradient(ellipse at 85% 85%, rgba(34, 211, 238, 0.10) 0%, transparent 45%),
+                         radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 55%);
+  --gradient-card: linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+  --shadow-glow-blue: 0 0 28px rgba(74, 123, 247, 0.22);
+}
+
+/* ================================================
+   THEME 2: Emerald Trust
+   Mood: Financial trust + stability
+   ================================================ */
+[data-theme="emerald"] {
+  --bg-primary: #061A14;
+  --bg-secondary: #0A241C;
+  --bg-tertiary: #11382C;
+  --bg-card: rgba(10, 36, 28, 0.78);
+  --bg-card-hover: rgba(17, 56, 44, 0.88);
+  --bg-sidebar: #051510;
+  --bg-input: #0E2E24;
+  --bg-overlay: rgba(6, 26, 20, 0.94);
+
+  --surface-glass: rgba(10, 36, 28, 0.65);
+  --surface-elevated: #11382C;
+
+  --primary: #10B981;
+  --secondary: #34D399;
+  --accent: #F59E0B;
+
+  --brand-blue: #10B981;
+  --brand-green: #34D399;
+  --brand-cyan: #059669;
+  --brand-violet: #D97706;
+
+  --text-primary: #F0FDF4;
+  --text-secondary: #A7F3D0;
+  --text-tertiary: #6EE7B7;
+  --text-inverse: #061A14;
+
+  --border-primary: rgba(16, 185, 129, 0.24);
+  --border-secondary: rgba(255, 255, 255, 0.07);
+
+  --gradient-brand: linear-gradient(135deg, #10B981 0%, #34D399 50%, #F59E0B 100%);
+  --gradient-radial-bg: radial-gradient(ellipse at 15% 15%, rgba(16, 185, 129, 0.16) 0%, transparent 45%),
+                         radial-gradient(ellipse at 85% 85%, rgba(52, 211, 153, 0.10) 0%, transparent 45%),
+                         radial-gradient(ellipse at 50% 50%, rgba(245, 158, 11, 0.06) 0%, transparent 55%);
+  --gradient-card: linear-gradient(145deg, rgba(17, 56, 44, 0.7) 0%, rgba(10, 36, 28, 0.8) 100%);
+  --shadow-glow-blue: 0 0 28px rgba(16, 185, 129, 0.22);
+}
+
+/* ================================================
+   THEME 3: Midnight Intelligence
+   Mood: Advanced AI analytics
    ================================================ */
 [data-theme="midnight"] {
-  --bg-primary: #0B1120;
-  --bg-secondary: #111827;
-  --bg-tertiary: #1E293B;
-  --bg-card: rgba(30, 41, 59, 0.8);
-  --bg-card-hover: rgba(30, 41, 59, 1);
-  --bg-sidebar: #0F1729;
-  --bg-input: #1E293B;
-  --bg-overlay: rgba(11, 17, 32, 0.92);
+  --bg-primary: #070B14;
+  --bg-secondary: #0D1527;
+  --bg-tertiary: #162038;
+  --bg-card: rgba(13, 21, 39, 0.8);
+  --bg-card-hover: rgba(22, 32, 56, 0.9);
+  --bg-sidebar: #05080F;
+  --bg-input: #111A30;
+  --bg-overlay: rgba(7, 11, 20, 0.95);
+
+  --surface-glass: rgba(13, 21, 39, 0.65);
+  --surface-elevated: #162038;
+
+  --primary: #3B82F6;
+  --secondary: #6366F1;
+  --accent: #A855F7;
+
+  --brand-blue: #3B82F6;
+  --brand-green: #10B981;
+  --brand-cyan: #6366F1;
+  --brand-violet: #A855F7;
 
   --text-primary: #F1F5F9;
   --text-secondary: #94A3B8;
   --text-tertiary: #64748B;
-  --text-inverse: #0F172A;
+  --text-inverse: #070B14;
 
-  --border-primary: #1E293B;
-  --border-secondary: #334155;
+  --border-primary: rgba(99, 102, 241, 0.22);
+  --border-secondary: rgba(255, 255, 255, 0.06);
 
-  --gradient-brand-subtle: linear-gradient(135deg, rgba(74, 123, 247, 0.12) 0%, rgba(46, 204, 135, 0.12) 100%);
-  --gradient-radial-bg: radial-gradient(ellipse at 20% 50%, rgba(74, 123, 247, 0.08) 0%, transparent 50%),
-                         radial-gradient(ellipse at 80% 20%, rgba(46, 204, 135, 0.06) 0%, transparent 50%),
-                         radial-gradient(ellipse at 50% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
-  --gradient-card: linear-gradient(145deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
-  --gradient-glass: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(30, 41, 59, 0.4) 100%);
-
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.35);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.4);
-  --shadow-glow-blue: 0 0 30px rgba(74, 123, 247, 0.2);
-  --shadow-glow-green: 0 0 30px rgba(46, 204, 135, 0.2);
+  --gradient-brand: linear-gradient(135deg, #3B82F6 0%, #6366F1 50%, #A855F7 100%);
+  --gradient-radial-bg: radial-gradient(ellipse at 15% 15%, rgba(59, 130, 246, 0.14) 0%, transparent 45%),
+                         radial-gradient(ellipse at 85% 85%, rgba(99, 102, 241, 0.10) 0%, transparent 45%),
+                         radial-gradient(ellipse at 50% 50%, rgba(168, 85, 247, 0.07) 0%, transparent 55%);
+  --gradient-card: linear-gradient(145deg, rgba(22, 32, 56, 0.7) 0%, rgba(13, 21, 39, 0.8) 100%);
+  --shadow-glow-blue: 0 0 28px rgba(99, 102, 241, 0.22);
 }
 
 /* ================================================
-   THEME: Aurora
+   THEME 4: Pearl Finance
+   Mood: Premium financial institution
    ================================================ */
-[data-theme="aurora"] {
-  --bg-primary: #F5F0FF;
+[data-theme="pearl"],
+[data-theme="luminous"] {
+  --bg-primary: #F8FAFC;
   --bg-secondary: #FFFFFF;
-  --bg-tertiary: #EDE9FE;
-  --bg-card: rgba(255, 255, 255, 0.85);
-  --bg-card-hover: rgba(255, 255, 255, 0.95);
-  --bg-sidebar: rgba(255, 255, 255, 0.9);
-  --bg-input: #F5F0FF;
-  --bg-overlay: rgba(245, 240, 255, 0.92);
-
-  --gradient-radial-bg: radial-gradient(ellipse at 20% 30%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-                         radial-gradient(ellipse at 80% 70%, rgba(34, 211, 238, 0.08) 0%, transparent 50%),
-                         radial-gradient(ellipse at 50% 50%, rgba(74, 123, 247, 0.06) 0%, transparent 50%);
-  --gradient-card: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(245, 240, 255, 0.9) 100%);
-
-  --shadow-glow-blue: 0 0 30px rgba(139, 92, 246, 0.12);
-  --shadow-glow-green: 0 0 30px rgba(34, 211, 238, 0.12);
-}
-
-/* ================================================
-   THEME: Secure Light
-   ================================================ */
-[data-theme="secure-light"] {
-  --bg-primary: #FAFBFC;
-  --bg-secondary: #FFFFFF;
-  --bg-tertiary: #F3F5F7;
-  --bg-card: #FFFFFF;
-  --bg-card-hover: #F8F9FA;
+  --bg-tertiary: #F1F5F9;
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-card-hover: rgba(248, 250, 252, 1);
   --bg-sidebar: #FFFFFF;
-  --bg-input: #F5F7F9;
-  --bg-overlay: rgba(250, 251, 252, 0.95);
+  --bg-input: #F1F5F9;
+  --bg-overlay: rgba(248, 250, 252, 0.96);
 
-  --brand-blue: #3B6FD4;
-  --brand-green: #2ECC87;
+  --surface-glass: rgba(255, 255, 255, 0.82);
+  --surface-elevated: #FFFFFF;
 
-  --gradient-radial-bg: radial-gradient(ellipse at 50% 50%, rgba(59, 111, 212, 0.03) 0%, transparent 70%);
-  --gradient-card: linear-gradient(145deg, #FFFFFF 0%, #FAFBFC 100%);
-  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
+  --primary: #2563EB;
+  --secondary: #0891B2;
+  --accent: #64748B;
 
-  --shadow-glow-blue: 0 0 20px rgba(59, 111, 212, 0.08);
-  --shadow-glow-green: 0 0 20px rgba(46, 204, 135, 0.08);
+  --brand-blue: #2563EB;
+  --brand-green: #16A34A;
+  --brand-cyan: #0891B2;
+  --brand-violet: #7C3AED;
+
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #94A3B8;
+  --text-inverse: #FFFFFF;
+
+  --border-primary: #E2E8F0;
+  --border-secondary: #F1F5F9;
+
+  --gradient-brand: linear-gradient(135deg, #2563EB 0%, #0891B2 100%);
+  --gradient-radial-bg: radial-gradient(ellipse at 15% 15%, rgba(37, 99, 235, 0.05) 0%, transparent 50%),
+                         radial-gradient(ellipse at 85% 85%, rgba(8, 145, 178, 0.04) 0%, transparent 50%);
+  --gradient-card: linear-gradient(145deg, #FFFFFF 0%, #F8FAFC 100%);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 8px 30px rgba(15, 23, 42, 0.1);
+  --shadow-glow-blue: 0 0 24px rgba(37, 99, 235, 0.12);
 }
 
 /* ================================================
-   THEME: High Contrast
+   THEME 5: Sapphire Glass
+   Mood: Modern enterprise AI
+   ================================================ */
+[data-theme="sapphire"] {
+  --bg-primary: #0A1128;
+  --bg-secondary: #0F1D40;
+  --bg-tertiary: #1A2E63;
+  --bg-card: rgba(15, 29, 64, 0.72);
+  --bg-card-hover: rgba(26, 46, 99, 0.85);
+  --bg-sidebar: #070D20;
+  --bg-input: #13224D;
+  --bg-overlay: rgba(10, 17, 40, 0.94);
+
+  --surface-glass: rgba(15, 29, 64, 0.6);
+  --surface-elevated: #1A2E63;
+
+  --primary: #2563EB;
+  --secondary: #06B6D4;
+  --accent: #38BDF8;
+
+  --brand-blue: #38BDF8;
+  --brand-green: #2DD4BF;
+  --brand-cyan: #06B6D4;
+  --brand-violet: #6366F1;
+
+  --text-primary: #F0F9FF;
+  --text-secondary: #94A3B8;
+  --text-tertiary: #64748B;
+  --text-inverse: #0A1128;
+
+  --border-primary: rgba(56, 189, 248, 0.22);
+  --border-secondary: rgba(255, 255, 255, 0.08);
+
+  --gradient-brand: linear-gradient(135deg, #2563EB 0%, #38BDF8 50%, #06B6D4 100%);
+  --gradient-radial-bg: radial-gradient(ellipse at 15% 15%, rgba(56, 189, 248, 0.15) 0%, transparent 45%),
+                         radial-gradient(ellipse at 85% 85%, rgba(6, 182, 212, 0.12) 0%, transparent 45%),
+                         radial-gradient(ellipse at 50% 50%, rgba(37, 99, 235, 0.08) 0%, transparent 55%);
+  --gradient-card: linear-gradient(145deg, rgba(26, 46, 99, 0.65) 0%, rgba(15, 29, 64, 0.75) 100%);
+  --shadow-glow-blue: 0 0 28px rgba(56, 189, 248, 0.22);
+}
+
+/* ================================================
+   THEME: High Contrast (Accessibility)
    ================================================ */
 [data-theme="high-contrast"] {
   --bg-primary: #000000;
@@ -223,7 +361,7 @@
   --bg-card-hover: #181818;
   --bg-sidebar: #000000;
   --bg-input: #121212;
-  --bg-overlay: rgba(0, 0, 0, 0.97);
+  --bg-overlay: rgba(0, 0, 0, 0.98);
 
   --text-primary: #FFFFFF;
   --text-secondary: #E2E8F0;
@@ -244,64 +382,21 @@
   --risk-critical: #EF4444;
 
   --gradient-brand: linear-gradient(135deg, #60A5FA 0%, #34D399 100%);
-  --gradient-brand-subtle: linear-gradient(135deg, rgba(96, 165, 250, 0.2) 0%, rgba(52, 211, 153, 0.2) 100%);
   --gradient-card: linear-gradient(145deg, #0A0A0A 0%, #050505 100%);
-  --gradient-glass: linear-gradient(135deg, #0A0A0A 0%, #000000 100%);
 }
 
-/* ================================================
-   ACCENTS
-   ================================================ */
-[data-accent="blue"] {
-  --brand-blue: #4A7BF7;
-  --brand-blue-light: #6B93FF;
-  --brand-blue-dark: #3A62C4;
+/* Common Global Glass Surface Helper */
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
 }
 
-[data-accent="cyan"] {
-  --brand-blue: #06B6D4;
-  --brand-blue-light: #22D3EE;
-  --brand-blue-dark: #0891B2;
+.glass-card:hover {
+  border-color: rgba(74, 123, 247, 0.4);
+  box-shadow: var(--shadow-lg);
 }
-
-[data-accent="violet"] {
-  --brand-blue: #8B5CF6;
-  --brand-blue-light: #A78BFA;
-  --brand-blue-dark: #7C3AED;
-}
-
-[data-accent="green"] {
-  --brand-blue: #10B981;
-  --brand-blue-light: #34D399;
-  --brand-blue-dark: #059669;
-}
-
-/* ================================================
-   DENSITY & ANIMATION MODES
-   ================================================ */
-[data-density="compact"] {
-  --space-4: 10px;
-  --space-5: 14px;
-  --space-6: 16px;
-  --space-8: 20px;
-}
-
-[data-animations="reduced"] * {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.05s !important;
-}
-
-[data-animations="off"] * {
-  animation: none !important;
-  transition: none !important;
-}
-
-[data-font-size="small"] {
-  font-size: 13.5px;
-}
-
-[data-font-size="large"] {
-  font-size: 16px;
-}
-

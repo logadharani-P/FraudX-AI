@@ -7,7 +7,6 @@ from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
-import pandas as pd
 
 from app.database import get_db
 from app.models.transaction import Transaction, RiskLevel
@@ -165,10 +164,9 @@ def get_member_network(
             "risk_level": t.risk_level.value if t.risk_level else "Low",
             "transaction_id": t.transaction_id,
         })
-    df = pd.DataFrame(data)
 
     analyzer = TransactionNetworkAnalyzer()
-    analyzer.build_graph_from_dataframe(df)
+    analyzer.build_graph_from_dataframe(data)
 
     subgraph_data = analyzer.get_member_subgraph(target_id, depth=depth)
     return NetworkGraphResponse(**subgraph_data)

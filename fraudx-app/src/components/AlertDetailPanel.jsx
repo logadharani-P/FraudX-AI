@@ -69,10 +69,24 @@ export default function AlertDetailPanel({ alert, onClose }) {
   const [showWhyRisk, setShowWhyRisk] = useState(true);
   const [toastMessage, setToastMessage] = useState(null);
 
+  const txn = transactions?.find(t => t.id === alert?.transactionId);
+  const treatment = alert ? getTreatment(alert.id) : null;
+
+  // Find related transactions
+  const relatedTransactions = useMemo(() => {
+    if (!txn || !transactions) return [];
+    return transactions.filter(t =>
+      t.id !== txn.id && (
+        (txn.senderId && t.senderId === txn.senderId) ||
+        (txn.receiverId && t.receiverId === txn.receiverId) ||
+        (txn.senderName && t.senderName === txn.senderName) ||
+        (txn.receiverName && t.receiverName === txn.receiverName)
+      )
+    ).slice(0, 4);
+  }, [transactions, txn]);
+
   if (!alert) return null;
 
-  const txn = transactions.find(t => t.id === alert.transactionId);
-  const treatment = getTreatment(alert.id);
   const isCustomer = user?.role === 'customer';
   const isAnalystOrOrg = user?.role === 'analyst' || user?.role === 'organisation';
 
@@ -110,19 +124,6 @@ export default function AlertDetailPanel({ alert, onClose }) {
     setToastMessage(`Action applied: ${option.label}`);
     setTimeout(() => setToastMessage(null), 3500);
   };
-
-  // Find related transactions
-  const relatedTransactions = useMemo(() => {
-    if (!txn || !transactions) return [];
-    return transactions.filter(t =>
-      t.id !== txn.id && (
-        (txn.senderId && t.senderId === txn.senderId) ||
-        (txn.receiverId && t.receiverId === txn.receiverId) ||
-        (txn.senderName && t.senderName === txn.senderName) ||
-        (txn.receiverName && t.receiverName === txn.receiverName)
-      )
-    ).slice(0, 4);
-  }, [transactions, txn]);
 
   // Timeline steps
   const timelineSteps = [
