@@ -1,21 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import './MFAVerification.css';
 
 export default function MFAVerification({
-  userEmail,
+  email = '',
+  challengeId = '',
+  sessionId = '',
   roleName = 'Analyst',
   onSuccess,
   onCancel,
 }) {
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
-  const [attemptsLeft, setAttemptsLeft] = useState(3);
+  const [infoMessage, setInfoMessage] = useState('');
+  const [attemptsLeft, setAttemptsLeft] = useState(5);
   const [resendTimer, setResendTimer] = useState(30);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const inputRefs = useRef([]);
+  const { verifyMfa, resendMfa } = useAuth();
   const { logSecurityEvent } = useNotifications();
+
+  const activeSessionId = sessionId || challengeId;
 
   // Focus first input on mount
   useEffect(() => {
@@ -44,6 +52,7 @@ export default function MFAVerification({
         });
         setDigits(newDigits);
         setError('');
+        setInfoMessage('');
         const nextFocus = Math.min(5, index + cleanDigits.length);
         if (inputRefs.current[nextFocus]) {
           inputRefs.current[nextFocus].focus();
@@ -58,6 +67,7 @@ export default function MFAVerification({
     newDigits[index] = value;
     setDigits(newDigits);
     setError('');
+    setInfoMessage('');
 
     // Auto-focus next input
     if (value && index < 5 && inputRefs.current[index + 1]) {
@@ -80,15 +90,30 @@ export default function MFAVerification({
     }
   };
 
-  const handleResend = () => {
-    if (resendTimer > 0) return;
-    setResendTimer(30);
+  const handleResend = async () => {
+    if (resendTimer > 0 || isResending) return;
+    setIsResending(true);
     setError('');
-    setDigits(['', '', '', '', '', '']);
-    if (inputRefs.current[0]) inputRefs.current[0].focus();
+    setInfoMessage('');
+
+    try {
+      await resendMfa({
+        session_id: activeSessionId,
+        challenge_id: activeSessionId,
+        email: email,
+      });
+      setResendTimer(30);
+      setDigits(['', '', '', '', '', '']);
+      setInfoMessage('A new verification code has been sent to your email.');
+      if (inputRefs.current[0]) inputRefs.current[0].focus();
+    } catch (err) {
+      setError(err.message || 'Failed to resend verification code. Please try again.');
+    } finally {
+      setIsResending(false);
+    }
   };
 
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     if (e) e.preventDefault();
     if (isVerifying || isSuccess) return;
 
@@ -108,43 +133,47 @@ export default function MFAVerification({
 
     setIsVerifying(true);
     setError('');
+    setInfoMessage('');
 
-    // Simulate verification delay
-    setTimeout(() => {
-      // Validates 6-digit security code received by the user
-      if (code && code.length === 6 && /^\d{6}$/.test(code)) {
-        setIsSuccess(true);
-        setIsVerifying(false);
-        logSecurityEvent({
-          type: 'mfa',
-          action: `${roleName} MFA Verification Succeeded`,
-          severity: 'Low',
-          role: roleName.toLowerCase(),
-          description: `Valid verification token verified for ${roleName} session authentication.`,
-        });
-        setTimeout(() => {
-          if (onSuccess) onSuccess();
-        }, 1200);
-      } else {
-        setIsVerifying(false);
-        const remaining = attemptsLeft - 1;
-        setAttemptsLeft(remaining);
+    try {
+      const authUser = await verifyMfa({
+        session_id: activeSessionId,
+        challenge_id: activeSessionId,
+        code: code,
+        otp: code,
+        email: email,
+      });
 
-        logSecurityEvent({
-          type: 'mfa',
-          action: `${roleName} MFA Verification Failed`,
-          severity: remaining <= 1 ? 'High' : 'Medium',
-          role: roleName.toLowerCase(),
-          description: `Invalid verification token attempt (${code}). Attempts remaining: ${remaining}.`,
-        });
+      setIsSuccess(true);
+      setIsVerifying(false);
+      logSecurityEvent({
+        type: 'mfa',
+        action: `${roleName} Email Code Verification Succeeded`,
+        severity: 'Low',
+        role: roleName.toLowerCase(),
+        description: `Valid email verification token confirmed for ${roleName} session authentication.`,
+      });
 
-        if (remaining <= 0) {
-          setError('Maximum MFA attempts exceeded. Verification locked for 5 minutes.');
-        } else {
-          setError(`Invalid verification code. Please enter the 6-digit code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
-        }
-      }
-    }, 750);
+      setTimeout(() => {
+        if (onSuccess) onSuccess(authUser);
+      }, 1000);
+    } catch (err) {
+      setIsVerifying(false);
+      const remaining = attemptsLeft - 1;
+      setAttemptsLeft(Math.max(0, remaining));
+
+      logSecurityEvent({
+        type: 'mfa',
+        action: `${roleName} Email Verification Failed`,
+        severity: remaining <= 1 ? 'High' : 'Medium',
+        role: roleName.toLowerCase(),
+        description: `Invalid verification token attempt (${code}). Attempts remaining: ${remaining}.`,
+      });
+
+      const errMsg = err.message || 'Invalid verification code. Please check your email.';
+      setError(errMsg);
+      if (inputRefs.current[0]) inputRefs.current[0].focus();
+    }
   };
 
   const filledCount = digits.filter(d => d !== '').length;
@@ -158,17 +187,22 @@ export default function MFAVerification({
             <polyline points="20 6 9 17 4 12" />
           </svg>
         ) : (
-          <img src="/favicon.svg" alt="FraudX AI Shield" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
         )}
       </div>
 
       <h2 className="mfa-title">
-        {isSuccess ? 'Verification Succeeded' : 'Two-Factor Authentication'}
+        {isSuccess ? 'Verification Succeeded' : 'Email Verification'}
       </h2>
       <p className="mfa-desc">
         {isSuccess
           ? 'Security credentials verified. Initializing secure workspace...'
-          : `Verification code sent to ${userEmail || 'your registered email'}.`}
+          : email
+            ? <span>Enter the 6-digit verification code sent to <strong style={{ color: 'var(--brand-blue, #60A5FA)' }}>{email}</strong>.</span>
+            : 'Enter the 6-digit verification code sent to your registered email address.'}
       </p>
 
       {!isSuccess && (
@@ -196,6 +230,12 @@ export default function MFAVerification({
             ))}
           </div>
 
+          {infoMessage && !error && (
+            <div className="animate-fade-in" style={{ color: 'var(--brand-green, #10B981)', fontSize: 'var(--font-size-xs)', padding: '8px 12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: 'var(--border-radius-md)', textAlign: 'center', marginBottom: 12 }}>
+              ✓ {infoMessage}
+            </div>
+          )}
+
           {error && (
             <div className="mfa-error-box animate-fade-in" role="alert">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -213,9 +253,9 @@ export default function MFAVerification({
               type="button"
               className="mfa-resend-btn"
               onClick={handleResend}
-              disabled={resendTimer > 0 || attemptsLeft <= 0}
+              disabled={resendTimer > 0 || attemptsLeft <= 0 || isResending}
             >
-              {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Code'}
+              {isResending ? 'Sending...' : resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Code'}
             </button>
           </div>
 
@@ -228,7 +268,7 @@ export default function MFAVerification({
             {isVerifying ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span className="login__access-spinner" style={{ width: 14, height: 14 }} />
-                Verifying Security Token...
+                Verifying Code...
               </span>
             ) : (
               'Verify & Continue'
@@ -252,7 +292,7 @@ export default function MFAVerification({
         <div className="login__complete animate-fade-in" style={{ padding: '8px 0' }}>
           <div className="login__step-check">
             <span className="login__check">✓</span>
-            <span>Security token verified successfully</span>
+            <span>Verification code confirmed</span>
           </div>
           <div className="login__access-msg">
             <div className="login__access-spinner" />

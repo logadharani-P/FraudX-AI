@@ -46,6 +46,19 @@ class Settings(BaseSettings):
     alert_threshold: float = 55.0
     model_dir: str = "data/models"
 
+    # ── Email Delivery (Verification Codes / MFA) ─────────
+    email_provider: str = "auto"  # "smtp", "resend", "sendgrid", "brevo", or "auto"
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    smtp_from_email: str = "security@fraudx.ai"
+    smtp_from_name: str = "FraudX AI Security"
+    resend_api_key: str | None = None
+    sendgrid_api_key: str | None = None
+    brevo_api_key: str | None = None
+
     # ── App ───────────────────────────────────────────────
     app_env: str = "development"
     app_version: str = "1.0.0"

@@ -16,7 +16,7 @@ from app.models.member import Member, RiskStatus
 from app.models.transaction import Transaction, RiskLevel, TransactionStatus
 from app.schemas.auth import (
     LoginRequest, Token, UserResponse, AuthResponse, UserCreate,
-    MfaVerifyRequest, FaceVerifyRequest
+    MfaVerifyRequest, FaceVerifyRequest, MfaChallengeResponse, ResendMfaRequest
 )
 from app.services.auth_service import (
     verify_password,
@@ -27,6 +27,8 @@ from app.services.auth_service import (
     validate_face_verification,
     build_user_response,
     create_auth_challenge,
+    resend_auth_challenge,
+    AUTH_CHALLENGES,
 )
 from app.config import get_settings
 
@@ -115,8 +117,16 @@ def _seed_customer_initial_transactions(db: Session, member: Member, partner_mem
         db.add(txn)
 
 
-@router.post("/login", response_model=AuthResponse)
+@router.post("/login")
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
+    """
+    Login endpoint:
+    1. Validates email/ID and password.
+    2. If customer role: completes login and returns AuthResponse.
+    3. If analyst or organisation: generates random 6-digit OTP, sends it to the user's email,
+       and returns MFA challenge (does NOT return the OTP or final JWT).
+    4. If mfa_code is already provided in the payload, validates the code and completes login.
+    """
     identifier = payload.email.strip().lower()
     user = db.query(User).filter(
         or_(
@@ -139,20 +149,33 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             detail="User account is deactivated",
         )
 
-    # If MFA code is explicitly provided in login payload, validate it strictly
-    if payload.mfa_code is not None:
-        if not payload.mfa_code.strip() or not validate_mfa_code(user, payload.mfa_code, payload.session_id):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or empty MFA verification code",
-            )
-
     # If face verification failure is reported
     if payload.face_verified is False:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Secondary face verification failed. Authentication terminated.",
         )
+
+    # If MFA verification code is explicitly provided in login payload, validate it strictly
+    if payload.mfa_code is not None:
+        if not payload.mfa_code.strip() or not validate_mfa_code(user, payload.mfa_code, payload.session_id):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or empty MFA verification code",
+            )
+    elif user.role in [UserRole.analyst, UserRole.organisation]:
+        # Generate random 6-digit OTP and send to entered email address
+        challenge = create_auth_challenge(user, entered_email=payload.email)
+        return {
+            "mfa_required": True,
+            "challenge_id": challenge["session_id"],
+            "session_id": challenge["session_id"],
+            "email": user.email,
+            "role": user.role.value,
+            "message": "A 6-digit verification code has been sent to your email.",
+            "expires_in": 300,
+            "status": "challenge_required",
+        }
 
     user.last_login = datetime.utcnow()
     db.commit()
@@ -182,7 +205,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 @router.post("/mfa/challenge")
 def request_challenge(payload: dict, db: Session = Depends(get_db)):
     """
-    Initiates a time-bounded (5 min) server-side secondary verification challenge session.
+    Initiates a time-bounded (5 min) server-side secondary verification challenge session
+    and sends a 6-digit verification code to the user's email.
     """
     identifier = payload.get("email", "").strip().lower()
     user = db.query(User).filter(
@@ -198,15 +222,16 @@ def request_challenge(payload: dict, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User identity not found for challenge initialization",
         )
-    challenge = create_auth_challenge(user)
+    challenge = create_auth_challenge(user, entered_email=payload.get("email"))
     return {
         "status": "challenge_required",
         "session_id": challenge["session_id"],
+        "challenge_id": challenge["session_id"],
         "mfa_required": True,
         "face_required": user.role in [UserRole.analyst, UserRole.organisation],
         "email": user.email,
         "role": user.role.value,
-        "message": "Secondary verification challenge initiated",
+        "message": "A 6-digit verification code has been sent to your email.",
         "expires_in": 300,
     }
 
@@ -215,29 +240,32 @@ def request_challenge(payload: dict, db: Session = Depends(get_db)):
 @router.post("/verify-mfa", response_model=AuthResponse)
 def verify_mfa(payload: MfaVerifyRequest, db: Session = Depends(get_db)):
     """
-    Explicitly validates MFA code against the server-side challenge or user identity.
+    Validates submitted 6-digit verification code against the server-side challenge session.
     Rejects empty, incorrect, or expired codes with HTTP 401.
-    Invalidates session challenge upon successful single use.
+    Allows maximum of 5 incorrect attempts.
+    Invalidates session challenge upon successful single use and issues JWT token.
     """
-    if not payload.code or not payload.code.strip():
+    submitted_code = (payload.otp or payload.code or "").strip()
+    session_id = payload.challenge_id or payload.session_id
+
+    if not submitted_code:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="MFA code cannot be empty",
+            detail="Verification code cannot be empty",
         )
 
     user = None
-    from app.services.auth_service import AUTH_CHALLENGES
 
     # If session_id provided, look up from active server challenges
-    if payload.session_id:
-        if payload.session_id not in AUTH_CHALLENGES:
+    if session_id:
+        if session_id not in AUTH_CHALLENGES:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication challenge session expired or invalid",
             )
-        s_data = AUTH_CHALLENGES[payload.session_id]
+        s_data = AUTH_CHALLENGES[session_id]
         if s_data["expires_at"] < datetime.utcnow() or s_data.get("used", False):
-            AUTH_CHALLENGES.pop(payload.session_id, None)
+            AUTH_CHALLENGES.pop(session_id, None)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication challenge session expired or already consumed",
@@ -261,15 +289,30 @@ def verify_mfa(payload: MfaVerifyRequest, db: Session = Depends(get_db)):
             detail="Authentication session expired or user not found",
         )
 
-    if not validate_mfa_code(user, payload.code, payload.session_id):
+    # Validate code strictly
+    if not validate_mfa_code(user, submitted_code, session_id):
+        # Calculate remaining attempts if session exists
+        if session_id and session_id in AUTH_CHALLENGES:
+            chal = AUTH_CHALLENGES[session_id]
+            remaining = max(0, chal.get("max_attempts", 5) - chal.get("attempts", 0))
+            if remaining == 0:
+                AUTH_CHALLENGES.pop(session_id, None)
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Maximum verification attempts exceeded. Please login again.",
+                )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Incorrect MFA verification code. {remaining} attempt{'s' if remaining != 1 else ''} remaining.",
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect MFA verification code. Please check your authenticator code.",
+            detail="Incorrect MFA verification code. Please check your verification code.",
         )
 
     # Invalidate challenge after successful use so it cannot be replayed
-    if payload.session_id and payload.session_id in AUTH_CHALLENGES:
-        AUTH_CHALLENGES.pop(payload.session_id, None)
+    if session_id and session_id in AUTH_CHALLENGES:
+        AUTH_CHALLENGES.pop(session_id, None)
 
     user.last_login = datetime.utcnow()
     db.commit()
@@ -292,6 +335,27 @@ def verify_mfa(payload: MfaVerifyRequest, db: Session = Depends(get_db)):
             expires_in=settings.jwt_access_token_expire_minutes * 60,
         ),
         user=build_user_response(user, db),
+    )
+
+
+@router.post("/resend-mfa")
+@router.post("/mfa/resend")
+@router.post("/resend-code")
+def resend_mfa(payload: ResendMfaRequest, db: Session = Depends(get_db)):
+    """
+    Resends a new 6-digit verification code to the user's email address.
+    Invalidates the previous OTP, enforces a 30-second cooldown, and resets the 5-minute timer.
+    """
+    session_id = payload.challenge_id or payload.session_id
+    user = None
+    if payload.email:
+        user = db.query(User).filter(func.lower(User.email) == payload.email.strip().lower()).first()
+
+    return resend_auth_challenge(
+        session_id=session_id,
+        email=payload.email,
+        user=user,
+        cooldown_seconds=30,
     )
 
 

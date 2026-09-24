@@ -31,20 +31,28 @@ class LoginRequest(BaseModel):
 
 
 class MfaChallengeResponse(BaseModel):
-    status: str = "challenge_required"
-    session_id: str
     mfa_required: bool = True
-    face_required: bool = False
+    challenge_id: str
+    session_id: str
     email: str
     role: str
-    message: str
+    message: str = "Verification code sent to your email"
     expires_in: int = 300
+    status: str = "challenge_required"
 
 
 class MfaVerifyRequest(BaseModel):
-    email: Optional[str] = None
+    challenge_id: Optional[str] = None
     session_id: Optional[str] = None
-    code: str
+    code: Optional[str] = None
+    otp: Optional[str] = None
+    email: Optional[str] = None
+
+
+class ResendMfaRequest(BaseModel):
+    challenge_id: Optional[str] = None
+    session_id: Optional[str] = None
+    email: Optional[str] = None
 
 
 class FaceVerifyRequest(BaseModel):

@@ -54,6 +54,21 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(userData),
       }),
+    verifyMfa: (payload) =>
+      request('/api/auth/verify-mfa', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    resendMfa: (payload) =>
+      request('/api/auth/resend-mfa', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    challenge: (email) =>
+      request('/api/auth/challenge', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
   },
 
   dashboard: {
