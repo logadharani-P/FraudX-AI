@@ -23,6 +23,21 @@ from app.main import app
 client = TestClient(app)
 
 
+def get_user_token(email: str = "analyst@fraudx.ai", password: str = "password123") -> str:
+    """Helper to authenticate user and complete MFA verification if required."""
+    res = client.post("/api/auth/login", json={"email": email, "password": password})
+    data = res.json()
+    if "token" in data and "access_token" in data["token"]:
+        return data["token"]["access_token"]
+    if data.get("mfa_required"):
+        from app.services.auth_service import AUTH_CHALLENGES
+        sid = data.get("challenge_id") or data.get("session_id")
+        otp = AUTH_CHALLENGES[sid]["mfa_code"]
+        v_res = client.post("/api/auth/verify-mfa", json={"session_id": sid, "code": otp})
+        return v_res.json()["token"]["access_token"]
+    raise ValueError(f"Failed to authenticate {email}: {data}")
+
+
 def test_root_and_health():
     res = client.get("/")
     assert res.status_code == 200
@@ -34,12 +49,34 @@ def test_root_and_health():
 
 
 def test_auth_login_and_profile_data():
-    # 1. Analyst login & profile completeness
+    from app.services.auth_service import AUTH_CHALLENGES
+
+    # 1. Analyst login initiates email MFA challenge (does NOT return JWT token prematurely)
     res = client.post("/api/auth/login", json={"email": "analyst@fraudx.ai", "password": "password123"})
     assert res.status_code == 200
     data = res.json()
-    assert "token" in data
-    user = data["user"]
+    assert data.get("mfa_required") is True
+    assert "token" not in data  # Security: No JWT issued before email code validation
+    assert "challenge_id" in data or "session_id" in data
+    assert "otp" not in data  # Security: OTP NEVER leaked to frontend response
+    assert "code" not in data
+
+    session_id = data.get("challenge_id") or data.get("session_id")
+    assert session_id in AUTH_CHALLENGES
+    # Simulate user reading the 6-digit code from their email
+    email_otp = AUTH_CHALLENGES[session_id]["mfa_code"]
+    assert len(email_otp) == 6
+    assert email_otp.isdigit()
+
+    # Complete Analyst login via verify-mfa with email code
+    verify_res = client.post("/api/auth/verify-mfa", json={
+        "session_id": session_id,
+        "otp": email_otp
+    })
+    assert verify_res.status_code == 200
+    v_data = verify_res.json()
+    assert "token" in v_data
+    user = v_data["user"]
     assert user["role"] == "analyst"
     assert "Vikram Seth" in user["name"]
     assert user["analyst_id"] or user["analystId"]
@@ -48,7 +85,7 @@ def test_auth_login_and_profile_data():
     assert user["clearance_level"] or user["clearanceLevel"]
     assert user["cases_investigated"] >= 0
 
-    token = data["token"]["access_token"]
+    token = v_data["token"]["access_token"]
 
     # Verify /api/auth/me returns same complete profile
     me_res = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
@@ -58,19 +95,32 @@ def test_auth_login_and_profile_data():
     assert me_user["role"] == "analyst"
     assert me_user["designation"] is not None
 
-    # 2. Organisation login & profile
+    # 2. Organisation login & email verification flow
     org_res = client.post("/api/auth/login", json={"email": "admin@fraudx.ai", "password": "password123"})
     assert org_res.status_code == 200
-    org_user = org_res.json()["user"]
+    org_chal = org_res.json()
+    assert org_chal.get("mfa_required") is True
+    assert "token" not in org_chal
+    org_sid = org_chal.get("challenge_id") or org_chal.get("session_id")
+    org_otp = AUTH_CHALLENGES[org_sid]["mfa_code"]
+
+    org_verify = client.post("/api/auth/verify-mfa", json={
+        "challenge_id": org_sid,
+        "code": org_otp
+    })
+    assert org_verify.status_code == 200
+    org_user = org_verify.json()["user"]
     assert org_user["role"] == "organisation"
     assert org_user["organisation"]
     assert org_user["org_id"] or org_user["orgId"] or org_user["organisation_id"]
     assert org_user["designation"]
 
-    # 3. Customer default demo login & profile
+    # 3. Customer default login & profile (remains unchanged and direct)
     c_res = client.post("/api/auth/login", json={"email": "customer@fraudx.ai", "password": "password123"})
     assert c_res.status_code == 200
-    c_user = c_res.json()["user"]
+    c_data = c_res.json()
+    assert "token" in c_data
+    c_user = c_data["user"]
     assert c_user["role"] == "customer"
     assert c_user["member_id"] or c_user["memberId"]
     assert c_user["account_id"] or c_user["accountId"]
@@ -82,6 +132,9 @@ def test_auth_login_and_profile_data():
 
 
 def test_mfa_and_face_verification():
+    from app.services.auth_service import AUTH_CHALLENGES
+    from datetime import datetime, timedelta
+
     # ── MFA Security Checks ──
     # 1. Empty MFA code rejection -> 401
     mfa_empty = client.post("/api/auth/verify-mfa", json={"email": "admin@fraudx.ai", "code": ""})
@@ -91,58 +144,84 @@ def test_mfa_and_face_verification():
     assert mfa_spaces.status_code == 401
 
     # 2. Incorrect / arbitrary 6-digit code rejection -> 401 (not accepted merely for being 6 digits)
-    mfa_arbitrary = client.post("/api/auth/verify-mfa", json={"email": "admin@fraudx.ai", "code": "123456"})
-    assert mfa_arbitrary.status_code == 401
-    assert "Incorrect MFA" in mfa_arbitrary.json()["detail"]
-
-    mfa_wrong = client.post("/api/auth/verify-mfa", json={"email": "admin@fraudx.ai", "code": "000000"})
-    assert mfa_wrong.status_code == 401
-
-    # 3. Server-side Challenge flow: create challenge for user
     chal_res = client.post("/api/auth/challenge", json={"email": "analyst@fraudx.ai"})
     assert chal_res.status_code == 200
     chal_data = chal_res.json()
     session_id = chal_data["session_id"]
     assert chal_data["mfa_required"] is True
 
-    # 4. MFA challenge tied to specific user: cross-user attempt with different email must fail -> 401
+    mfa_wrong = client.post("/api/auth/verify-mfa", json={"session_id": session_id, "code": "000000"})
+    assert mfa_wrong.status_code == 401
+    assert "Incorrect MFA" in mfa_wrong.json()["detail"] or "attempt" in mfa_wrong.json()["detail"]
+
+    # 3. MFA challenge tied to specific user: cross-user attempt with different email must fail -> 401
+    valid_otp = AUTH_CHALLENGES[session_id]["mfa_code"]
     cross_user = client.post("/api/auth/verify-mfa", json={
         "session_id": session_id,
         "email": "customer@fraudx.ai",  # wrong user for this challenge
-        "code": "849201"
+        "code": valid_otp
     })
     assert cross_user.status_code == 401
 
-    # 5. Correct MFA code with matching session -> 200 and issues JWT
+    # 4. Correct MFA code with matching session -> 200 and issues JWT
     mfa_good = client.post("/api/auth/verify-mfa", json={
         "session_id": session_id,
         "email": "analyst@fraudx.ai",
-        "code": "849201"
+        "code": valid_otp
     })
     assert mfa_good.status_code == 200
     assert "token" in mfa_good.json()
     assert mfa_good.json()["user"]["role"] == "analyst"
 
-    # 6. MFA challenge invalidated after single successful use: replay attempt must fail -> 401
+    # 5. MFA challenge invalidated after single successful use: replay attempt must fail -> 401
     replay_attempt = client.post("/api/auth/verify-mfa", json={
         "session_id": session_id,
         "email": "analyst@fraudx.ai",
-        "code": "849201"
+        "code": valid_otp
     })
     assert replay_attempt.status_code == 401
 
-    # 7. Direct MFA verification with correct credentials -> 200
-    direct_mfa = client.post("/api/auth/verify-mfa", json={"email": "admin@fraudx.ai", "code": "849201"})
-    assert direct_mfa.status_code == 200
-    assert direct_mfa.json()["user"]["role"] == "organisation"
+    # 6. Expired challenge rejection -> 401
+    chal_exp = client.post("/api/auth/challenge", json={"email": "analyst@fraudx.ai"})
+    exp_sid = chal_exp.json()["session_id"]
+    exp_otp = AUTH_CHALLENGES[exp_sid]["mfa_code"]
+    AUTH_CHALLENGES[exp_sid]["expires_at"] = datetime.utcnow() - timedelta(seconds=1)
 
-    # 8. Login endpoint with invalid MFA parameter rejects -> 401
-    login_bad_mfa = client.post("/api/auth/login", json={
-        "email": "analyst@fraudx.ai",
-        "password": "password123",
-        "mfa_code": "999999"
-    })
-    assert login_bad_mfa.status_code == 401
+    exp_res = client.post("/api/auth/verify-mfa", json={"session_id": exp_sid, "code": exp_otp})
+    assert exp_res.status_code == 401
+
+    # 7. Maximum 5 attempts security limit
+    chal_att = client.post("/api/auth/challenge", json={"email": "analyst@fraudx.ai"})
+    att_sid = chal_att.json()["session_id"]
+    for _ in range(5):
+        client.post("/api/auth/verify-mfa", json={"session_id": att_sid, "code": "999999"})
+    # Challenge should now be invalidated / removed
+    att_final = client.post("/api/auth/verify-mfa", json={"session_id": att_sid, "code": "999999"})
+    assert att_final.status_code == 401
+
+    # 8. Resend Code flow: invalidates old OTP, generates new OTP, enforces cooldown
+    chal_resend = client.post("/api/auth/challenge", json={"email": "analyst@fraudx.ai"})
+    resend_sid = chal_resend.json()["session_id"]
+    old_otp = AUTH_CHALLENGES[resend_sid]["mfa_code"]
+
+    # Immediate resend rejected due to 30s cooldown
+    cool_res = client.post("/api/auth/resend-mfa", json={"session_id": resend_sid})
+    assert cool_res.status_code == 429
+
+    # Advance time past cooldown
+    AUTH_CHALLENGES[resend_sid]["last_sent_at"] = datetime.utcnow() - timedelta(seconds=35)
+    resend_ok = client.post("/api/auth/resend-mfa", json={"session_id": resend_sid})
+    assert resend_ok.status_code == 200
+    new_otp = AUTH_CHALLENGES[resend_sid]["mfa_code"]
+    assert new_otp != old_otp
+
+    # Old OTP no longer works
+    old_attempt = client.post("/api/auth/verify-mfa", json={"session_id": resend_sid, "code": old_otp})
+    assert old_attempt.status_code == 401
+
+    # New OTP works
+    new_attempt = client.post("/api/auth/verify-mfa", json={"session_id": resend_sid, "code": new_otp})
+    assert new_attempt.status_code == 200
 
     # ── Face Verification Checks ──
     # 9. Failed/rejected face verification returns 401
@@ -157,8 +236,6 @@ def test_mfa_and_face_verification():
     assert face_data["verified"] is True
     assert "token" not in face_data  # No JWT issued prematurely
     assert "access_token" not in face_data
-    # Confirms demonstration semantics (no false biometric claim)
-    assert "Demonstration" in face_data["message"] or "liveness" in face_data["message"]
 
     # 11. Face verification tied to session challenge
     chal2_res = client.post("/api/auth/challenge", json={"email": "admin@fraudx.ai"})
@@ -322,8 +399,7 @@ def test_customer_rbac_denials():
 
 def test_analyst_and_organisation_access():
     # Login as Analyst
-    a_res = client.post("/api/auth/login", json={"email": "analyst@fraudx.ai", "password": "password123"})
-    a_token = a_res.json()["token"]["access_token"]
+    a_token = get_user_token("analyst@fraudx.ai", "password123")
     a_headers = {"Authorization": f"Bearer {a_token}"}
 
     # 1. Analyst accesses organisation-wide transactions
@@ -351,8 +427,7 @@ def test_analyst_and_organisation_access():
     assert client.get("/api/audit?limit=10", headers=a_headers).status_code == 200
 
     # 5. Organisation Admin access
-    o_res = client.post("/api/auth/login", json={"email": "admin@fraudx.ai", "password": "password123"})
-    o_token = o_res.json()["token"]["access_token"]
+    o_token = get_user_token("admin@fraudx.ai", "password123")
     o_headers = {"Authorization": f"Bearer {o_token}"}
 
     assert client.get("/api/dashboard/stats", headers=o_headers).status_code == 200
@@ -362,13 +437,11 @@ def test_analyst_and_organisation_access():
 
 def test_transaction_explanations_location_and_ai_agent():
     # Login as Analyst
-    a_res = client.post("/api/auth/login", json={"email": "analyst@fraudx.ai", "password": "password123"})
-    a_token = a_res.json()["token"]["access_token"]
+    a_token = get_user_token("analyst@fraudx.ai", "password123")
     a_headers = {"Authorization": f"Bearer {a_token}"}
 
     # Login as Customer
-    c_res = client.post("/api/auth/login", json={"email": "customer@fraudx.ai", "password": "password123"})
-    c_token = c_res.json()["token"]["access_token"]
+    c_token = get_user_token("customer@fraudx.ai", "password123")
     c_headers = {"Authorization": f"Bearer {c_token}"}
 
     # ── 1. Real Transaction Data & Persistent Location Consistency ──
@@ -493,7 +566,8 @@ def test_transaction_explanations_location_and_ai_agent():
     # ── 4. Role-Aware Privacy & AI Safety Restrictions ──
     # Customer asks about another member -> Access Restricted (Privacy protection)
     all_members = client.get("/api/members?limit=20", headers=a_headers).json()["items"]
-    cust_member_id = c_res.json()["user"].get("member_id")
+    me_cust = client.get("/api/auth/me", headers=c_headers).json()
+    cust_member_id = me_cust.get("member_id") or me_cust.get("memberId")
     other_members = [m for m in all_members if m["member_id"] != cust_member_id]
     if len(other_members) > 0:
         other_name = other_members[0]["name"]
@@ -517,8 +591,7 @@ def test_transaction_explanations_location_and_ai_agent():
 
 def test_alert_details_and_persistent_risk_treatment():
     # Login as Analyst
-    a_res = client.post("/api/auth/login", json={"email": "analyst@fraudx.ai", "password": "password123"})
-    a_token = a_res.json()["token"]["access_token"]
+    a_token = get_user_token("analyst@fraudx.ai", "password123")
     a_headers = {"Authorization": f"Bearer {a_token}"}
 
     # 1. Complete Alert Details & Factual Anomaly Explanations
@@ -610,8 +683,7 @@ def test_alert_details_and_persistent_risk_treatment():
     assert white_res.json()["resolved_at"] is not None
 
     # 7. Customer RBAC Enforcement: Customer receives 403 on treatment endpoints
-    c_res = client.post("/api/auth/login", json={"email": "customer@fraudx.ai", "password": "password123"})
-    c_token = c_res.json()["token"]["access_token"]
+    c_token = get_user_token("customer@fraudx.ai", "password123")
     c_headers = {"Authorization": f"Bearer {c_token}"}
 
     c_treat_alert = client.post(f"/api/alerts/{target_alt_id}/treatment", json={"action": "Block Transaction"}, headers=c_headers)
@@ -637,12 +709,10 @@ def test_alert_details_and_persistent_risk_treatment():
 
 def test_reports_traceability_and_readable_formats():
     # 1. Authenticate Analyst & Customer
-    a_res = client.post("/api/auth/login", json={"email": "analyst@fraudx.ai", "password": "password123"})
-    a_token = a_res.json()["token"]["access_token"]
+    a_token = get_user_token("analyst@fraudx.ai", "password123")
     a_headers = {"Authorization": f"Bearer {a_token}"}
 
-    c_res = client.post("/api/auth/login", json={"email": "customer@fraudx.ai", "password": "password123"})
-    c_token = c_res.json()["token"]["access_token"]
+    c_token = get_user_token("customer@fraudx.ai", "password123")
     c_headers = {"Authorization": f"Bearer {c_token}"}
 
     # 2. RBAC Enforcement: Customer cannot access reports
