@@ -5,9 +5,24 @@ import { useTheme } from '../context/ThemeContext';
 import './Profile.css';
 
 export default function Profile() {
-  const { user, updateProfile } = useAuth();
-  const { transactions, members } = useData();
-  const { language, setLanguage, theme, setTheme } = useTheme();
+  const { user, updateProfile } = useAuth() || {};
+  const { transactions = [], members = [] } = useData() || {};
+  const { language = 'en', setLanguage, theme = 'luminous', setTheme, t: themeT } = useTheme() || {};
+
+  // Safe translation helper: uses theme context translation or falls back gracefully
+  const t = (key, fallback, params) => {
+    if (typeof themeT === 'function') {
+      const res = themeT(key, typeof fallback === 'object' ? fallback : params);
+      if (res && res !== key) return res;
+    }
+    if (typeof fallback === 'string') {
+      if (params && typeof params === 'object') {
+        return Object.entries(params).reduce((str, [k, v]) => str.replaceAll(`{${k}}`, v), fallback);
+      }
+      return fallback;
+    }
+    return key;
+  };
 
   const [isEditing, setIsEditing] = useState(false);
   const [phoneInput, setPhoneInput] = useState(() => user?.phone || '');
@@ -24,26 +39,31 @@ export default function Profile() {
   // Find customer's member entry for transaction stats
   const customerMember = useMemo(() => {
     if (user?.role !== 'customer' || !user?.name) return null;
-    return members.find(m => m.name?.toLowerCase() === user.name.toLowerCase());
+    return Array.isArray(members)
+      ? members.find(m => m?.name?.toLowerCase() === user.name.toLowerCase())
+      : null;
   }, [user, members]);
 
   const customerTxns = useMemo(() => {
-    if (!customerMember) return [];
+    if (!customerMember || !Array.isArray(transactions)) return [];
     const memberId = customerMember.id ?? customerMember.memberId;
-    return transactions.filter(t => t.senderId === memberId || t.receiverId === memberId);
+    if (!memberId) return [];
+    return transactions.filter(t => t?.senderId === memberId || t?.receiverId === memberId);
   }, [customerMember, transactions]);
 
   const role = user?.role || 'customer';
   const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
-  const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'FX';
+  const initials = user?.name
+    ? user.name.trim().split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
+    : 'FX';
 
   const handleOpenEdit = () => {
-    setPhoneInput(user.phone || '');
-    setCityInput(user.city || '');
-    setAddressInput(user.address || '');
-    setSpecializationInput(user.specialization || '');
-    setLangInput(user.language || language || 'en');
-    setThemeInput(user.theme || theme || 'luminous');
+    setPhoneInput(user?.phone || '');
+    setCityInput(user?.city || '');
+    setAddressInput(user?.address || '');
+    setSpecializationInput(user?.specialization || '');
+    setLangInput(user?.language || language || 'en');
+    setThemeInput(user?.theme || theme || 'luminous');
     setEditError('');
     setIsEditing(true);
   };
@@ -64,45 +84,69 @@ export default function Profile() {
     setIsSaving(true);
 
     setTimeout(() => {
-      const result = updateProfile({
-        phone: phoneInput.trim(),
-        city: cityInput.trim(),
-        address: addressInput.trim(),
-        specialization: specializationInput.trim(),
-        language: langInput,
-        theme: themeInput,
-      });
+      if (typeof updateProfile === 'function') {
+        const result = updateProfile({
+          phone: phoneInput.trim(),
+          city: cityInput.trim(),
+          address: addressInput.trim(),
+          specialization: specializationInput.trim(),
+          language: langInput,
+          theme: themeInput,
+        });
 
-      if (langInput !== language) {
-        setLanguage(langInput);
-      }
-      if (themeInput !== theme) {
-        setTheme(themeInput);
-      }
+        if (langInput !== language && typeof setLanguage === 'function') {
+          setLanguage(langInput);
+        }
+        if (themeInput !== theme && typeof setTheme === 'function') {
+          setTheme(themeInput);
+        }
 
-      setIsSaving(false);
-      if (result.success) {
-        setSaveSuccess(true);
-        setIsEditing(false);
-        setTimeout(() => setSaveSuccess(false), 3500);
+        setIsSaving(false);
+        if (result?.success) {
+          setSaveSuccess(true);
+          setIsEditing(false);
+          setTimeout(() => setSaveSuccess(false), 3500);
+        } else {
+          setEditError(result?.error || 'Failed to update profile.');
+        }
       } else {
-        setEditError(result.error || 'Failed to update profile.');
+        setIsSaving(false);
+        setEditError('Profile service unavailable.');
       }
     }, 450);
   };
 
   // Role-specific about summary
   const aboutText = useMemo(() => {
+    if (!user) return '';
     if (role === 'customer') {
       return `Verified FraudX AI banking member since ${user.joinDate || '2024'}. Account protected by continuous real-time anomaly detection, adaptive multi-factor authorization, and zero-liability fraud guarantees.`;
     }
     if (role === 'analyst') {
       return `Senior Financial Crime Analyst at ${user.organisation || 'FraudX AI Security Division'}. Authorized for Level-3 investigation workflows, anomaly triage, risk treatment application, and graph correlation.`;
     }
-    return `Chief Security Administrator at ${user?.organisation || 'FraudX AI'}. Authorized for organization-wide security telemetry, policy governance, member oversight, and compliance auditing.`;
+    return `Chief Security Administrator at ${user.organisation || 'FraudX AI'}. Authorized for organization-wide security telemetry, policy governance, member oversight, and compliance auditing.`;
   }, [role, user]);
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="page-container profile-page">
+        <div className="profile-hero animate-fade-in-up" style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <div className="profile-hero__avatar-container" style={{ margin: '0 auto 16px' }}>
+            <div className="profile-hero__avatar">
+              <span className="profile-hero__initials">?</span>
+            </div>
+          </div>
+          <h2 style={{ marginBottom: 8, color: 'var(--text-primary)' }}>
+            {t('profile.unavailableTitle', 'Profile Information Unavailable')}
+          </h2>
+          <p className="text-secondary" style={{ maxWidth: 460, margin: '0 auto 20px' }}>
+            {t('profile.unavailableDesc', 'We could not retrieve your profile information. Please sign in again or contact your security administrator.')}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container profile-page">
@@ -116,12 +160,12 @@ export default function Profile() {
           </div>
         </div>
 
-        <h1 className="profile-hero__name">{user.name || 'Authenticated User'}</h1>
-        <p className="profile-hero__email">{user.email || 'user@fraudx.ai'}</p>
+        <h1 className="profile-hero__name">{user.name || t('profile.authenticatedUser', 'Authenticated User')}</h1>
+        <p className="profile-hero__email">{user.email || t('profile.notAvailable', 'Not available')}</p>
 
         <div className="profile-hero__badges">
           <span className="badge badge-info">{t(`roles.${role}`, roleLabel)} {t('nav.portal', 'Portal')}</span>
-          <span className="badge badge-info text-mono">ID: {user.id || user.analystId || user.orgId}</span>
+          <span className="badge badge-info text-mono">ID: {user.id || user.analystId || user.orgId || t('profile.notAvailable', 'Not available')}</span>
           <span className="badge badge-low">{t('profile.activeProtected', '● Active & Protected')}</span>
           <span className="badge badge-info">{user.city || 'India'}</span>
         </div>
@@ -205,7 +249,7 @@ export default function Profile() {
               <>
                 <div className="profile-item">
                   <span className="profile-item__label">{t('profile.customerIdImmutable', 'Customer ID (Immutable)')}</span>
-                  <span className="profile-item__value text-mono font-semibold">{user.id || t('profile.notAvailable', 'Not available')}</span>
+                  <span className="profile-item__value text-mono font-semibold">{user.id || user.memberId || t('profile.notAvailable', 'Not available')}</span>
                   <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>{t('profile.protectedIdentityField', '🔒 Protected Identity Field')}</span>
                 </div>
                 <div className="profile-item">
@@ -228,7 +272,7 @@ export default function Profile() {
               <>
                 <div className="profile-item">
                   <span className="profile-item__label">{t('login.analystId', 'Analyst ID')}</span>
-                  <span className="profile-item__value text-mono font-semibold">{user.analystId || user.id}</span>
+                  <span className="profile-item__value text-mono font-semibold">{user.analystId || user.id || t('profile.notAvailable', 'Not available')}</span>
                   <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>{t('profile.clearanceId', '🔒 Clearance ID')}</span>
                 </div>
                 <div className="profile-item">
@@ -250,7 +294,7 @@ export default function Profile() {
               <>
                 <div className="profile-item">
                   <span className="profile-item__label">{t('login.orgId', 'Organisation ID')}</span>
-                  <span className="profile-item__value text-mono font-semibold">{user.orgId || user.id}</span>
+                  <span className="profile-item__value text-mono font-semibold">{user.orgId || user.id || t('profile.notAvailable', 'Not available')}</span>
                   <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>{t('profile.corporateIdentifier', '🔒 Corporate Identifier')}</span>
                 </div>
                 <div className="profile-item">
@@ -502,5 +546,3 @@ export default function Profile() {
     </div>
   );
 }
-
-
