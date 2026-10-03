@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import SecurityEventDetail from '../components/Security/SecurityEventDetail';
 import './SecurityCenter.css';
 
 export default function SecurityCenter() {
   const { securityEvents } = useNotifications();
   const { user } = useAuth();
+  const { t } = useTheme();
 
   const [typeFilter, setTypeFilter] = useState('All');
   const [severityFilter, setSeverityFilter] = useState('All');
@@ -56,17 +58,12 @@ export default function SecurityCenter() {
   }, [securityEvents, typeFilter, severityFilter, search]);
 
   const getSeverityBadge = (severity) => {
-    switch (severity?.toLowerCase()) {
-      case 'critical':
-        return <span className="badge badge-critical">Critical</span>;
-      case 'high':
-        return <span className="badge badge-high">High</span>;
-      case 'medium':
-        return <span className="badge badge-medium">Medium</span>;
-      case 'low':
-      default:
-        return <span className="badge badge-low">Low</span>;
-    }
+    const key = severity?.toLowerCase() || 'low';
+    return (
+      <span className={`badge badge-${key}`}>
+        {t('common.' + key, severity)}
+      </span>
+    );
   };
 
   return (
@@ -74,15 +71,15 @@ export default function SecurityCenter() {
       {/* Header */}
       <div className="page-header animate-fade-in-up">
         <div>
-          <h1 className="heading-2">🛡️ Security Center</h1>
+          <h1 className="heading-2">🛡️ {t('securityCenter.title')}</h1>
           <p className="text-secondary">
-            Continuous application security, authentication monitoring, and audit telemetry
+            {t('securityCenter.subtitle')}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="sec-status-dot" />
           <span className="text-xs font-semibold" style={{ color: 'var(--risk-low)' }}>
-            Telemetry Active
+            {t('securityCenter.telemetryActive')}
           </span>
         </div>
       </div>
@@ -91,11 +88,11 @@ export default function SecurityCenter() {
       <div className="sec-telemetry-grid animate-fade-in-up" style={{ animationDelay: '100ms' }}>
         <div className="sec-telemetry-card">
           <div className="sec-telemetry-header">
-            <span className="sec-telemetry-title">Security Status</span>
+            <span className="sec-telemetry-title">{t('securityCenter.securityStatus')}</span>
             <span className="sec-telemetry-icon">🛡️</span>
           </div>
           <div className="sec-telemetry-value" style={{ color: 'var(--risk-low)' }}>
-            Active
+            {t('securityCenter.active')}
           </div>
           <div className="sec-telemetry-sub">
             <span>● 100% Policy Compliance</span>
@@ -104,44 +101,44 @@ export default function SecurityCenter() {
 
         <div className="sec-telemetry-card">
           <div className="sec-telemetry-header">
-            <span className="sec-telemetry-title">Authentication Activity</span>
+            <span className="sec-telemetry-title">{t('securityCenter.authSuccessRate')}</span>
             <span className="sec-telemetry-icon">🔑</span>
           </div>
           <div className="sec-telemetry-value">
             {metrics.authSuccess}{' '}
-            <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-tertiary)' }}>success</span>
+            <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-tertiary)' }}>{t('common.success')}</span>
           </div>
           <div className="sec-telemetry-sub">
-            <span style={{ color: 'var(--risk-high)' }}>{metrics.authFailed} failed attempts</span>
+            <span style={{ color: 'var(--risk-high)' }}>{metrics.authFailed} {t('common.failed')}</span>
           </div>
         </div>
 
         <div className="sec-telemetry-card">
           <div className="sec-telemetry-header">
-            <span className="sec-telemetry-title">MFA Verifications</span>
+            <span className="sec-telemetry-title">{t('securityCenter.mfaEnforcement')}</span>
             <span className="sec-telemetry-icon">📱</span>
           </div>
           <div className="sec-telemetry-value">
             {metrics.mfaSuccess}{' '}
-            <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-tertiary)' }}>verified</span>
+            <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-tertiary)' }}>{t('common.completed')}</span>
           </div>
           <div className="sec-telemetry-sub">
             <span style={{ color: metrics.mfaFailed > 0 ? 'var(--risk-medium)' : 'var(--text-tertiary)' }}>
-              {metrics.mfaFailed} invalid token check
+              {metrics.mfaFailed} {t('common.failed')}
             </span>
           </div>
         </div>
 
         <div className="sec-telemetry-card">
           <div className="sec-telemetry-header">
-            <span className="sec-telemetry-title">Security Alerts</span>
+            <span className="sec-telemetry-title">{t('securityCenter.pendingReviews')}</span>
             <span className="sec-telemetry-icon">⚠️</span>
           </div>
           <div className="sec-telemetry-value" style={{ color: metrics.pendingAlerts > 0 ? 'var(--risk-high)' : 'var(--text-primary)' }}>
             {metrics.pendingAlerts}
           </div>
           <div className="sec-telemetry-sub">
-            <span>Requiring analyst review</span>
+            <span>{t('securityCenter.requiresAnalystAttention')}</span>
           </div>
         </div>
       </div>
@@ -150,9 +147,9 @@ export default function SecurityCenter() {
       <div className="sec-audit-table-card animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
           <div>
-            <h3 className="heading-3" style={{ margin: 0 }}>Security Audit Trail</h3>
+            <h3 className="heading-3" style={{ margin: 0 }}>{t('securityCenter.title')} - Audit Trail</h3>
             <p className="text-secondary text-xs" style={{ margin: '2px 0 0' }}>
-              Immutable audit events for authentication, access changes, and investigation workflows
+              {t('securityCenter.subtitle')}
             </p>
           </div>
         </div>
@@ -162,7 +159,7 @@ export default function SecurityCenter() {
           <input
             className="input"
             type="text"
-            placeholder="Search audit log by ID, action, user, or IP..."
+            placeholder={t('securityCenter.searchEvents')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ maxWidth: 320 }}
@@ -175,10 +172,10 @@ export default function SecurityCenter() {
               onChange={e => setTypeFilter(e.target.value)}
               style={{ width: 'auto', padding: '6px 12px' }}
             >
-              <option value="All">All Event Types</option>
-              <option value="authentication">Authentication</option>
+              <option value="All">{t('transactions.all')}</option>
+              <option value="authentication">{t('securityCenter.authSuccessRate', 'Authentication')}</option>
               <option value="mfa">MFA</option>
-              <option value="security_alert">Security Alerts</option>
+              <option value="security_alert">{t('nav.fraudAlerts', 'Security Alerts')}</option>
               <option value="session">Session</option>
             </select>
 
@@ -188,11 +185,11 @@ export default function SecurityCenter() {
               onChange={e => setSeverityFilter(e.target.value)}
               style={{ width: 'auto', padding: '6px 12px' }}
             >
-              <option value="All">All Severities</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-              <option value="Critical">Critical</option>
+              <option value="All">{t('transactions.all')}</option>
+              <option value="Low">{t('common.low')}</option>
+              <option value="Medium">{t('common.medium')}</option>
+              <option value="High">{t('common.high')}</option>
+              <option value="Critical">{t('common.critical')}</option>
             </select>
           </div>
         </div>
@@ -202,13 +199,13 @@ export default function SecurityCenter() {
           <table className="sec-audit-table">
             <thead>
               <tr>
-                <th>Event ID</th>
-                <th>Timestamp</th>
-                <th>Action & Narrative</th>
-                <th>Identity / Role</th>
-                <th>Source IP</th>
-                <th>Severity</th>
-                <th>Status</th>
+                <th>{t('securityCenter.eventId')}</th>
+                <th>{t('securityCenter.time')}</th>
+                <th>{t('securityCenter.action')}</th>
+                <th>{t('securityCenter.user')}</th>
+                <th>{t('securityCenter.ipAddress')}</th>
+                <th>{t('securityCenter.severity')}</th>
+                <th>{t('transactions.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -233,7 +230,7 @@ export default function SecurityCenter() {
                   <td>{getSeverityBadge(evt.severity)}</td>
                   <td>
                     <span className={`badge ${evt.status === 'Verified' || evt.status === 'Reviewed' ? 'badge-low' : 'badge-high'}`}>
-                      {evt.status}
+                      {t('common.' + (evt.status === 'Reviewed' ? 'completed' : evt.status.toLowerCase()), evt.status)}
                     </span>
                   </td>
                 </tr>
@@ -244,8 +241,7 @@ export default function SecurityCenter() {
           {filteredEvents.length === 0 && (
             <div className="sec-audit-empty">
               <p style={{ fontSize: '1.5rem', marginBottom: 8 }}>📋</p>
-              <p style={{ margin: 0, fontWeight: 600 }}>No security audit events match your filters</p>
-              <p className="text-xs text-tertiary" style={{ margin: '4px 0 0' }}>Try adjusting your search criteria or resetting filters</p>
+              <p style={{ margin: 0, fontWeight: 600 }}>{t('securityCenter.noEventsFound')}</p>
             </div>
           )}
         </div>

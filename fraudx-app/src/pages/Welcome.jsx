@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AnimatedBackground from '../components/AnimatedBackground';
 import logoImg from '../assets/logo.svg';
 import { useTheme } from '../context/ThemeContext';
+import LanguageSelector from '../components/LanguageSelector';
 import './Welcome.css';
 
 export default function Welcome() {
@@ -20,6 +21,7 @@ export default function Welcome() {
   return (
     <div className="welcome">
       <AnimatedBackground />
+      <LanguageSelector variant="floating" />
       <div className="welcome__content">
         <div className={`welcome__logo ${phase >= 0 ? 'welcome__logo--visible' : ''}`}>
           <img src={logoImg} alt="FraudX AI" className="welcome__logo-img" />

@@ -88,10 +88,10 @@ export default function Dashboard() {
 
   const statCards = isCustomer
     ? [
-        { label: 'My Transactions', value: roleStats.totalTransactions?.toLocaleString() || '0', icon: '📊', color: '#4A7BF7' },
-        { label: 'Total Amount', value: `₹${((roleStats.totalAmount || 0) / 1000).toFixed(1)}K`, icon: '💰', color: '#2ECC87' },
-        { label: 'Flagged', value: roleStats.fraudCount || 0, icon: '⚠️', color: '#EF4444' },
-        { label: 'Risk Alerts', value: roleStats.openAlerts || 0, icon: '🔔', color: '#F59E0B' },
+        { label: t('dashboard.myTransactions'), value: roleStats.totalTransactions?.toLocaleString() || '0', icon: '📊', color: '#4A7BF7' },
+        { label: t('dashboard.totalAmount'), value: `₹${((roleStats.totalAmount || 0) / 1000).toFixed(1)}K`, icon: '💰', color: '#2ECC87' },
+        { label: t('dashboard.flagged'), value: roleStats.fraudCount || 0, icon: '⚠️', color: '#EF4444' },
+        { label: t('dashboard.riskAlerts'), value: roleStats.openAlerts || 0, icon: '🔔', color: '#F59E0B' },
       ]
     : [
         { label: t('dashboard.totalTransactions'), value: stats.totalTransactions?.toLocaleString() || '0', icon: '📊', color: '#4A7BF7' },
@@ -101,7 +101,7 @@ export default function Dashboard() {
       ];
 
   const subtitle = isCustomer
-    ? 'Your personal account overview'
+    ? t('dashboard.customerSubtitle')
     : t('dashboard.subtitle');
 
   return (
@@ -128,7 +128,7 @@ export default function Dashboard() {
 
       <div className="dashboard__grid">
         <div className="dashboard__card dashboard__card--wide animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          <h3 className="dashboard__card-title">{isCustomer ? 'My Transaction Activity' : t('dashboard.transactionActivity')}</h3>
+          <h3 className="dashboard__card-title">{isCustomer ? t('dashboard.myTransactionActivity') : t('dashboard.transactionActivity')}</h3>
           <div className="dashboard__chart">
             <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={activityData}>
@@ -153,7 +153,7 @@ export default function Dashboard() {
         </div>
 
         <div className="dashboard__card animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-          <h3 className="dashboard__card-title">{isCustomer ? 'My Risk Overview' : t('dashboard.riskOverview')}</h3>
+          <h3 className="dashboard__card-title">{isCustomer ? t('dashboard.myRiskOverview') : t('dashboard.riskOverview')}</h3>
           <div className="dashboard__chart">
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
@@ -167,7 +167,7 @@ export default function Dashboard() {
               {riskData.map(r => (
                 <div key={r.name} className="dashboard__legend-item">
                   <span className="dashboard__legend-dot" style={{ background: r.color }} />
-                  <span className="text-sm">{r.name}</span>
+                  <span className="text-sm">{t('common.' + r.name.toLowerCase(), r.name)}</span>
                   <span className="text-sm font-semibold" style={{ marginLeft: 'auto' }}>{r.value}</span>
                 </div>
               ))}
@@ -176,7 +176,7 @@ export default function Dashboard() {
         </div>
 
         <div className="dashboard__card animate-fade-in-up" style={{ animationDelay: '350ms' }}>
-          <h3 className="dashboard__card-title">{isCustomer ? 'My Transaction Types' : t('dashboard.transactionActivity')}</h3>
+          <h3 className="dashboard__card-title">{isCustomer ? t('dashboard.myTransactionTypes') : t('dashboard.transactionTypes')}</h3>
           <div className="dashboard__chart">
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={typeData}>
@@ -194,7 +194,7 @@ export default function Dashboard() {
           <div className="dashboard__card dashboard__card--wide animate-fade-in-up" style={{ animationDelay: '400ms' }}>
             <div className="dashboard__card-header">
               <h3 className="dashboard__card-title">{t('dashboard.fraudAlerts')}</h3>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigateWithTransition('/fraud-alerts')}>View All</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigateWithTransition('/fraud-alerts')}>{t('dashboard.viewAll')}</button>
             </div>
             <div className="dashboard__alerts">
               {recentAlerts.map(alert => (
@@ -203,7 +203,7 @@ export default function Dashboard() {
                     <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{alert.id}</span>
                     <span className="text-sm font-medium">{alert.reason}</span>
                   </div>
-                  <span className={`badge badge-${alert.riskLevel.toLowerCase()}`}>{alert.riskLevel}</span>
+                  <span className={`badge badge-${alert.riskLevel.toLowerCase()}`}>{t('common.' + alert.riskLevel.toLowerCase(), alert.riskLevel)}</span>
                   <span className="text-xs text-tertiary">{alert.date}</span>
                 </div>
               ))}
@@ -215,8 +215,8 @@ export default function Dashboard() {
         {isCustomer && (
           <div className="dashboard__card dashboard__card--wide animate-fade-in-up" style={{ animationDelay: '400ms' }}>
             <div className="dashboard__card-header">
-              <h3 className="dashboard__card-title">Recent Transactions</h3>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigateWithTransition('/transactions')}>View All</button>
+              <h3 className="dashboard__card-title">{t('dashboard.recentTransactions')}</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigateWithTransition('/transactions')}>{t('dashboard.viewAll')}</button>
             </div>
             <div className="dashboard__alerts">
               {roleTransactions.slice(0, 5).map(txn => (
@@ -226,12 +226,12 @@ export default function Dashboard() {
                     <span className="text-sm font-medium">{txn.senderName} → {txn.receiverName}</span>
                   </div>
                   <span className="text-sm font-semibold">{txn.amountFormatted}</span>
-                  <span className={`badge badge-${txn.riskLevel.toLowerCase()}`}>{txn.riskLevel}</span>
+                  <span className={`badge badge-${txn.riskLevel.toLowerCase()}`}>{t('common.' + txn.riskLevel.toLowerCase(), txn.riskLevel)}</span>
                 </div>
               ))}
               {roleTransactions.length === 0 && (
                 <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-tertiary)' }}>
-                  <p>No transactions found for your account</p>
+                  <p>{t('dashboard.noTxnsFound')}</p>
                 </div>
               )}
             </div>

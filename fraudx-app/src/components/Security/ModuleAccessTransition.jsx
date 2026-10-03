@@ -1,5 +1,6 @@
 import React from 'react';
 import { useModuleTransition } from '../../context/TransitionContext';
+import { useTheme } from '../../context/ThemeContext';
 import './ModuleTransition.css';
 
 /**
@@ -9,6 +10,7 @@ import './ModuleTransition.css';
  * Respects prefers-reduced-motion and application theme.
  */
 export default function ModuleAccessTransition() {
+  const { t } = useTheme();
   const { transitionState } = useModuleTransition();
   const { active, phase, moduleTitle, isReducedMotion } = transitionState;
 
@@ -20,7 +22,7 @@ export default function ModuleAccessTransition() {
       <div className="module-transition-overlay module-transition-overlay--reduced" role="status" aria-live="polite">
         <div className="module-transition-reduced-badge">
           <span className="module-transition-reduced-dot" />
-          <span>{moduleTitle || 'Opening Module...'}</span>
+          <span>{moduleTitle || t('common.securingAccess')}</span>
         </div>
       </div>
     );
@@ -127,12 +129,12 @@ export default function ModuleAccessTransition() {
           <div className="module-transition-security-tag">
             <span className={`security-pulse-dot ${isUnlocked ? 'granted' : ''}`} />
             <span className="security-text">
-              {isUnlocked ? 'ACCESS GRANTED' : 'AUTHENTICATING ACCESS'}
+              {isUnlocked ? t('common.accessGranted') : t('common.authenticatingAccess')}
             </span>
           </div>
 
           <h2 className="module-transition-title">
-            {moduleTitle || 'Opening Module...'}
+            {moduleTitle || t('common.securingAccess')}
           </h2>
         </div>
       </div>

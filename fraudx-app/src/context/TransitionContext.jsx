@@ -1,61 +1,26 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { useTheme } from './ThemeContext';
 
 const TransitionContext = createContext(null);
 
-const ROLE_MODULE_TITLES = {
-  customer: {
-    '/dashboard': 'Opening Dashboard...',
-    '/transactions': 'Opening Your Transactions...',
-    '/risk-analysis': 'Opening Your Risk Analysis...',
-    '/ai-agent': 'Opening AI Agent...',
-    '/profile': 'Opening Your Profile...',
-    '/settings': 'Opening Settings...',
-  },
-  analyst: {
-    '/dashboard': 'Opening Analyst Dashboard...',
-    '/transactions': 'Opening Transaction Monitoring...',
-    '/fraud-alerts': 'Opening Fraud Alerts...',
-    '/security-center': 'Opening Security Center...',
-    '/members': 'Opening Members...',
-    '/risk-analysis': 'Opening Risk Analysis...',
-    '/risk-treatment': 'Opening Risk Treatment...',
-    '/ai-agent': 'Opening AI Investigation Assistant...',
-    '/reports': 'Opening Reports...',
-    '/profile': 'Opening Analyst Profile...',
-    '/settings': 'Opening Settings...',
-  },
-  organisation: {
-    '/dashboard': 'Opening Organisation Dashboard...',
-    '/transactions': 'Opening Transactions...',
-    '/fraud-alerts': 'Opening Risk Overview...',
-    '/security-center': 'Opening Security Center...',
-    '/members': 'Opening Members...',
-    '/risk-analysis': 'Opening Risk Analysis...',
-    '/risk-treatment': 'Opening Risk Management...',
-    '/ai-agent': 'Opening AI Assistant...',
-    '/reports': 'Opening Reports...',
-    '/profile': 'Opening Organisation Profile...',
-    '/settings': 'Opening Settings...',
-  },
-};
-
-const DEFAULT_TITLES = {
-  '/dashboard': 'Opening Dashboard...',
-  '/transactions': 'Opening Transactions...',
-  '/fraud-alerts': 'Opening Fraud Alerts...',
-  '/security-center': 'Opening Security Center...',
-  '/members': 'Opening Members...',
-  '/risk-analysis': 'Opening Risk Analysis...',
-  '/risk-treatment': 'Opening Risk Treatment...',
-  '/ai-agent': 'Opening AI Assistant...',
-  '/reports': 'Opening Reports...',
-  '/profile': 'Opening Profile...',
-  '/settings': 'Opening Settings...',
+const PATH_TO_NAV_KEY = {
+  '/dashboard': 'nav.dashboard',
+  '/transactions': 'nav.transactions',
+  '/fraud-alerts': 'nav.fraudAlerts',
+  '/security-center': 'nav.securityCenter',
+  '/members': 'nav.members',
+  '/risk-analysis': 'nav.riskAnalysis',
+  '/risk-treatment': 'nav.riskTreatment',
+  '/ai-agent': 'nav.aiAgent',
+  '/reports': 'nav.reports',
+  '/profile': 'nav.profile',
+  '/settings': 'nav.settings',
 };
 
 export function TransitionProvider({ children }) {
+  const { t } = useTheme();
   const [transitionState, setTransitionState] = useState({
     active: false,
     phase: 'idle', // 'idle' | 'enter' | 'secure' | 'unlock' | 'release' | 'reveal'
@@ -76,10 +41,12 @@ export function TransitionProvider({ children }) {
 
   const getModuleTitle = useCallback((targetPath, customTitle) => {
     if (customTitle) return customTitle;
-    const role = user?.role || 'customer';
-    const roleMap = ROLE_MODULE_TITLES[role] || ROLE_MODULE_TITLES.customer;
-    return roleMap[targetPath] || DEFAULT_TITLES[targetPath] || 'Securing Access...';
-  }, [user?.role]);
+    const navKey = PATH_TO_NAV_KEY[targetPath];
+    if (navKey) {
+      return t('common.openingModule', { module: t(navKey) });
+    }
+    return t('common.securingAccess');
+  }, [t]);
 
   const navigateWithTransition = useCallback((toPath, customTitleOrOptions = {}) => {
     // If clicking the current path or empty, don't play animation

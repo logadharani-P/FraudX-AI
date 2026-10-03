@@ -5,20 +5,23 @@ import AnimatedBackground from '../AnimatedBackground';
 import NotificationCenter from '../Notifications/NotificationCenter';
 import ModuleAccessTransition from '../Security/ModuleAccessTransition';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { useModuleTransition } from '../../context/TransitionContext';
+import LanguageSelector from '../LanguageSelector';
 import './AppShell.css';
 
 export default function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useAuth();
+  const { t } = useTheme();
   const { navigateWithTransition } = useModuleTransition();
   const location = useLocation();
 
   const roleTitle = user?.role === 'customer'
-    ? 'Customer Portal'
+    ? t('nav.customerPortal')
     : user?.role === 'analyst'
-    ? 'Fraud Intelligence Console'
-    : 'Organisation Security Portal';
+    ? t('nav.analystPortal')
+    : t('nav.orgPortal');
 
   return (
     <div className="app-shell">
@@ -31,7 +34,7 @@ export default function AppShell() {
             <button
               className="app-shell__menu-btn"
               onClick={() => setSidebarOpen(true)}
-              aria-label="Open navigation menu"
+              aria-label={t('nav.openNav')}
             >
               <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M3 6h16M3 11h16M3 16h16" />
@@ -44,6 +47,9 @@ export default function AppShell() {
           </div>
 
           <div className="app-shell__header-right">
+            {/* Global Language Selector */}
+            <LanguageSelector variant="header" />
+
             {/* Top Navigation Notification Center */}
             <NotificationCenter />
 
@@ -61,7 +67,7 @@ export default function AppShell() {
                 borderRadius: 'var(--border-radius-full)',
                 cursor: 'pointer',
               }}
-              title="View Profile"
+              title={t('nav.viewProfile')}
             >
               <span className="member-avatar" style={{ width: 28, height: 28, fontSize: 11 }}>
                 {user?.name?.charAt(0) || 'U'}

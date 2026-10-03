@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 import { useModuleTransition } from '../../context/TransitionContext';
+import { useTheme } from '../../context/ThemeContext';
 import './NotificationCenter.css';
 
 export default function NotificationCenter() {
@@ -10,6 +11,7 @@ export default function NotificationCenter() {
   const dropdownRef = useRef(null);
   const { navigateWithTransition } = useModuleTransition();
   const { user } = useAuth();
+  const { t } = useTheme();
   const {
     notifications,
     unreadCount,
@@ -60,7 +62,7 @@ export default function NotificationCenter() {
         type="button"
         className="notif-bell-btn"
         onClick={() => setIsOpen(prev => !prev)}
-        aria-label={`Notifications (${unreadCount} unread)`}
+        aria-label={`${t('notifications.title')} (${unreadCount})`}
         aria-expanded={isOpen}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -77,10 +79,10 @@ export default function NotificationCenter() {
           {/* Header */}
           <div className="notif-header">
             <div className="notif-title-row">
-              <h3 className="notif-title">Notifications</h3>
+              <h3 className="notif-title">{t('notifications.title')}</h3>
               {unreadCount > 0 && (
                 <span className="badge badge-critical" style={{ fontSize: 10, padding: '2px 6px' }}>
-                  {unreadCount} new
+                  {t('notifications.unreadBadge', { count: unreadCount })}
                 </span>
               )}
             </div>
@@ -89,9 +91,9 @@ export default function NotificationCenter() {
                 type="button"
                 className="notif-action-btn"
                 onClick={toggleMute}
-                title={isMuted ? 'Unmute alert sounds' : 'Mute alert sounds'}
+                title={isMuted ? 'Unmute' : 'Mute'}
               >
-                {isMuted ? '🔇 Muted' : '🔔 Audio On'}
+                {isMuted ? t('notifications.muted') : t('notifications.audioOn')}
               </button>
               {unreadCount > 0 && (
                 <button
@@ -100,7 +102,7 @@ export default function NotificationCenter() {
                   onClick={markAllAsRead}
                   title="Mark all as read"
                 >
-                  ✓ Mark all read
+                  {t('notifications.markAllRead')}
                 </button>
               )}
             </div>
@@ -114,21 +116,21 @@ export default function NotificationCenter() {
                 className={`notif-tab ${tab === 'all' ? 'notif-tab--active' : ''}`}
                 onClick={() => setTab('all')}
               >
-                All ({notifications.length})
+                {t('notifications.tabAll', { count: notifications.length })}
               </button>
               <button
                 type="button"
                 className={`notif-tab ${tab === 'fraud' ? 'notif-tab--active' : ''}`}
                 onClick={() => setTab('fraud')}
               >
-                🚨 Fraud Alerts
+                {t('notifications.tabFraud')}
               </button>
               <button
                 type="button"
                 className={`notif-tab ${tab === 'security' ? 'notif-tab--active' : ''}`}
                 onClick={() => setTab('security')}
               >
-                🛡️ Security
+                {t('notifications.tabSecurity')}
               </button>
             </div>
           )}
@@ -160,7 +162,7 @@ export default function NotificationCenter() {
                         {notif.transactionId || notif.id}
                       </span>
                       <span className={`badge badge-${notif.riskLevel?.toLowerCase() || 'medium'}`}>
-                        {notif.riskLevel} Risk
+                        {t('common.' + (notif.riskLevel?.toLowerCase() || 'medium'), notif.riskLevel)}
                       </span>
                     </div>
                   </div>
@@ -169,8 +171,8 @@ export default function NotificationCenter() {
             ) : (
               <div className="notif-empty">
                 <div className="notif-empty-icon">✅</div>
-                <p style={{ margin: '0 0 4px', fontWeight: 600, color: 'var(--text-primary)' }}>All caught up</p>
-                <p style={{ margin: 0, fontSize: 12 }}>No new notifications at this time</p>
+                <p style={{ margin: '0 0 4px', fontWeight: 600, color: 'var(--text-primary)' }}>{t('notifications.allCaughtUp')}</p>
+                <p style={{ margin: 0, fontSize: 12 }}>{t('notifications.noNotifications')}</p>
               </div>
             )}
           </div>
@@ -178,7 +180,7 @@ export default function NotificationCenter() {
           {/* Footer */}
           <div className="notif-footer">
             <span style={{ color: 'var(--text-tertiary)' }}>
-              {isCustomer ? 'Personal Security Notifications' : 'Enterprise Telemetry Active'}
+              {isCustomer ? t('notifications.personalSecurity') : t('notifications.enterpriseTelemetry')}
             </span>
             <button
               type="button"
@@ -188,7 +190,7 @@ export default function NotificationCenter() {
                 navigateWithTransition(isCustomer ? '/transactions' : '/fraud-alerts');
               }}
             >
-              {isCustomer ? 'View All Transactions →' : 'View Fraud Center →'}
+              {isCustomer ? t('notifications.viewAllTxns') : t('notifications.viewFraudCenter')}
             </button>
           </div>
         </div>

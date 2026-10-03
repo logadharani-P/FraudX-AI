@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AnimatedBackground from '../components/AnimatedBackground';
+import LanguageSelector from '../components/LanguageSelector';
 import logoImg from '../assets/logo.svg';
 import './RoleSelection.css';
 
@@ -51,6 +52,7 @@ export default function RoleSelection() {
   return (
     <div className="role-selection">
       <AnimatedBackground />
+      <LanguageSelector variant="floating" />
       <div className="role-selection__content">
         <div className="role-selection__header animate-fade-in-up">
           <img src={logoImg} alt="FraudX AI" className="role-selection__logo" />
@@ -67,7 +69,7 @@ export default function RoleSelection() {
               onMouseEnter={() => setHoveredRole(role.key)}
               onMouseLeave={() => setHoveredRole(null)}
               onClick={() => handleSelect(role)}
-              aria-label={`Continue as ${role.label}`}
+              aria-label={t('roles.continueAs', { role: role.label })}
             >
               <div className="role-card__icon" style={{ color: role.color }}>
                 {ROLE_ICONS[role.key]}

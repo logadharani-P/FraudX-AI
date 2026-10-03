@@ -53,11 +53,11 @@ export default function Profile() {
     setEditError('');
 
     if (!phoneInput.trim()) {
-      setEditError('Phone number cannot be empty.');
+      setEditError(t('profile.phoneEmptyError', 'Phone number cannot be empty.'));
       return;
     }
     if (!cityInput.trim()) {
-      setEditError('City / Location cannot be empty.');
+      setEditError(t('profile.cityEmptyError', 'City / Location cannot be empty.'));
       return;
     }
 
@@ -120,9 +120,9 @@ export default function Profile() {
         <p className="profile-hero__email">{user.email || 'user@fraudx.ai'}</p>
 
         <div className="profile-hero__badges">
-          <span className="badge badge-info">{roleLabel} Portal</span>
+          <span className="badge badge-info">{t(`roles.${role}`, roleLabel)} {t('nav.portal', 'Portal')}</span>
           <span className="badge badge-info text-mono">ID: {user.id || user.analystId || user.orgId}</span>
-          <span className="badge badge-low">● Active & Protected</span>
+          <span className="badge badge-low">{t('profile.activeProtected', '● Active & Protected')}</span>
           <span className="badge badge-info">{user.city || 'India'}</span>
         </div>
 
@@ -134,13 +134,13 @@ export default function Profile() {
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <span>✏️</span>
-            <span>Edit Profile</span>
+            <span>{t('profile.editProfile', 'Edit Profile')}</span>
           </button>
         </div>
 
         {saveSuccess && (
           <div className="animate-fade-in" style={{ marginTop: 12, display: 'inline-block', padding: '6px 16px', background: 'rgba(34, 197, 94, 0.15)', border: '1px solid #22C55E', borderRadius: 20, color: '#22C55E', fontSize: '0.82rem', fontWeight: 600 }}>
-            ✓ Profile details updated and saved successfully
+            {t('profile.detailsUpdated', '✓ Profile details updated and saved successfully')}
           </div>
         )}
       </div>
@@ -151,7 +151,7 @@ export default function Profile() {
         <div className="profile-card animate-fade-in-up" style={{ animationDelay: '100ms' }}>
           <div className="profile-card__header">
             <span className="profile-card__icon">📝</span>
-            <h3 className="profile-card__title">Profile Summary</h3>
+            <h3 className="profile-card__title">{t('profile.profileSummary', 'Profile Summary')}</h3>
           </div>
           <p className="profile-card__text">{aboutText}</p>
         </div>
@@ -160,34 +160,34 @@ export default function Profile() {
         <div className="profile-card animate-fade-in-up" style={{ animationDelay: '150ms' }}>
           <div className="profile-card__header">
             <span className="profile-card__icon">👤</span>
-            <h3 className="profile-card__title">Personal Information</h3>
+            <h3 className="profile-card__title">{t('profile.personalInfo', 'Personal Information')}</h3>
           </div>
           <div className="profile-grid">
             <div className="profile-item">
-              <span className="profile-item__label">Full Name</span>
-              <span className="profile-item__value font-semibold">{user.name || 'Not available'}</span>
-              <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>🔒 Verified Identity</span>
+              <span className="profile-item__label">{t('login.fullName', 'Full Name')}</span>
+              <span className="profile-item__value font-semibold">{user.name || t('profile.notAvailable', 'Not available')}</span>
+              <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>{t('profile.verifiedIdentity', '🔒 Verified Identity')}</span>
             </div>
             <div className="profile-item">
-              <span className="profile-item__label">Email Address</span>
-              <span className="profile-item__value">{user.email || 'Not available'}</span>
-              <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>🔒 Primary Account Email</span>
+              <span className="profile-item__label">{t('login.emailAddress', 'Email Address')}</span>
+              <span className="profile-item__value">{user.email || t('profile.notAvailable', 'Not available')}</span>
+              <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>{t('profile.primaryEmail', '🔒 Primary Account Email')}</span>
             </div>
             <div className="profile-item">
-              <span className="profile-item__label">Phone Number</span>
-              <span className="profile-item__value">{user.phone || 'Not available'}</span>
+              <span className="profile-item__label">{t('login.phoneNumber', 'Phone Number')}</span>
+              <span className="profile-item__value">{user.phone || t('profile.notAvailable', 'Not available')}</span>
             </div>
             <div className="profile-item">
-              <span className="profile-item__label">City / Location</span>
-              <span className="profile-item__value">{user.city || 'Not available'}</span>
+              <span className="profile-item__label">{t('profile.city', 'City / Location')}</span>
+              <span className="profile-item__value">{user.city || t('profile.notAvailable', 'Not available')}</span>
             </div>
             <div className="profile-item">
-              <span className="profile-item__label">Member Since</span>
-              <span className="profile-item__value">{user.joinDate || 'Not available'}</span>
+              <span className="profile-item__label">{t('profile.joinDate', 'Member Since')}</span>
+              <span className="profile-item__value">{user.joinDate || t('profile.notAvailable', 'Not available')}</span>
             </div>
             <div className="profile-item">
-              <span className="profile-item__label">Account Status</span>
-              <span className="profile-item__value" style={{ color: 'var(--risk-low, #22C55E)' }}>● Active & Protected</span>
+              <span className="profile-item__label">{t('profile.securityStatus', 'Account Status')}</span>
+              <span className="profile-item__value" style={{ color: 'var(--risk-low, #22C55E)' }}>{t('profile.activeProtected', '● Active & Protected')}</span>
             </div>
           </div>
         </div>
@@ -197,29 +197,29 @@ export default function Profile() {
           <div className="profile-card__header">
             <span className="profile-card__icon">🏢</span>
             <h3 className="profile-card__title">
-              {role === 'customer' ? 'Account & Banking Details' : 'Organisation & Role Credentials'}
+              {role === 'customer' ? t('profile.accountBankingDetails', 'Account & Banking Details') : t('profile.orgRoleCredentials', 'Organisation & Role Credentials')}
             </h3>
           </div>
           <div className="profile-grid">
             {role === 'customer' && (
               <>
                 <div className="profile-item">
-                  <span className="profile-item__label">Customer ID (Immutable)</span>
-                  <span className="profile-item__value text-mono font-semibold">{user.id || 'Not available'}</span>
-                  <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>🔒 Protected Identity Field</span>
+                  <span className="profile-item__label">{t('profile.customerIdImmutable', 'Customer ID (Immutable)')}</span>
+                  <span className="profile-item__value text-mono font-semibold">{user.id || t('profile.notAvailable', 'Not available')}</span>
+                  <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>{t('profile.protectedIdentityField', '🔒 Protected Identity Field')}</span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-item__label">Linked Account ID</span>
+                  <span className="profile-item__label">{t('profile.linkedAccountId', 'Linked Account ID')}</span>
                   <span className="profile-item__value text-mono">{user.accountId || 'ACC-8839201940'}</span>
-                  <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>🔒 Protected Core Account</span>
+                  <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>{t('profile.protectedCoreAccount', '🔒 Protected Core Account')}</span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-item__label">Primary Banking Partner</span>
+                  <span className="profile-item__label">{t('members.bankingPartner', 'Primary Banking Partner')}</span>
                   <span className="profile-item__value">{user.organisation || 'FraudX Financial Services'}</span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-item__label">Recorded Transfers</span>
-                  <span className="profile-item__value font-semibold">{customerTxns.length} transfers monitored</span>
+                  <span className="profile-item__label">{t('profile.recordedTransfers', 'Recorded Transfers')}</span>
+                  <span className="profile-item__value font-semibold">{t('profile.transfersMonitored', '{count} transfers monitored', { count: customerTxns.length })}</span>
                 </div>
               </>
             )}
@@ -227,20 +227,20 @@ export default function Profile() {
             {role === 'analyst' && (
               <>
                 <div className="profile-item">
-                  <span className="profile-item__label">Analyst ID</span>
+                  <span className="profile-item__label">{t('login.analystId', 'Analyst ID')}</span>
                   <span className="profile-item__value text-mono font-semibold">{user.analystId || user.id}</span>
-                  <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>🔒 Clearance ID</span>
+                  <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>{t('profile.clearanceId', '🔒 Clearance ID')}</span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-item__label">Security Division</span>
+                  <span className="profile-item__label">{t('profile.organisation', 'Security Division')}</span>
                   <span className="profile-item__value">{user.organisation || 'FraudX AI Security Division'}</span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-item__label">Specialization</span>
+                  <span className="profile-item__label">{t('profile.specialization', 'Specialization')}</span>
                   <span className="profile-item__value">{user.specialization || 'Transaction Fraud & Anomaly Detection'}</span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-item__label">Clearance Level</span>
+                  <span className="profile-item__label">{t('profile.clearanceLevel', 'Clearance Level')}</span>
                   <span className="profile-item__value badge badge-info">{user.clearanceLevel || 'Level 3'}</span>
                 </div>
               </>
@@ -249,21 +249,21 @@ export default function Profile() {
             {role === 'organisation' && (
               <>
                 <div className="profile-item">
-                  <span className="profile-item__label">Organisation ID</span>
+                  <span className="profile-item__label">{t('login.orgId', 'Organisation ID')}</span>
                   <span className="profile-item__value text-mono font-semibold">{user.orgId || user.id}</span>
-                  <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>🔒 Corporate Identifier</span>
+                  <span className="text-xs text-tertiary" style={{ marginTop: 2 }}>{t('profile.corporateIdentifier', '🔒 Corporate Identifier')}</span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-item__label">Organisation Name</span>
+                  <span className="profile-item__label">{t('login.orgName', 'Organisation Name')}</span>
                   <span className="profile-item__value">{user.organisation || 'FraudX AI'}</span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-item__label">Administrative Designation</span>
+                  <span className="profile-item__label">{t('profile.adminDesignation', 'Administrative Designation')}</span>
                   <span className="profile-item__value">{user.designation || 'Chief Security Officer'}</span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-item__label">Governance Scope</span>
-                  <span className="profile-item__value badge badge-info">Enterprise Full Access</span>
+                  <span className="profile-item__label">{t('profile.governanceScope', 'Governance Scope')}</span>
+                  <span className="profile-item__value badge badge-info">{t('profile.enterpriseFullAccess', 'Enterprise Full Access')}</span>
                 </div>
               </>
             )}
@@ -274,24 +274,24 @@ export default function Profile() {
         <div className="profile-card animate-fade-in-up" style={{ animationDelay: '250ms' }}>
           <div className="profile-card__header">
             <span className="profile-card__icon">🔐</span>
-            <h3 className="profile-card__title">Security Status & Safeguards</h3>
+            <h3 className="profile-card__title">{t('profile.securitySafeguards', 'Security Status & Safeguards')}</h3>
           </div>
           <div className="profile-grid">
             <div className="profile-item">
-              <span className="profile-item__label">Multi-Factor Authentication (MFA)</span>
-              <span className="badge badge-low">✓ Enforced (Level 2)</span>
+              <span className="profile-item__label">{t('settings.mfaStatus', 'Multi-Factor Authentication (MFA)')}</span>
+              <span className="badge badge-low">{t('settings.level2Enforced', '✓ Level-2 Enforced')}</span>
             </div>
             <div className="profile-item">
-              <span className="profile-item__label">Identity KYC Verification</span>
-              <span className="badge badge-low">✓ Aadhaar / PAN Verified</span>
+              <span className="profile-item__label">{t('profile.kycVerification', 'Identity KYC Verification')}</span>
+              <span className="badge badge-low">{t('profile.kycVerified', '✓ Aadhaar / PAN Verified')}</span>
             </div>
             <div className="profile-item">
-              <span className="profile-item__label">Active Session Token</span>
-              <span className="profile-item__value text-mono">SEC-SES-9820 (This Device)</span>
+              <span className="profile-item__label">{t('profile.activeSessionToken', 'Active Session Token')}</span>
+              <span className="profile-item__value text-mono">SEC-SES-9820 ({t('settings.thisDevice', 'This Device')})</span>
             </div>
             <div className="profile-item">
-              <span className="profile-item__label">Real-Time Threat Telemetry</span>
-              <span className="badge badge-low">● Active</span>
+              <span className="profile-item__label">{t('profile.realTimeTelemetry', 'Real-Time Threat Telemetry')}</span>
+              <span className="badge badge-low">{t('common.active', '● Active')}</span>
             </div>
           </div>
         </div>
@@ -300,30 +300,30 @@ export default function Profile() {
         <div className="profile-card animate-fade-in-up" style={{ animationDelay: '300ms' }}>
           <div className="profile-card__header">
             <span className="profile-card__icon">⏱️</span>
-            <h3 className="profile-card__title">Recent Activity</h3>
+            <h3 className="profile-card__title">{t('profile.recentActivity', 'Recent Activity')}</h3>
           </div>
           <div className="profile-timeline-list">
             <div className="profile-timeline-row">
               <span className="profile-timeline-dot" />
               <div className="profile-timeline-info">
-                <span className="profile-timeline-action">Primary Authentication Succeeded</span>
-                <span className="profile-timeline-time">Today • Registered Security Session</span>
+                <span className="profile-timeline-action">{t('profile.primaryAuthSuccess', 'Primary Authentication Succeeded')}</span>
+                <span className="profile-timeline-time">{t('profile.todayRegSession', 'Today • Registered Security Session')}</span>
               </div>
             </div>
             <div className="profile-timeline-row">
               <span className="profile-timeline-dot" />
               <div className="profile-timeline-info">
-                <span className="profile-timeline-action">MFA Security Token Verified</span>
-                <span className="profile-timeline-time">Today • 6-Digit OTP Matched</span>
+                <span className="profile-timeline-action">{t('profile.mfaTokenVerified', 'MFA Security Token Verified')}</span>
+                <span className="profile-timeline-time">{t('profile.todayOtpMatched', 'Today • 6-Digit OTP Matched')}</span>
               </div>
             </div>
             <div className="profile-timeline-row">
               <span className="profile-timeline-dot" />
               <div className="profile-timeline-info">
                 <span className="profile-timeline-action">
-                  {role === 'customer' ? 'Account Stream Synchronized' : 'Telemetry Monitoring Stream Active'}
+                  {role === 'customer' ? t('profile.accountStreamSynced', 'Account Stream Synchronized') : t('profile.telemetryStreamActive', 'Telemetry Monitoring Stream Active')}
                 </span>
-                <span className="profile-timeline-time">Today • FraudX AI Engine</span>
+                <span className="profile-timeline-time">{t('profile.todayFraudEngine', 'Today • FraudX AI Engine')}</span>
               </div>
             </div>
           </div>
@@ -333,24 +333,24 @@ export default function Profile() {
         <div className="profile-card animate-fade-in-up" style={{ animationDelay: '350ms' }}>
           <div className="profile-card__header">
             <span className="profile-card__icon">⚙️</span>
-            <h3 className="profile-card__title">Preferences</h3>
+            <h3 className="profile-card__title">{t('profile.preferences', 'Preferences')}</h3>
           </div>
           <div className="profile-grid">
             <div className="profile-item">
-              <span className="profile-item__label">Language</span>
+              <span className="profile-item__label">{t('settings.language', 'Language')}</span>
               <span className="profile-item__value" style={{ textTransform: 'uppercase' }}>{user.language || language || 'en'}</span>
             </div>
             <div className="profile-item">
-              <span className="profile-item__label">Visual Theme</span>
+              <span className="profile-item__label">{t('profile.preferredTheme', 'Visual Theme')}</span>
               <span className="profile-item__value" style={{ textTransform: 'capitalize' }}>{user.theme || theme || 'luminous'}</span>
             </div>
             <div className="profile-item">
-              <span className="profile-item__label">Audio Voice Agent</span>
-              <span className="profile-item__value" style={{ color: '#22C55E' }}>● Active</span>
+              <span className="profile-item__label">{t('profile.audioVoiceAgent', 'Audio Voice Agent')}</span>
+              <span className="profile-item__value" style={{ color: '#22C55E' }}>{t('common.active', '● Active')}</span>
             </div>
             <div className="profile-item">
-              <span className="profile-item__label">In-App Alerts</span>
-              <span className="profile-item__value">Subscribed</span>
+              <span className="profile-item__label">{t('profile.inAppAlerts', 'In-App Alerts')}</span>
+              <span className="profile-item__value">{t('profile.subscribed', 'Subscribed')}</span>
             </div>
           </div>
         </div>
@@ -381,7 +381,7 @@ export default function Profile() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: '1.2rem' }}>✏️</span>
-                <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Edit Profile Information</h3>
+                <h3 style={{ margin: 0, fontSize: '1.15rem' }}>{t('profile.editProfileInfo', 'Edit Profile Information')}</h3>
               </div>
               <button
                 type="button"
@@ -395,11 +395,11 @@ export default function Profile() {
             <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Protected Notice */}
               <div style={{ padding: '8px 12px', background: 'rgba(74, 123, 247, 0.1)', border: '1px solid rgba(74, 123, 247, 0.25)', borderRadius: 8, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                🔒 <strong>Identity Protection:</strong> Account Name, Role, Unique IDs, and KYC status cannot be modified via client interface.
+                {t('profile.identityProtectionNotice', '🔒 Identity Protection: Account Name, Role, Unique IDs, and KYC status cannot be modified via client interface.')}
               </div>
 
               <div className="input-group">
-                <label className="input-label">Phone Number *</label>
+                <label className="input-label">{t('login.phoneNumber', 'Phone Number')} *</label>
                 <input
                   className="input"
                   type="tel"
@@ -410,7 +410,7 @@ export default function Profile() {
               </div>
 
               <div className="input-group">
-                <label className="input-label">City / Location *</label>
+                <label className="input-label">{t('profile.city', 'City / Location')} *</label>
                 <input
                   className="input"
                   type="text"
@@ -422,7 +422,7 @@ export default function Profile() {
 
               {role === 'customer' && (
                 <div className="input-group">
-                  <label className="input-label">Residential Address</label>
+                  <label className="input-label">{t('profile.residentialAddress', 'Residential Address')}</label>
                   <input
                     className="input"
                     type="text"
@@ -435,7 +435,7 @@ export default function Profile() {
 
               {role === 'analyst' && (
                 <div className="input-group">
-                  <label className="input-label">Investigation Specialization</label>
+                  <label className="input-label">{t('profile.specialization', 'Investigation Specialization')}</label>
                   <input
                     className="input"
                     type="text"
@@ -448,7 +448,7 @@ export default function Profile() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="input-group">
-                  <label className="input-label">Language</label>
+                  <label className="input-label">{t('settings.language', 'Language')}</label>
                   <select
                     className="input"
                     value={langInput}
@@ -461,7 +461,7 @@ export default function Profile() {
                   </select>
                 </div>
                 <div className="input-group">
-                  <label className="input-label">Visual Theme</label>
+                  <label className="input-label">{t('profile.preferredTheme', 'Visual Theme')}</label>
                   <select
                     className="input"
                     value={themeInput}
@@ -485,14 +485,14 @@ export default function Profile() {
                   className="btn btn-secondary btn-sm"
                   onClick={() => setIsEditing(false)}
                 >
-                  Cancel
+                  {t('common.cancel', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary btn-sm"
                   disabled={isSaving}
                 >
-                  {isSaving ? 'Saving Changes...' : 'Save Profile'}
+                  {isSaving ? t('profile.saving', 'Saving Changes...') : t('profile.saveChanges', 'Save Profile')}
                 </button>
               </div>
             </form>
@@ -502,3 +502,5 @@ export default function Profile() {
     </div>
   );
 }
+
+

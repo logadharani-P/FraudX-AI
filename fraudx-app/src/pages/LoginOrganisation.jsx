@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AnimatedBackground from '../components/AnimatedBackground';
+import LanguageSelector from '../components/LanguageSelector';
 import MFAVerification from '../components/MFA/MFAVerification';
 import logoImg from '../assets/logo.svg';
 import './Login.css';
@@ -39,14 +40,14 @@ export default function LoginOrganisation() {
     setError('');
 
     if (!orgId.trim() || !email.trim() || !password.trim()) {
-      setError('Please enter Organisation ID, admin email, and password.');
+      setError(t('login.errFillSignIn'));
       return;
     }
 
     // Verify credentials
     const authResult = authenticate('organisation', { orgId, email, password });
     if (!authResult.success) {
-      setError(authResult.error || 'Invalid organisation administrator credentials.');
+      setError(authResult.error || t('login.errAuthFailed'));
       return;
     }
 
@@ -59,22 +60,22 @@ export default function LoginOrganisation() {
     setSignUpSuccess(null);
 
     if (!regOrgName.trim() || !regOrgId.trim() || !regAdminName.trim() || !regEmail.trim() || !regPassword.trim()) {
-      setSignUpError('Please fill in Organisation Name, Org ID, Admin Name, Corporate Email, and Password.');
+      setSignUpError(t('login.errFillAllFields'));
       return;
     }
 
     if (!regEmail.includes('@')) {
-      setSignUpError('Please enter a valid corporate email.');
+      setSignUpError(t('login.errValidEmail'));
       return;
     }
 
     if (regPassword.length < 6) {
-      setSignUpError('Password must be at least 6 characters long.');
+      setSignUpError(t('login.errPasswordLength'));
       return;
     }
 
     if (regPassword !== regConfirmPassword) {
-      setSignUpError('Passwords do not match.');
+      setSignUpError(t('login.errPasswordMatch'));
       return;
     }
 
@@ -125,14 +126,14 @@ export default function LoginOrganisation() {
               className={`login__tab ${tab === 'signin' ? 'login__tab--active' : ''}`}
               onClick={() => { setTab('signin'); setError(''); }}
             >
-              Admin Sign In
+              {t('login.adminSignIn')}
             </button>
             <button
               type="button"
               className={`login__tab ${tab === 'signup' ? 'login__tab--active' : ''}`}
               onClick={() => { setTab('signup'); setSignUpError(''); setSignUpSuccess(null); }}
             >
-              Enrol Organisation
+              {t('login.enrolOrganisation')}
             </button>
           </div>
         )}
@@ -159,7 +160,7 @@ export default function LoginOrganisation() {
             <button type="submit" className="btn btn-primary btn-lg w-full">{t('login.signIn')}</button>
             <div style={{ textAlign: 'center', marginTop: 8 }}>
               <span className="text-xs text-tertiary" style={{ fontFamily: 'var(--font-mono)' }}>
-                Registered Demo — ID: ORG-300001 | Email: vikram.mehta@fraudx.ai | Password: fraudx2024
+                {t('login.registeredDemoOrg')}
               </span>
             </div>
           </form>
@@ -170,26 +171,26 @@ export default function LoginOrganisation() {
             {signUpSuccess ? (
               <div style={{ padding: '16px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: 'var(--border-radius-lg)', textAlign: 'center' }}>
                 <div style={{ fontSize: '2rem', marginBottom: 8 }}>🏢</div>
-                <h3 style={{ margin: '0 0 6px', color: 'var(--risk-low, #22C55E)', fontSize: '1.1rem' }}>Organisation Registered!</h3>
+                <h3 style={{ margin: '0 0 6px', color: 'var(--risk-low, #22C55E)', fontSize: '1.1rem' }}>{t('login.orgRegisteredSuccess')}</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
-                  <strong>{signUpSuccess.orgName}</strong> ({signUpSuccess.orgId}) enrolled under administrator <strong>{signUpSuccess.adminName}</strong>.
+                  {t('login.orgRegisteredMsg', { orgName: signUpSuccess.orgName, orgId: signUpSuccess.orgId, adminName: signUpSuccess.adminName })}
                 </p>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', padding: '8px 12px', borderRadius: 6, marginBottom: 16 }}>
-                  🔐 Enrolment active for local session. You can now proceed to Organisation Sign In.
+                  🔐 {t('login.enrolmentActiveNotice')}
                 </div>
                 <button
                   type="button"
                   className="btn btn-primary btn-md w-full"
                   onClick={() => { setTab('signin'); setSignUpSuccess(null); }}
                 >
-                  Proceed to Sign In
+                  {t('login.proceedToSignIn')}
                 </button>
               </div>
             ) : (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="input-group">
-                    <label className="input-label">Organisation Name *</label>
+                    <label className="input-label">{t('login.orgName')} *</label>
                     <input
                       className="input"
                       type="text"
@@ -199,7 +200,7 @@ export default function LoginOrganisation() {
                     />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Organisation ID *</label>
+                    <label className="input-label">{t('login.orgId')} *</label>
                     <input
                       className="input"
                       type="text"
@@ -212,7 +213,7 @@ export default function LoginOrganisation() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="input-group">
-                    <label className="input-label">Admin Full Name *</label>
+                    <label className="input-label">{t('login.adminFullName')} *</label>
                     <input
                       className="input"
                       type="text"
@@ -222,7 +223,7 @@ export default function LoginOrganisation() {
                     />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Corporate Email *</label>
+                    <label className="input-label">{t('login.corporateEmail')} *</label>
                     <input
                       className="input"
                       type="email"
@@ -235,7 +236,7 @@ export default function LoginOrganisation() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="input-group">
-                    <label className="input-label">Administrative Role</label>
+                    <label className="input-label">{t('login.adminRole')}</label>
                     <input
                       className="input"
                       type="text"
@@ -245,7 +246,7 @@ export default function LoginOrganisation() {
                     />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Headquarters / City</label>
+                    <label className="input-label">{t('login.hqCity')}</label>
                     <input
                       className="input"
                       type="text"
@@ -258,7 +259,7 @@ export default function LoginOrganisation() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="input-group">
-                    <label className="input-label">Password *</label>
+                    <label className="input-label">{t('login.password')} *</label>
                     <input
                       className="input"
                       type="password"
@@ -268,7 +269,7 @@ export default function LoginOrganisation() {
                     />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Confirm Password *</label>
+                    <label className="input-label">{t('login.confirmPassword')} *</label>
                     <input
                       className="input"
                       type="password"
@@ -285,7 +286,7 @@ export default function LoginOrganisation() {
                   </div>
                 )}
 
-                <button type="submit" className="btn btn-primary btn-lg w-full">Enrol Enterprise Organisation</button>
+                <button type="submit" className="btn btn-primary btn-lg w-full">{t('login.enrolEnterpriseOrg')}</button>
               </>
             )}
           </form>
@@ -295,11 +296,11 @@ export default function LoginOrganisation() {
           <div>
             <div className="login__step-check" style={{ marginBottom: 16, justifyContent: 'center' }}>
               <span className="login__check">✓</span>
-              <span>Credentials verified</span>
+              <span>{t('login.credentialsVerified')}</span>
             </div>
             <MFAVerification
               userEmail={email || 'vikram.mehta@fraudx.ai'}
-              roleName="Organisation"
+              roleName={t('roles.organisation')}
               onSuccess={handleMfaSuccess}
               onCancel={() => setStep('credentials')}
             />

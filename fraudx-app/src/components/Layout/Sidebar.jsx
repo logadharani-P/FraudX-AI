@@ -183,7 +183,15 @@ export default function Sidebar({ isOpen, onClose }) {
             </span>
             <div className="sidebar__user-info">
               <span className="sidebar__user-name">{user?.name || 'User'}</span>
-              <span className="sidebar__user-role">{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Role'}</span>
+              <span className="sidebar__user-role">
+                {user?.role === 'customer'
+                  ? t('roles.customer')
+                  : user?.role === 'analyst'
+                  ? t('roles.analyst')
+                  : user?.role === 'organisation'
+                  ? t('roles.organisation')
+                  : (user?.role || t('profile.role'))}
+              </span>
             </div>
           </NavLink>
           <button className="sidebar__item sidebar__logout" onClick={handleLogoutClick} aria-label={t('nav.logout')}>

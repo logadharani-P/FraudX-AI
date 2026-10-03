@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AnimatedBackground from '../components/AnimatedBackground';
+import LanguageSelector from '../components/LanguageSelector';
 import MFAVerification from '../components/MFA/MFAVerification';
 import logoImg from '../assets/logo.svg';
 import './Login.css';
@@ -38,13 +39,13 @@ export default function LoginCustomer() {
     setSignInError('');
 
     if (!identifier.trim() || !password.trim()) {
-      setSignInError('Please enter your Customer ID or Email, and password.');
+      setSignInError(t('login.errFillSignIn'));
       return;
     }
 
     const res = authenticate('customer', { identifier, password });
     if (!res.success) {
-      setSignInError(res.error || 'Authentication failed. Please check your credentials.');
+      setSignInError(res.error || t('login.errAuthFailed'));
       return;
     }
 
@@ -65,22 +66,22 @@ export default function LoginCustomer() {
     setSignUpSuccess(null);
 
     if (!fullName.trim() || !regEmail.trim() || !phone.trim() || !city.trim() || !regPassword.trim()) {
-      setSignUpError('Please fill in all required fields (Name, Email, Phone, City, and Password).');
+      setSignUpError(t('login.errFillAllFields'));
       return;
     }
 
     if (!regEmail.includes('@') || !regEmail.includes('.')) {
-      setSignUpError('Please provide a valid email address.');
+      setSignUpError(t('login.errValidEmail'));
       return;
     }
 
     if (regPassword.length < 6) {
-      setSignUpError('Password must be at least 6 characters long.');
+      setSignUpError(t('login.errPasswordLength'));
       return;
     }
 
     if (regPassword !== regConfirmPassword) {
-      setSignUpError('Passwords do not match. Please re-enter.');
+      setSignUpError(t('login.errPasswordMatch'));
       return;
     }
 
@@ -109,6 +110,7 @@ export default function LoginCustomer() {
   return (
     <div className="login">
       <AnimatedBackground />
+      <LanguageSelector variant="floating" />
       <div className="login__card animate-fade-in-scale" style={{ maxWidth: tab === 'signup' ? 520 : 420 }}>
         <div className="login__header">
           <img src={logoImg} alt="FraudX AI" className="login__logo" />
@@ -123,14 +125,14 @@ export default function LoginCustomer() {
               className={`login__tab ${tab === 'signin' ? 'login__tab--active' : ''}`}
               onClick={() => { setTab('signin'); setSignInError(''); }}
             >
-              Sign In
+              {t('login.signIn')}
             </button>
             <button
               type="button"
               className={`login__tab ${tab === 'signup' ? 'login__tab--active' : ''}`}
               onClick={() => { setTab('signup'); setSignUpError(''); setSignUpSuccess(null); }}
             >
-              Register Account
+              {t('login.registerAccount')}
             </button>
           </div>
         )}
@@ -170,7 +172,7 @@ export default function LoginCustomer() {
               <label className="login__remember">
                 <input type="checkbox" defaultChecked /> <span>{t('login.rememberMe')}</span>
               </label>
-              <a href="#" className="login__forgot" onClick={(e) => { e.preventDefault(); alert('For account recovery, contact FraudX Support at support@fraudx.ai'); }}>
+              <a href="#" className="login__forgot" onClick={(e) => { e.preventDefault(); alert(t('login.forgotPasswordAlert')); }}>
                 {t('login.forgotPassword')}
               </a>
             </div>
@@ -178,9 +180,9 @@ export default function LoginCustomer() {
             <button type="submit" className="btn btn-primary btn-lg w-full">{t('login.signIn')}</button>
 
             <div className="login__demo-note" style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
-              <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Registered Demo Customer</span>
+              <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{t('login.registeredDemoCustomer')}</span>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-                ID: CUS-100001 &nbsp;|&nbsp; Password: arjun2024
+                {t('login.demoCustomerCredentials')}
               </span>
             </div>
           </form>
@@ -189,26 +191,26 @@ export default function LoginCustomer() {
             {signUpSuccess ? (
               <div style={{ padding: '16px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: 'var(--border-radius-lg)', textAlign: 'center' }}>
                 <div style={{ fontSize: '2rem', marginBottom: 8 }}>✅</div>
-                <h3 style={{ margin: '0 0 6px', color: 'var(--risk-low, #22C55E)', fontSize: '1.1rem' }}>Account Registered Successfully!</h3>
+                <h3 style={{ margin: '0 0 6px', color: 'var(--risk-low, #22C55E)', fontSize: '1.1rem' }}>{t('login.accountRegisteredSuccess')}</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
-                  Welcome <strong>{signUpSuccess.name}</strong>. Your account has been registered with ID: <strong style={{ fontFamily: 'var(--font-mono)' }}>{signUpSuccess.id}</strong>.
+                  {t('login.welcomeRegistered', { name: signUpSuccess.name, id: signUpSuccess.id })}
                 </p>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', padding: '8px 12px', borderRadius: 6, marginBottom: 16 }}>
-                  📧 Activation notice: Verification email simulated for <strong>{signUpSuccess.email}</strong>. You can now switch to Sign In with your password.
+                  📧 {t('login.activationNotice', { email: signUpSuccess.email })}
                 </div>
                 <button
                   type="button"
                   className="btn btn-primary btn-md w-full"
                   onClick={() => { setTab('signin'); setSignUpSuccess(null); }}
                 >
-                  Proceed to Sign In
+                  {t('login.proceedToSignIn')}
                 </button>
               </div>
             ) : (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="input-group">
-                    <label className="input-label">Full Name *</label>
+                    <label className="input-label">{t('login.fullName')} *</label>
                     <input
                       className="input"
                       type="text"
@@ -218,7 +220,7 @@ export default function LoginCustomer() {
                     />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Email Address *</label>
+                    <label className="input-label">{t('login.emailAddress')} *</label>
                     <input
                       className="input"
                       type="email"
@@ -231,7 +233,7 @@ export default function LoginCustomer() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="input-group">
-                    <label className="input-label">Phone Number *</label>
+                    <label className="input-label">{t('login.phoneNumber')} *</label>
                     <input
                       className="input"
                       type="tel"
@@ -241,7 +243,7 @@ export default function LoginCustomer() {
                     />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">City / Location *</label>
+                    <label className="input-label">{t('login.cityLocation')} *</label>
                     <input
                       className="input"
                       type="text"
@@ -253,7 +255,7 @@ export default function LoginCustomer() {
                 </div>
 
                 <div className="input-group">
-                  <label className="input-label">Residential Address</label>
+                  <label className="input-label">{t('login.residentialAddress')}</label>
                   <input
                     className="input"
                     type="text"
@@ -265,7 +267,7 @@ export default function LoginCustomer() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="input-group">
-                    <label className="input-label">Password *</label>
+                    <label className="input-label">{t('login.password')} *</label>
                     <input
                       className="input"
                       type="password"
@@ -275,7 +277,7 @@ export default function LoginCustomer() {
                     />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Confirm Password *</label>
+                    <label className="input-label">{t('login.confirmPassword')} *</label>
                     <input
                       className="input"
                       type="password"
@@ -292,9 +294,9 @@ export default function LoginCustomer() {
                   </div>
                 )}
 
-                <button type="submit" className="btn btn-primary btn-lg w-full">Complete Registration</button>
+                <button type="submit" className="btn btn-primary btn-lg w-full">{t('login.completeRegistration')}</button>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', textAlign: 'center', margin: 0 }}>
-                  By registering, your account is enrolled in FraudX AI continuous telemetry protection.
+                  {t('login.registrationDisclaimer')}
                 </p>
               </>
             )}
@@ -305,7 +307,7 @@ export default function LoginCustomer() {
           <div>
             <div className="login__step-check" style={{ marginBottom: 16, justifyContent: 'center' }}>
               <span className="login__check">✓</span>
-              <span>Credentials verified</span>
+              <span>{t('login.credentialsVerified')}</span>
             </div>
             <MFAVerification
               userEmail={authenticatedCustomer?.email || 'arjun.mehta@email.com'}
@@ -321,7 +323,7 @@ export default function LoginCustomer() {
             <div className="login__step-check"><span className="login__check">✓</span><span>{t('login.mfaVerified')}</span></div>
             <div className="login__access-msg">
               <div className="login__access-spinner" />
-              <span>Redirecting to your customer dashboard...</span>
+              <span>{t('login.redirectingCustomer')}</span>
             </div>
           </div>
         )}

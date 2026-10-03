@@ -90,7 +90,7 @@ export function ThemeProvider({ children }) {
         val = val?.[key];
         fb = fb?.[key];
       }
-      return val || fb || path;
+      return val !== undefined ? val : (fb !== undefined ? fb : path);
     };
 
     // Template replacement: t('dashboard.greeting', { name: 'Arjun', timeOfDay: 'morning' })
@@ -98,7 +98,7 @@ export function ThemeProvider({ children }) {
       let text = get(path);
       if (params && typeof text === 'string') {
         Object.entries(params).forEach(([key, value]) => {
-          text = text.replace(`{${key}}`, value);
+          text = text.replaceAll(`{${key}}`, value);
         });
       }
       return text;

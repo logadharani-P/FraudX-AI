@@ -84,24 +84,35 @@ function AIAgentInner() {
   // Initial welcome message
   const initialWelcome = useMemo(() => {
     if (isCustomer) {
-      return `Welcome to FraudX AI Assistant 👋\n\nI can help you review your transactions, understand your personal risk scoring, explain MFA security, or navigate directly to any page.\n\nTry asking me to *"Show my latest transaction"* or *"Open my transactions"*.`;
+      return t('aiAgent.customerWelcome');
     }
     if (isAnalyst) {
       if (openAlertsCount > 0) {
-        return `Welcome back, ${user?.name || 'Analyst'}.\n\nThere are **${openAlertsCount} active alerts** and **${highRiskCount} high-risk transactions** requiring review in the pipeline today.\n\nYou can ask me to analyze specific transactions (e.g. \`TXN-100005\`), explain anomaly factors, or navigate to **Fraud Alerts** or **Risk Treatment**.`;
+        return t('aiAgent.analystWelcome', { name: user?.name || 'Analyst', alerts: openAlertsCount, highRisk: highRiskCount });
       }
-      return `Welcome back, ${user?.name || 'Analyst'}.\n\nAll real-time streams are currently operating within nominal risk thresholds. You can query any transaction or audit log.`;
+      return t('aiAgent.analystWelcomeClear', { name: user?.name || 'Analyst' });
     }
     if (isOrg) {
       const totalVol = (((stats?.totalAmount || 0)) / 1000).toFixed(1);
-      return `Welcome back, ${user?.name || 'Admin'}.\n\nHere is your current enterprise overview:\n• Total Volume Monitored: **₹${totalVol}K**\n• High-Risk Monitored Transactions: **${highRiskCount}**\n• Flagged Alerts Requiring Review: **${openAlertsCount}**\n• Telemetry Status: **Active & Compliant**`;
+      return t('aiAgent.orgWelcome', { name: user?.name || 'Admin', total: totalVol, highRisk: highRiskCount, alerts: openAlertsCount });
     }
-    return `Welcome back. What would you like to review today?`;
-  }, [isCustomer, isAnalyst, isOrg, user, openAlertsCount, highRiskCount, stats]);
+    return t('aiAgent.placeholder');
+  }, [isCustomer, isAnalyst, isOrg, user, openAlertsCount, highRiskCount, stats, t]);
 
   const [messages, setMessages] = useState([
     { role: 'assistant', content: initialWelcome }
   ]);
+
+  // Keep single welcome message synced when language switches before user starts chatting
+  useEffect(() => {
+    setMessages(prev => {
+      if (prev.length === 1 && prev[0].role === 'assistant') {
+        return [{ role: 'assistant', content: initialWelcome }];
+      }
+      return prev;
+    });
+  }, [initialWelcome]);
+
   const [input, setInput] = useState('');
   const [agentState, setAgentState] = useState('ready'); // ready, thinking, speaking
   const chatEndRef = useRef(null);
@@ -186,32 +197,32 @@ function AIAgentInner() {
   const quickActions = useMemo(() => {
     if (isCustomer) {
       return [
-        'Show my latest transaction',
-        'Open my transactions',
-        'Show my risk analysis',
-        'What is MFA?',
-        'What does my risk score mean?',
-        'Open my profile',
+        { label: t('aiAgent.quickActions.showLatestTxn', 'Show my latest transaction'), query: 'Show my latest transaction' },
+        { label: t('aiAgent.quickActions.openMyTxns', 'Open my transactions'), query: 'Open my transactions' },
+        { label: t('aiAgent.quickActions.showMyRisk', 'Show my risk analysis'), query: 'Show my risk analysis' },
+        { label: t('aiAgent.quickActions.whatIsMfa', 'What is MFA?'), query: 'What is MFA?' },
+        { label: t('aiAgent.quickActions.whatDoesScoreMean', 'What does my risk score mean?'), query: 'What does my risk score mean?' },
+        { label: t('aiAgent.quickActions.openMyProfile', 'Open my profile'), query: 'Open my profile' },
       ];
     }
     if (isAnalyst) {
       return [
-        'Why was TXN-100005 flagged?',
-        'Take me to fraud alerts',
-        'What are the current high-risk transactions?',
-        'Open risk treatment',
-        'Show reports',
-        'Explain this risk score',
+        { label: t('aiAgent.quickActions.whyTxnFlagged', 'Why was TXN-100005 flagged?'), query: 'Why was TXN-100005 flagged?' },
+        { label: t('aiAgent.quickActions.takeMeToAlerts', 'Take me to fraud alerts'), query: 'Take me to fraud alerts' },
+        { label: t('aiAgent.quickActions.highRiskTxns', 'What are the current high-risk transactions?'), query: 'What are the current high-risk transactions?' },
+        { label: t('aiAgent.quickActions.openRiskTreatment', 'Open risk treatment'), query: 'Open risk treatment' },
+        { label: t('aiAgent.quickActions.showReports', 'Show reports'), query: 'Show reports' },
+        { label: t('aiAgent.quickActions.explainScore', 'Explain this risk score'), query: 'Explain this risk score' },
       ];
     }
     return [
-      'Show the current risk overview',
-      'Open reports',
-      'How many high-risk transactions are currently monitored?',
-      'Take me to fraud alerts',
-      'MFA compliance status',
+      { label: t('aiAgent.quickActions.showRiskOverview', 'Show the current risk overview'), query: 'Show the current risk overview' },
+      { label: t('aiAgent.quickActions.showReports', 'Open reports'), query: 'Open reports' },
+      { label: t('aiAgent.quickActions.highRiskTxns', 'How many high-risk transactions are currently monitored?'), query: 'What are the current high-risk transactions?' },
+      { label: t('aiAgent.quickActions.takeMeToAlerts', 'Take me to fraud alerts'), query: 'Take me to fraud alerts' },
+      { label: t('aiAgent.quickActions.mfaStatus', 'MFA compliance status'), query: 'MFA compliance status' },
     ];
-  }, [isCustomer, isAnalyst]);
+  }, [isCustomer, isAnalyst, t]);
 
   // Client-side grounded queries: Navigation & local dataset retrieval
   const checkClientHandled = useCallback((query) => {
@@ -221,40 +232,40 @@ function AIAgentInner() {
     if (q.includes('open') || q.includes('take me to') || q.includes('go to') || q.includes('navigate to')) {
       if (q.includes('transaction')) {
         setTimeout(() => navigateWithTransition('/transactions'), 600);
-        return { handled: true, response: `Navigating to **Transactions** console now... 🚀` };
+        return { handled: true, response: t('aiAgent.navigatingTo', 'Navigating to **Transactions** console now... 🚀', { target: t('nav.transactions', 'Transactions') }) };
       }
       if (q.includes('risk analysis') || q.includes('risk assessment')) {
         setTimeout(() => navigateWithTransition('/risk-analysis'), 600);
-        return { handled: true, response: `Opening your **Risk Analysis** dashboard now... 📊` };
+        return { handled: true, response: t('aiAgent.navigatingTo', 'Opening your **Risk Analysis** dashboard now... 📊', { target: t('nav.riskAnalysis', 'Risk Analysis') }) };
       }
       if (q.includes('fraud alert') || q.includes('alert')) {
         if (isCustomer) {
-          return { handled: true, response: `🔒 Fraud alert investigation consoles are restricted to authorized fraud analysts and administrators.` };
+          return { handled: true, response: t('aiAgent.restrictedCustomer', '🔒 Fraud alert investigation consoles are restricted to authorized fraud analysts and administrators.') };
         }
         setTimeout(() => navigateWithTransition('/fraud-alerts'), 600);
-        return { handled: true, response: `Navigating to **Fraud Alerts** investigation pipeline... ⚠️` };
+        return { handled: true, response: t('aiAgent.navigatingTo', 'Navigating to **Fraud Alerts** investigation pipeline... ⚠️', { target: t('nav.fraudAlerts', 'Fraud Alerts') }) };
       }
       if (q.includes('treatment') || q.includes('risk treatment')) {
         if (isCustomer) {
-          return { handled: true, response: `🔒 Risk treatment controls are restricted to authorized fraud analysts.` };
+          return { handled: true, response: t('aiAgent.restrictedCustomer', '🔒 Risk treatment controls are restricted to authorized fraud analysts.') };
         }
         setTimeout(() => navigateWithTransition('/risk-treatment'), 600);
-        return { handled: true, response: `Opening **Risk Treatment** module... 🛡️` };
+        return { handled: true, response: t('aiAgent.openingModule', 'Opening **Risk Treatment** module... 🛡️', { target: t('nav.riskTreatment', 'Risk Treatment') }) };
       }
       if (q.includes('report')) {
         if (isCustomer) {
-          return { handled: true, response: `🔒 Enterprise reporting centers are restricted to analyst and organisation portals.` };
+          return { handled: true, response: t('aiAgent.restrictedCustomer', '🔒 Enterprise reporting centers are restricted to analyst and organisation portals.') };
         }
         setTimeout(() => navigateWithTransition('/reports'), 600);
-        return { handled: true, response: `Opening **Reports** center... 📋` };
+        return { handled: true, response: t('aiAgent.openingModule', 'Opening **Reports** center... 📋', { target: t('nav.reports', 'Reports') }) };
       }
       if (q.includes('profile')) {
         setTimeout(() => navigateWithTransition('/profile'), 600);
-        return { handled: true, response: `Opening your **Profile** page now... 👤` };
+        return { handled: true, response: t('aiAgent.openingModule', 'Opening your **Profile** page now... 👤', { target: t('nav.profile', 'Profile') }) };
       }
       if (q.includes('setting')) {
         setTimeout(() => navigateWithTransition('/settings'), 600);
-        return { handled: true, response: `Opening **Settings** panel... ⚙️` };
+        return { handled: true, response: t('aiAgent.openingModule', 'Opening **Settings** panel... ⚙️', { target: t('nav.settings', 'Settings') }) };
       }
     }
 
@@ -339,7 +350,7 @@ function AIAgentInner() {
     }
 
     return { handled: false, response: null };
-  }, [isCustomer, isAnalyst, isOrg, user, transactions, customerTxns, highRiskCount, navigateWithTransition]);
+  }, [isCustomer, isAnalyst, isOrg, user, transactions, customerTxns, highRiskCount, navigateWithTransition, t]);
 
   // Main message sending handler
   const handleSend = useCallback(async (textToSend) => {
@@ -399,14 +410,14 @@ function AIAgentInner() {
       // DO NOT fabricate response: Show clear professional error state with retry option
       const errorMsg = {
         role: 'assistant',
-        content: 'AI service is currently unavailable. Please try again.',
+        content: t('aiAgent.serviceUnavailable', 'AI service is currently unavailable. Please try again.'),
         isError: true,
         retryQuery: userMsg.content,
       };
       setMessages(prev => [...prev, errorMsg]);
       setAgentState('ready');
     }
-  }, [input, checkClientHandled, voiceEnabled, speakText]);
+  }, [input, checkClientHandled, voiceEnabled, speakText, t]);
 
   // Handle retry
   const handleRetry = useCallback((retryText) => {
@@ -446,9 +457,9 @@ function AIAgentInner() {
       {/* Header with Smart AI Indicator & Voice Controls */}
       <div className="page-header animate-fade-in-up" style={{ marginBottom: 12 }}>
         <div>
-          <h1 className="heading-2">🤖 {t('nav.aiAgent')}</h1>
+          <h1 className="heading-2">🤖 {t('nav.aiAgent', 'AI Agent')}</h1>
           <p className="text-secondary text-xs">
-            {isCustomer ? 'Personal financial security & conversational voice assistant' : 'Enterprise risk intelligence & automated telemetry assistant'}
+            {isCustomer ? t('aiAgent.customerSubtitle', 'Personal financial security & conversational voice assistant') : t('aiAgent.enterpriseSubtitle', 'Enterprise risk intelligence & automated telemetry assistant')}
           </p>
         </div>
 
@@ -464,7 +475,7 @@ function AIAgentInner() {
             title={voiceEnabled ? 'Mute AI Voice' : 'Enable AI Voice'}
             style={{ fontSize: '0.75rem', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}
           >
-            <span>{voiceEnabled ? '🔊 Voice On' : '🔇 Muted'}</span>
+            <span>{voiceEnabled ? t('aiAgent.voiceOn', '🔊 Voice On') : t('aiAgent.muted', '🔇 Muted')}</span>
           </button>
 
           {isSpeaking && (
@@ -475,7 +486,7 @@ function AIAgentInner() {
                 onClick={handlePauseResume}
                 style={{ fontSize: '0.72rem', padding: '3px 8px' }}
               >
-                {isPaused ? '▶️ Resume' : '⏸️ Pause'}
+                {isPaused ? t('aiAgent.resume', '▶️ Resume') : t('aiAgent.pause', '⏸️ Pause')}
               </button>
               <button
                 type="button"
@@ -483,7 +494,7 @@ function AIAgentInner() {
                 onClick={handleStopSpeech}
                 style={{ fontSize: '0.72rem', padding: '3px 8px' }}
               >
-                ⏹️ Stop
+                {t('aiAgent.stop', '⏹️ Stop')}
               </button>
             </div>
           )}
@@ -491,7 +502,7 @@ function AIAgentInner() {
           <div className="ai-agent-state-pill">
             <span className={`ai-state-dot ai-state-dot--${agentState}`} />
             <span className="text-xs font-semibold" style={{ textTransform: 'capitalize' }}>
-              {agentState === 'thinking' ? 'Thinking...' : agentState === 'speaking' ? 'Speaking...' : 'Ready'}
+              {agentState === 'thinking' ? t('aiAgent.thinking', 'Thinking...') : agentState === 'speaking' ? t('aiAgent.speaking', 'Speaking...') : t('aiAgent.ready', 'Ready')}
             </span>
           </div>
         </div>
@@ -541,7 +552,7 @@ function AIAgentInner() {
                       className="ai-retry-btn"
                       onClick={() => handleRetry(msg.retryQuery)}
                     >
-                      🔄 Retry
+                      {t('aiAgent.retry', '🔄 Retry')}
                     </button>
                   </div>
                 )}
@@ -564,7 +575,7 @@ function AIAgentInner() {
                       }}
                       title="Replay Voice"
                     >
-                      <span>🔊 Replay</span>
+                      <span>{t('aiAgent.replay', '🔊 Replay')}</span>
                     </button>
                   </div>
                 )}
@@ -594,9 +605,9 @@ function AIAgentInner() {
               key={i}
               type="button"
               className="ai-quick-chip"
-              onClick={() => handleSend(action)}
+              onClick={() => handleSend(action.query || action.label)}
             >
-              {action}
+              {action.label}
             </button>
           ))}
         </div>
@@ -614,8 +625,8 @@ function AIAgentInner() {
             type="text"
             placeholder={
               isCustomer
-                ? "Ask about your transactions, risk ratings, MFA, or ask to open a page..."
-                : "Ask about TXN-XXXXXX, anomaly patterns, or high-risk transactions..."
+                ? t('aiAgent.customerPlaceholder', "Ask about your transactions, risk ratings, MFA, or ask to open a page...")
+                : t('aiAgent.analystPlaceholder', "Ask about TXN-XXXXXX, anomaly patterns, or high-risk transactions...")
             }
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -625,7 +636,7 @@ function AIAgentInner() {
             className="btn btn-primary btn-sm ai-send-btn"
             disabled={!input.trim() || agentState === 'thinking'}
           >
-            Send
+            {t('aiAgent.send', 'Send')}
           </button>
         </form>
       </div>

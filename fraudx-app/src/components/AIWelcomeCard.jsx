@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useModuleTransition } from '../context/TransitionContext';
@@ -94,7 +94,7 @@ const PERSONA_CONFIGS = {
 
 export default function AIWelcomeCard() {
   const { user } = useAuth();
-  const { language, setLanguage } = useTheme();
+  const { language, setLanguage, t } = useTheme();
   const { navigateWithTransition } = useModuleTransition();
 
   // Voice Persona
@@ -393,9 +393,9 @@ export default function AIWelcomeCard() {
             onChange={(e) => handlePersonaChange(e.target.value)}
             aria-label="Select AI Voice"
           >
-            <option value="female">Aria (Female)</option>
-            <option value="male">Alex (Male)</option>
-            <option value="cyber">CyberX (Neural)</option>
+            <option value="female">{t('aiWelcome.ariaFemale', 'Aria (Female)')}</option>
+            <option value="male">{t('aiWelcome.alexMale', 'Alex (Male)')}</option>
+            <option value="cyber">{t('aiWelcome.cyberxNeural', 'CyberX (Neural)')}</option>
           </select>
 
           {/* Language selector */}
@@ -505,35 +505,35 @@ export default function AIWelcomeCard() {
           className="ai-chip-btn ai-chip-btn--primary"
           onClick={() => navigateWithTransition('/transactions')}
         >
-          📊 View My Transactions
+          {t('aiWelcome.viewMyTxns')}
         </button>
         <button
           type="button"
           className="ai-chip-btn"
           onClick={() => navigateWithTransition('/ai-agent', { state: { initialPrompt: 'How can I understand my transactions?' } })}
         >
-          🔍 Understand My Account
+          {t('aiWelcome.understandAccount')}
         </button>
         <button
           type="button"
           className="ai-chip-btn"
           onClick={() => navigateWithTransition('/ai-agent', { state: { initialPrompt: 'What does my risk score mean?' } })}
         >
-          🛡️ Explain My Risk
+          {t('aiWelcome.explainRisk')}
         </button>
         <button
           type="button"
           className="ai-chip-btn"
           onClick={() => navigateWithTransition('/ai-agent', { state: { initialPrompt: 'What is MFA?' } })}
         >
-          🔐 What is MFA?
+          {t('aiWelcome.whatIsMfa')}
         </button>
         <button
           type="button"
           className="ai-chip-btn"
           onClick={() => navigateWithTransition('/ai-agent')}
         >
-          💬 Ask AI Assistant
+          {t('aiWelcome.askAiAssistant')}
         </button>
       </div>
     </div>

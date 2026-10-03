@@ -11,7 +11,13 @@ export default function Reports() {
   const [activeReport, setActiveReport] = useState(null);
   const [downloadToast, setDownloadToast] = useState(null);
 
-  const categories = ['All', 'Fraud & Anomaly', 'Risk Scoring', 'Compliance & Audit', 'Executive'];
+  const categoryKeys = useMemo(() => [
+    { id: 'All', label: t('reports.allCategories', 'All') },
+    { id: 'Fraud & Anomaly', label: t('reports.fraudAnomaly', 'Fraud & Anomaly') },
+    { id: 'Risk Scoring', label: t('reports.riskScoring', 'Risk Scoring') },
+    { id: 'Compliance & Audit', label: t('reports.complianceAudit', 'Compliance & Audit') },
+    { id: 'Executive', label: t('reports.executive', 'Executive') },
+  ], [t]);
 
   const reportItems = useMemo(() => {
     const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -20,12 +26,12 @@ export default function Reports() {
     return [
       {
         id: 'REP-FRD-001',
-        title: 'Fraud Detection & Anomaly Analysis Report',
+        title: t('reports.report1Title', 'Fraud Detection & Anomaly Analysis Report'),
         category: 'Fraud & Anomaly',
-        desc: `AI-detected fraud cases (${stats.fraudCount || 0} incidents flagged) with multi-factor risk attribution.`,
+        desc: t('reports.report1Desc', 'AI-detected fraud cases ({count} incidents flagged) with multi-factor risk attribution.', { count: stats.fraudCount || 0 }),
         icon: '🔍',
         generatedAt: today,
-        status: 'Ready',
+        status: t('reports.ready', 'Ready'),
         recordsCount: stats.fraudCount || 0,
         summary: {
           totalFlagged: stats.fraudCount || 0,
@@ -36,12 +42,12 @@ export default function Reports() {
       },
       {
         id: 'REP-TXN-002',
-        title: 'Comprehensive Transaction Stream Summary',
+        title: t('reports.report2Title', 'Comprehensive Transaction Stream Summary'),
         category: 'Executive',
-        desc: `Complete summary of all ${stats.totalTransactions?.toLocaleString() || 0} processed banking transfers and channel distribution.`,
+        desc: t('reports.report2Desc', 'Complete summary of all {count} processed banking transfers and channel distribution.', { count: stats.totalTransactions?.toLocaleString() || 0 }),
         icon: '📄',
         generatedAt: today,
-        status: 'Ready',
+        status: t('reports.ready', 'Ready'),
         recordsCount: stats.totalTransactions || 0,
         summary: {
           totalMonitored: stats.totalTransactions || 0,
@@ -52,12 +58,12 @@ export default function Reports() {
       },
       {
         id: 'REP-RSK-003',
-        title: 'Multi-Dimensional Risk Distribution Assessment',
+        title: t('reports.report3Title', 'Multi-Dimensional Risk Distribution Assessment'),
         category: 'Risk Scoring',
-        desc: 'Risk scoring breakdown (Low, Medium, High, Critical) and baseline deviation telemetry.',
+        desc: t('reports.report3Desc', 'Risk scoring breakdown (Low, Medium, High, Critical) and baseline deviation telemetry.'),
         icon: '📊',
         generatedAt: yesterday,
-        status: 'Ready',
+        status: t('reports.ready', 'Ready'),
         recordsCount: transactions.length,
         summary: {
           lowRiskCount: stats.lowRiskCount || 0,
@@ -68,12 +74,12 @@ export default function Reports() {
       },
       {
         id: 'REP-CMP-004',
-        title: 'Compliance & Biometric Audit Trail',
+        title: t('reports.report4Title', 'Compliance & Biometric Audit Trail'),
         category: 'Compliance & Audit',
-        desc: 'Chronological log of MFA authorizations, biometric face challenges, and operator treatment actions.',
+        desc: t('reports.report4Desc', 'Chronological log of MFA authorizations, biometric face challenges, and operator treatment actions.'),
         icon: '✅',
         generatedAt: today,
-        status: 'Ready',
+        status: t('reports.ready', 'Ready'),
         recordsCount: alerts.length + 12,
         summary: {
           mfaVerifications: '100% Passed',
@@ -84,12 +90,12 @@ export default function Reports() {
       },
       {
         id: 'REP-EXE-005',
-        title: 'Monthly Executive Security Briefing',
+        title: t('reports.report5Title', 'Monthly Executive Security Briefing'),
         category: 'Executive',
-        desc: 'High-level executive overview of risk mitigation, threat trends, and resource telemetry.',
+        desc: t('reports.report5Desc', 'High-level executive overview of risk mitigation, threat trends, and resource telemetry.'),
         icon: '📈',
         generatedAt: yesterday,
-        status: 'Ready',
+        status: t('reports.ready', 'Ready'),
         recordsCount: 5,
         summary: {
           monitoredPipelineHealth: '99.98%',
@@ -99,7 +105,7 @@ export default function Reports() {
         },
       },
     ];
-  }, [stats, transactions, alerts]);
+  }, [stats, transactions, alerts, t]);
 
   const filteredReports = useMemo(() => {
     return reportItems.filter(r => {
@@ -138,7 +144,7 @@ export default function Reports() {
       link.click();
       document.body.removeChild(link);
 
-      setDownloadToast(`Exported "${report.title}" as CSV.`);
+      setDownloadToast(t('reports.exportedCsv', 'Exported "{title}" as CSV.', { title: report.title }));
       setTimeout(() => setDownloadToast(null), 3500);
     } catch (e) {
       console.error('Export error:', e);
@@ -149,8 +155,8 @@ export default function Reports() {
     <div className="page-container">
       <div className="page-header animate-fade-in-up">
         <div>
-          <h1 className="heading-2">📋 {t('nav.reports')}</h1>
-          <p className="text-secondary">Official fraud analytics reports, compliance audit exports, and executive telemetry summaries</p>
+          <h1 className="heading-2">📋 {t('nav.reports', 'Reports')}</h1>
+          <p className="text-secondary">{t('reports.fullSubtitle', 'Official fraud analytics reports, compliance audit exports, and executive telemetry summaries')}</p>
         </div>
       </div>
 
@@ -165,20 +171,20 @@ export default function Reports() {
         <input
           className="input filter-bar__search"
           type="text"
-          placeholder="Search reports by title, ID or keyword..."
+          placeholder={t('reports.searchPlaceholder', 'Search reports by title, ID or keyword...')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ flex: '1 1 240px' }}
         />
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {categories.map(cat => (
+          {categoryKeys.map(cat => (
             <button
-              key={cat}
+              key={cat.id}
               type="button"
-              className={`btn btn-xs ${selectedCategory === cat ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setSelectedCategory(cat)}
+              className={`btn btn-xs ${selectedCategory === cat.id ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setSelectedCategory(cat.id)}
             >
-              {cat}
+              {cat.label}
             </button>
           ))}
         </div>
@@ -186,57 +192,60 @@ export default function Reports() {
 
       {/* Reports Grid */}
       <div className="card-grid card-grid--2col animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-        {filteredReports.map((report, idx) => (
-          <div key={report.id} className="glass-card animate-fade-in-up" style={{ animationDelay: `${(idx + 1) * 70}ms`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: '1.6rem' }}>{report.icon}</span>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{report.id}</span>
-                      <span className="badge badge-info text-xs">{report.category}</span>
+        {filteredReports.map((report, idx) => {
+          const categoryObj = categoryKeys.find(c => c.id === report.category);
+          return (
+            <div key={report.id} className="glass-card animate-fade-in-up" style={{ animationDelay: `${(idx + 1) * 70}ms`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: '1.6rem' }}>{report.icon}</span>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{report.id}</span>
+                        <span className="badge badge-info text-xs">{categoryObj?.label || report.category}</span>
+                      </div>
+                      <h3 className="text-sm font-semibold" style={{ margin: '4px 0 0', color: 'var(--text-primary)' }}>{report.title}</h3>
                     </div>
-                    <h3 className="text-sm font-semibold" style={{ margin: '4px 0 0', color: 'var(--text-primary)' }}>{report.title}</h3>
                   </div>
                 </div>
+
+                <p className="text-xs text-secondary" style={{ margin: '0 0 14px', lineHeight: 1.45 }}>
+                  {report.desc}
+                </p>
               </div>
 
-              <p className="text-xs text-secondary" style={{ margin: '0 0 14px', lineHeight: 1.45 }}>
-                {report.desc}
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '1px solid var(--border-primary, rgba(255,255,255,0.06))' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span className="text-xs text-tertiary">Generated: {report.generatedAt}</span>
-                <span className="text-xs" style={{ color: '#22C55E', fontWeight: 600 }}>● {report.recordsCount} Records Analyzed</span>
-              </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-secondary"
-                  onClick={() => setActiveReport(report)}
-                >
-                  👁️ Preview
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
-                  onClick={() => handleDownloadCSV(report)}
-                >
-                  ⬇️ CSV
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '1px solid var(--border-primary, rgba(255,255,255,0.06))' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span className="text-xs text-tertiary">{t('reports.generatedAt', 'Generated: {date}', { date: report.generatedAt })}</span>
+                  <span className="text-xs" style={{ color: '#22C55E', fontWeight: 600 }}>{t('reports.recordsAnalyzed', '● {count} Records Analyzed', { count: report.recordsCount })}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => setActiveReport(report)}
+                  >
+                    👁️ {t('reports.preview', 'Preview')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={() => handleDownloadCSV(report)}
+                  >
+                    ⬇️ {t('reports.csv', 'CSV')}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {filteredReports.length === 0 && (
           <div className="glass-card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 50 }}>
             <p style={{ fontSize: '2rem', marginBottom: 8 }}>📋</p>
-            <h4 style={{ margin: '0 0 4px', color: 'var(--text-primary)' }}>No Reports Match Your Search</h4>
-            <p className="text-xs text-tertiary">Try clearing your search query or selecting another category.</p>
+            <h4 style={{ margin: '0 0 4px', color: 'var(--text-primary)' }}>{t('reports.noReportsMatch', 'No Reports Match Your Search')}</h4>
+            <p className="text-xs text-tertiary">{t('reports.noReportsDesc', 'Try clearing your search query or selecting another category.')}</p>
           </div>
         )}
       </div>
@@ -282,7 +291,7 @@ export default function Reports() {
 
             <div style={{ marginBottom: 16, padding: '12px 14px', background: 'var(--bg-secondary, rgba(255,255,255,0.03))', borderRadius: 8 }}>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                Executive Telemetry Findings
+                {t('reports.telemetryFindings', 'Executive Telemetry Findings')}
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', margin: 0, lineHeight: 1.5 }}>
                 {activeReport.summary.keyFinding}
@@ -303,14 +312,14 @@ export default function Reports() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className="text-xs text-tertiary">Export format: Raw CSV / Tabular</span>
+              <span className="text-xs text-tertiary">{t('reports.exportFormat', 'Export format: Raw CSV / Tabular')}</span>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={() => setActiveReport(null)}
                 >
-                  Close
+                  {t('common.close', 'Close')}
                 </button>
                 <button
                   type="button"
@@ -320,7 +329,7 @@ export default function Reports() {
                     setActiveReport(null);
                   }}
                 >
-                  Download Report CSV
+                  {t('reports.downloadReportCsv', 'Download Report CSV')}
                 </button>
               </div>
             </div>

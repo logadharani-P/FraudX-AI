@@ -52,9 +52,9 @@ export default function RiskAnalysis() {
 
   // Analyst / Org Enterprise calculations
   const riskDistribution = [
-    { name: 'Low Risk', value: stats.lowRiskCount || 0, color: '#22C55E' },
-    { name: 'Medium Risk', value: stats.mediumRiskCount || 0, color: '#F59E0B' },
-    { name: 'High / Critical Risk', value: stats.highRiskCount || 0, color: '#EF4444' },
+    { name: t('riskAnalysis.lowRisk', 'Low Risk'), value: stats.lowRiskCount || 0, color: '#22C55E' },
+    { name: t('riskAnalysis.mediumRisk', 'Medium Risk'), value: stats.mediumRiskCount || 0, color: '#F59E0B' },
+    { name: t('riskAnalysis.highRisk', 'High / Critical Risk'), value: stats.highRiskCount || 0, color: '#EF4444' },
   ];
 
   const typeRiskData = Object.entries(stats.typeCounts || {}).map(([type, count]) => {
@@ -71,8 +71,8 @@ export default function RiskAnalysis() {
       <div className="page-container">
         <div className="page-header animate-fade-in-up">
           <div>
-            <h1 className="heading-2">🛡️ My Risk & Security Assessment</h1>
-            <p className="text-secondary">Personal account security score, anomaly evaluation, and transaction safety factors</p>
+            <h1 className="heading-2">{t('riskAnalysis.customerTitle', '🛡️ My Risk & Security Assessment')}</h1>
+            <p className="text-secondary">{t('riskAnalysis.customerSubtitle', 'Personal account security score, anomaly evaluation, and transaction safety factors')}</p>
           </div>
         </div>
 
@@ -80,30 +80,30 @@ export default function RiskAnalysis() {
         <div className="dashboard__stats" style={{ marginBottom: 24 }}>
           {[
             {
-              label: 'Personal Risk Rating',
+              label: t('riskAnalysis.personalRating', 'Personal Risk Rating'),
               value: `${customerAvgRisk} / 100`,
-              sub: `${customerRiskLevel} Risk`,
+              sub: `${t(`common.${customerRiskLevel.toLowerCase()}`, customerRiskLevel)} ${t('common.risk', 'Risk')}`,
               icon: '🛡️',
               color: customerRiskLevel === 'Low' ? '#22C55E' : customerRiskLevel === 'Medium' ? '#F59E0B' : '#EF4444'
             },
             {
-              label: 'Account Safety Status',
-              value: 'Active & Protected',
-              sub: 'Continuous Telemetry',
+              label: t('riskAnalysis.accountSafetyStatus', 'Account Safety Status'),
+              value: t('riskAnalysis.activeProtected', 'Active & Protected'),
+              sub: t('riskAnalysis.continuousTelemetry', 'Continuous Telemetry'),
               icon: '🔒',
               color: '#22C55E'
             },
             {
-              label: 'Protected Transfers',
-              value: `${customerTxns.length} Transfers`,
-              sub: 'Zero Fraud Incidents',
+              label: t('riskAnalysis.protectedTransfers', 'Protected Transfers'),
+              value: t('riskAnalysis.transfersCount', '{count} Transfers', { count: customerTxns.length }),
+              sub: t('riskAnalysis.zeroFraudIncidents', 'Zero Fraud Incidents'),
               icon: '💳',
               color: '#4A7BF7'
             },
             {
-              label: 'Identity & MFA Status',
-              value: 'Verified',
-              sub: 'Two-Factor Enforced',
+              label: t('riskAnalysis.identityMfaStatus', 'Identity & MFA Status'),
+              value: t('riskAnalysis.verified', 'Verified'),
+              sub: t('riskAnalysis.twoFactorEnforced', 'Two-Factor Enforced'),
               icon: '✅',
               color: '#8B5CF6'
             },
@@ -123,25 +123,25 @@ export default function RiskAnalysis() {
         <div className="dashboard__grid">
           {/* Assessment Summary Card */}
           <div className="dashboard__card animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-            <h3 className="dashboard__card-title">Understanding Your Account Safety</h3>
+            <h3 className="dashboard__card-title">{t('riskAnalysis.understandingAccountSafety', 'Understanding Your Account Safety')}</h3>
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ padding: '14px 16px', background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <span style={{ fontSize: '1.2rem' }}>✨</span>
-                  <strong style={{ color: '#22C55E', fontSize: '0.92rem' }}>Normal Activity Pattern Detected</strong>
+                  <strong style={{ color: '#22C55E', fontSize: '0.92rem' }}>{t('riskAnalysis.normalPatternTitle', 'Normal Activity Pattern Detected')}</strong>
                 </div>
                 <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Your recent transaction activity is consistent with your historical baseline. Transfers have been executed within expected volume ranges and through verified devices.
+                  {t('riskAnalysis.normalPatternDesc', 'Your recent transaction activity is consistent with your historical baseline. Transfers have been executed within expected volume ranges and through verified devices.')}
                 </p>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <h4 style={{ margin: '0 0 2px', fontSize: '0.85rem', color: 'var(--text-primary)' }}>Key Behavioral Factors:</h4>
+                <h4 style={{ margin: '0 0 2px', fontSize: '0.85rem', color: 'var(--text-primary)' }}>{t('riskAnalysis.keyBehavioralFactors', 'Key Behavioral Factors:')}</h4>
                 {[
-                  { icon: '📍', label: 'Geographic Consistency', desc: `Transactions originated consistently from ${user.city || 'your registered location'}.` },
-                  { icon: '⏱️', label: 'Transfer Timing', desc: 'Payments processed during standard daytime banking hours.' },
-                  { icon: '🔐', label: 'Authentication Strength', desc: 'Adaptive MFA challenge active for high-value transactions.' },
-                  { icon: '📊', label: 'Amount Stability', desc: 'Transfer sizes match normal day-to-day spending patterns.' },
+                  { icon: '📍', label: t('riskAnalysis.geoConsistency', 'Geographic Consistency'), desc: t('riskAnalysis.geoDesc', 'Transactions originated consistently from {city}.', { city: user?.city || t('riskAnalysis.registeredLocation', 'your registered location') }) },
+                  { icon: '⏱️', label: t('riskAnalysis.transferTiming', 'Transfer Timing'), desc: t('riskAnalysis.transferTimingDesc', 'Payments processed during standard daytime banking hours.') },
+                  { icon: '🔐', label: t('riskAnalysis.authStrength', 'Authentication Strength'), desc: t('riskAnalysis.authStrengthDesc', 'Adaptive MFA challenge active for high-value transactions.') },
+                  { icon: '📊', label: t('riskAnalysis.amountStability', 'Amount Stability'), desc: t('riskAnalysis.amountStabilityDesc', 'Transfer sizes match normal day-to-day spending patterns.') },
                 ].map((item, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 12px', background: 'var(--bg-secondary, rgba(255,255,255,0.03))', borderRadius: 8 }}>
                     <span style={{ fontSize: '1.1rem' }}>{item.icon}</span>
@@ -157,7 +157,7 @@ export default function RiskAnalysis() {
 
           {/* Customer Risk Trend Chart */}
           <div className="dashboard__card animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-            <h3 className="dashboard__card-title">Recent Transaction Risk Score History</h3>
+            <h3 className="dashboard__card-title">{t('riskAnalysis.trendTitle', 'Recent Transaction Risk Score History')}</h3>
             {customerRiskTrend.length > 0 ? (
               <div className="dashboard__chart" style={{ marginTop: 12 }}>
                 <ResponsiveContainer width="100%" height={260}>
@@ -166,19 +166,19 @@ export default function RiskAnalysis() {
                     <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
                     <Tooltip
                       contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, fontSize: 12 }}
-                      formatter={(val) => [`${val} / 100`, 'Risk Score']}
+                      formatter={(val) => [`${val} / 100`, t('riskAnalysis.riskScore', 'Risk Score')]}
                     />
                     <Line type="monotone" dataKey="riskScore" stroke="#4A7BF7" strokeWidth={3} dot={{ r: 5, fill: '#4A7BF7' }} activeDot={{ r: 7 }} />
                   </LineChart>
                 </ResponsiveContainer>
                 <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: 'var(--text-tertiary)', textAlign: 'center' }}>
-                  Risk scores below 35 represent safe, standard banking transfers.
+                  {t('riskAnalysis.riskSafeNote', 'Risk scores below 35 represent safe, standard banking transfers.')}
                 </p>
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)' }}>
                 <p style={{ fontSize: '1.8rem', marginBottom: 6 }}>📊</p>
-                <p>No recent transaction risk scores recorded for this account.</p>
+                <p>{t('riskAnalysis.noRecentScores', 'No recent transaction risk scores recorded for this account.')}</p>
               </div>
             )}
           </div>
@@ -192,17 +192,17 @@ export default function RiskAnalysis() {
     <div className="page-container">
       <div className="page-header animate-fade-in-up">
         <div>
-          <h1 className="heading-2">📊 {t('nav.riskAnalysis')}</h1>
-          <p className="text-secondary">Comprehensive transaction risk scoring, anomaly telemetry, and distribution metrics</p>
+          <h1 className="heading-2">📊 {t('nav.riskAnalysis', 'Risk Analysis')}</h1>
+          <p className="text-secondary">{t('riskAnalysis.enterpriseSubtitle', 'Comprehensive transaction risk scoring, anomaly telemetry, and distribution metrics')}</p>
         </div>
       </div>
 
       <div className="dashboard__stats" style={{ marginBottom: 24 }}>
         {[
-          { label: 'Anomaly Detection Rate', value: `${anomalyRate}%`, icon: '🎯', color: '#EF4444' },
-          { label: 'Avg Risk Score', value: `${avgRiskScore} / 100`, icon: '📈', color: '#F59E0B' },
-          { label: 'High-Risk Transactions', value: (stats.highRiskCount || 0).toLocaleString(), icon: '⚠️', color: '#DC2626' },
-          { label: 'Monitored Pipeline Alerts', value: (stats.openAlerts || 0).toLocaleString(), icon: '🔍', color: '#8B5CF6' },
+          { label: t('riskAnalysis.anomalyDetectionRate', 'Anomaly Detection Rate'), value: `${anomalyRate}%`, icon: '🎯', color: '#EF4444' },
+          { label: t('riskAnalysis.avgRiskScore', 'Avg Risk Score'), value: `${avgRiskScore} / 100`, icon: '📈', color: '#F59E0B' },
+          { label: t('riskAnalysis.highRiskTxns', 'High-Risk Transactions'), value: (stats.highRiskCount || 0).toLocaleString(), icon: '⚠️', color: '#DC2626' },
+          { label: t('riskAnalysis.pipelineAlerts', 'Monitored Pipeline Alerts'), value: (stats.openAlerts || 0).toLocaleString(), icon: '🔍', color: '#8B5CF6' },
         ].map((card, i) => (
           <div key={i} className="stat-card animate-fade-in-up" style={{ animationDelay: `${i * 100}ms`, '--stat-color': card.color }}>
             <div className="stat-card__icon">{card.icon}</div>
@@ -216,7 +216,7 @@ export default function RiskAnalysis() {
 
       <div className="dashboard__grid">
         <div className="dashboard__card animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          <h3 className="dashboard__card-title">Risk Scoring Distribution</h3>
+          <h3 className="dashboard__card-title">{t('riskAnalysis.scoringDistribution', 'Risk Scoring Distribution')}</h3>
           <div className="dashboard__chart">
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
@@ -239,7 +239,7 @@ export default function RiskAnalysis() {
         </div>
 
         <div className="dashboard__card animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-          <h3 className="dashboard__card-title">Average Risk Score by Channel Type</h3>
+          <h3 className="dashboard__card-title">{t('riskAnalysis.avgRiskByChannel', 'Average Risk Score by Channel Type')}</h3>
           <div className="dashboard__chart">
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={typeRiskData}>

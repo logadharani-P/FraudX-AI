@@ -134,20 +134,83 @@ export default function Settings() {
     setCategories(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const getThemeLabel = (th) => {
+    const keyMap = {
+      aurora: t('settings.themeAurora', 'Aurora Security'),
+      emerald: t('settings.themeEmerald', 'Emerald Trust'),
+      midnight: t('settings.themeMidnight', 'Midnight Intelligence'),
+      pearl: t('settings.themePearl', 'Pearl Finance'),
+      sapphire: t('settings.themeSapphire', 'Sapphire Glass'),
+      'high-contrast': t('settings.themeHighContrast', 'High Contrast'),
+      system: t('settings.themeSystem', 'System Default'),
+    };
+    return keyMap[th.key] || th.label;
+  };
+
+  const getThemeDesc = (th) => {
+    const keyMap = {
+      aurora: t('settings.themeAuroraDesc', th.desc),
+      emerald: t('settings.themeEmeraldDesc', th.desc),
+      midnight: t('settings.themeMidnightDesc', th.desc),
+      pearl: t('settings.themePearlDesc', th.desc),
+      sapphire: t('settings.themeSapphireDesc', th.desc),
+      'high-contrast': t('settings.themeHighContrastDesc', th.desc),
+      system: t('settings.themeSystemDesc', th.desc),
+    };
+    return keyMap[th.key] || th.desc;
+  };
+
+  const getAccentLabel = (acc) => {
+    const keyMap = {
+      blue: t('settings.accentBlue', 'Brand Blue'),
+      cyan: t('settings.accentCyan', 'Cyber Cyan'),
+      violet: t('settings.accentViolet', 'Electric Violet'),
+      green: t('settings.accentGreen', 'Emerald Mint'),
+    };
+    return keyMap[acc.key] || acc.label;
+  };
+
+  const animationLabels = {
+    full: t('settings.fullMotion', 'Full Motion'),
+    reduced: t('settings.reducedMotion', 'Reduced Motion'),
+    off: t('settings.noMotion', 'Off'),
+  };
+
+  const densityLabels = {
+    comfortable: t('settings.comfortable', 'Comfortable'),
+    compact: t('settings.compact', 'Compact'),
+  };
+
+  const fontSizeLabels = {
+    small: t('settings.smallSize', 'Small'),
+    default: t('settings.defaultSize', 'Default'),
+    large: t('settings.largeSize', 'Large'),
+  };
+
+  const alertCategoriesList = [
+    { key: 'criticalFraud', label: t('settings.catCriticalFraud', 'Critical Fraud Alerts') },
+    { key: 'highRiskTxn', label: t('settings.catHighRiskTxn', 'High-Risk Transactions') },
+    { key: 'securityAlerts', label: t('settings.catSecurityAlerts', 'Security & Auth Alerts') },
+    { key: 'loginAlerts', label: t('settings.catLoginAlerts', 'Login & Session Alerts') },
+    { key: 'mfaAlerts', label: t('settings.catMfaAlerts', 'MFA Verification Alerts') },
+    { key: 'systemNotifications', label: t('settings.catSystemNotifications', 'System Notifications') },
+    { key: 'investigationUpdates', label: t('settings.catInvestigationUpdates', 'Investigation Updates') },
+  ];
+
   return (
     <div className="page-container" style={{ maxWidth: 960 }}>
       {/* Header */}
       <div className="page-header animate-fade-in-up">
         <div>
-          <h1 className="heading-2">⚙️ {t('nav.settings')}</h1>
-          <p className="text-secondary">Customize visual themes, notification channels, accessibility, and security controls</p>
+          <h1 className="heading-2">⚙️ {t('nav.settings', 'Settings')}</h1>
+          <p className="text-secondary">{t('settings.subtitle', 'Customize visual themes, notification channels, accessibility, and security controls')}</p>
         </div>
       </div>
 
       {/* 1. Appearance */}
       <div className="glass-card animate-fade-in-up" style={{ animationDelay: '100ms', marginBottom: 24 }}>
-        <h3 className="heading-3" style={{ marginBottom: 4 }}>🎨 Appearance & Theme</h3>
-        <p className="text-secondary text-xs" style={{ marginBottom: 18 }}>Select your preferred workspace theme and color accents</p>
+        <h3 className="heading-3" style={{ marginBottom: 4 }}>{t('settings.appearance', '🎨 Appearance & Theme')}</h3>
+        <p className="text-secondary text-xs" style={{ marginBottom: 18 }}>{t('settings.appearanceDesc', 'Select your preferred workspace theme and color accents')}</p>
 
         {/* Theme Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 14, marginBottom: 24 }}>
@@ -242,7 +305,7 @@ export default function Settings() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
                     <p className="text-sm font-semibold" style={{ margin: 0, color: 'var(--text-primary)' }}>
-                      {th.label}
+                      {getThemeLabel(th)}
                     </p>
                     {isActive && (
                       <span
@@ -255,12 +318,12 @@ export default function Settings() {
                           gap: 3,
                         }}
                       >
-                        ✓ Active
+                        ✓ {t('settings.activeStatus', 'Active')}
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-tertiary" style={{ margin: 0, lineHeight: 1.35 }}>
-                    {th.desc}
+                    {getThemeDesc(th)}
                   </p>
                 </div>
               </button>
@@ -270,7 +333,7 @@ export default function Settings() {
 
         {/* Accent Color Picker */}
         <div style={{ paddingTop: 16, borderTop: '1px solid var(--border-secondary)' }}>
-          <label className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 10 }}>Accent Color</label>
+          <label className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 10 }}>{t('settings.accentColor', 'Accent Color')}</label>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {ACCENTS.map(acc => (
               <button
@@ -292,7 +355,7 @@ export default function Settings() {
                 }}
               >
                 <span style={{ width: 14, height: 14, borderRadius: '50%', background: acc.color, display: 'inline-block' }} />
-                <span>{acc.label}</span>
+                <span>{getAccentLabel(acc)}</span>
               </button>
             ))}
           </div>
@@ -301,7 +364,7 @@ export default function Settings() {
         {/* Animation & Density Settings */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-secondary)' }}>
           <div>
-            <label className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 8 }}>Animation Intensity</label>
+            <label className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 8 }}>{t('settings.animationIntensity', 'Animation Intensity')}</label>
             <div style={{ display: 'flex', gap: 6 }}>
               {['full', 'reduced', 'off'].map(opt => (
                 <button
@@ -311,14 +374,14 @@ export default function Settings() {
                   style={{ textTransform: 'capitalize' }}
                   onClick={() => setAnimations(opt)}
                 >
-                  {opt}
+                  {animationLabels[opt] || opt}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 8 }}>UI Density</label>
+            <label className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 8 }}>{t('settings.interfaceDensity', 'UI Density')}</label>
             <div style={{ display: 'flex', gap: 6 }}>
               {['comfortable', 'compact'].map(opt => (
                 <button
@@ -328,7 +391,7 @@ export default function Settings() {
                   style={{ textTransform: 'capitalize' }}
                   onClick={() => setDensity(opt)}
                 >
-                  {opt}
+                  {densityLabels[opt] || opt}
                 </button>
               ))}
             </div>
@@ -338,13 +401,13 @@ export default function Settings() {
 
       {/* 2. Accessibility & Sound */}
       <div className="glass-card animate-fade-in-up" style={{ animationDelay: '150ms', marginBottom: 24 }}>
-        <h3 className="heading-3" style={{ marginBottom: 4 }}>♿ Accessibility & Audio</h3>
-        <p className="text-secondary text-xs" style={{ marginBottom: 18 }}>Audio feedback and readability preferences</p>
+        <h3 className="heading-3" style={{ marginBottom: 4 }}>{t('settings.accessibility', '♿ Accessibility & Display')}</h3>
+        <p className="text-secondary text-xs" style={{ marginBottom: 18 }}>{t('settings.accessibilityDesc', 'Adjust layout density, typography scale, contrast, and motion effects')}</p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
           {/* Font Scale */}
           <div className="sec-detail__card" style={{ background: 'var(--bg-card)' }}>
-            <span className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 8 }}>Font Scaling</span>
+            <span className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 8 }}>{t('settings.fontScaling', 'Font Scaling')}</span>
             <div style={{ display: 'flex', gap: 6 }}>
               {['small', 'default', 'large'].map(sz => (
                 <button
@@ -354,7 +417,7 @@ export default function Settings() {
                   style={{ textTransform: 'capitalize' }}
                   onClick={() => setFontSize(sz)}
                 >
-                  {sz}
+                  {fontSizeLabels[sz] || sz}
                 </button>
               ))}
             </div>
@@ -362,32 +425,32 @@ export default function Settings() {
 
           {/* Sound Controls */}
           <div className="sec-detail__card" style={{ background: 'var(--bg-card)' }}>
-            <span className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 8 }}>Notification Sound Feedback</span>
+            <span className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 8 }}>{t('settings.soundFeedback', 'Notification Sound Feedback')}</span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="text-xs">Standard Notification Chime</span>
+                <span className="text-xs">{t('settings.standardChime', 'Standard Notification Chime')}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <button type="button" className="btn btn-ghost btn-xs" onClick={playNotificationSound}>Test</button>
+                  <button type="button" className="btn btn-ghost btn-xs" onClick={playNotificationSound}>{t('settings.test', 'Test')}</button>
                   <button
                     type="button"
                     className={`btn btn-xs ${soundEnabled ? 'btn-primary' : 'btn-ghost'}`}
                     onClick={() => setSoundEnabled(prev => !prev)}
                   >
-                    {soundEnabled ? 'ON' : 'OFF'}
+                    {soundEnabled ? t('settings.on', 'ON') : t('settings.off', 'OFF')}
                   </button>
                 </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="text-xs">Critical Security Alert Sound</span>
+                <span className="text-xs">{t('settings.criticalAlertSound', 'Critical Security Alert Sound')}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <button type="button" className="btn btn-ghost btn-xs" onClick={playCriticalAlertSound}>Test</button>
+                  <button type="button" className="btn btn-ghost btn-xs" onClick={playCriticalAlertSound}>{t('settings.test', 'Test')}</button>
                   <button
                     type="button"
                     className={`btn btn-xs ${criticalSoundEnabled ? 'btn-primary' : 'btn-ghost'}`}
                     onClick={() => setCriticalSoundEnabled(prev => !prev)}
                   >
-                    {criticalSoundEnabled ? 'ON' : 'OFF'}
+                    {criticalSoundEnabled ? t('settings.on', 'ON') : t('settings.off', 'OFF')}
                   </button>
                 </div>
               </div>
@@ -398,18 +461,18 @@ export default function Settings() {
 
       {/* 3. Notification Preferences (Channels & Categories) */}
       <div className="glass-card animate-fade-in-up" style={{ animationDelay: '200ms', marginBottom: 24 }}>
-        <h3 className="heading-3" style={{ marginBottom: 4 }}>📬 Notification Preferences</h3>
-        <p className="text-secondary text-xs" style={{ marginBottom: 18 }}>Configure alert delivery channels and event categories</p>
+        <h3 className="heading-3" style={{ marginBottom: 4 }}>{t('settings.notificationChannels', '📬 Notification Channels')}</h3>
+        <p className="text-secondary text-xs" style={{ marginBottom: 18 }}>{t('settings.notificationChannelsDesc', 'Configure alert delivery channels and event categories')}</p>
 
         {/* Channels */}
         <div style={{ marginBottom: 20 }}>
-          <label className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 10 }}>Delivery Channels</label>
+          <label className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 10 }}>{t('settings.deliveryChannels', 'Delivery Channels')}</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {/* In-App */}
             <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 'var(--border-radius-md)', cursor: 'pointer' }}>
               <div>
-                <span className="text-sm font-semibold" style={{ display: 'block' }}>In-App Notifications & Banner</span>
-                <span className="text-xs text-secondary">Real-time alert notifications inside the FraudX console</span>
+                <span className="text-sm font-semibold" style={{ display: 'block' }}>{t('settings.inAppNotifs', 'In-App Notifications & Banner')}</span>
+                <span className="text-xs text-secondary">{t('settings.inAppDesc', 'Real-time alert notifications inside the FraudX console')}</span>
               </div>
               <input
                 type="checkbox"
@@ -422,45 +485,37 @@ export default function Settings() {
             {/* Email */}
             <div style={{ padding: '10px 14px', background: 'var(--bg-card)', border: '1px solid var(--border-secondary)', borderRadius: 'var(--border-radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.85 }}>
               <div>
-                <span className="text-sm font-semibold" style={{ display: 'block' }}>Email Notifications</span>
-                <span className="text-xs text-tertiary">Email notifications are not configured for this environment.</span>
+                <span className="text-sm font-semibold" style={{ display: 'block' }}>{t('settings.emailNotifs', 'Email Notifications')}</span>
+                <span className="text-xs text-tertiary">{t('settings.notConfiguredDesc', 'Email notifications are not configured for this environment.')}</span>
               </div>
-              <span className="badge badge-info" style={{ fontSize: 10 }}>Not Configured</span>
+              <span className="badge badge-info" style={{ fontSize: 10 }}>{t('settings.notConfigured', 'Not Configured')}</span>
             </div>
 
             {/* SMS */}
             <div style={{ padding: '10px 14px', background: 'var(--bg-card)', border: '1px solid var(--border-secondary)', borderRadius: 'var(--border-radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.85 }}>
               <div>
-                <span className="text-sm font-semibold" style={{ display: 'block' }}>SMS Notifications</span>
-                <span className="text-xs text-tertiary">SMS notifications are not configured for this environment.</span>
+                <span className="text-sm font-semibold" style={{ display: 'block' }}>{t('settings.smsNotifs', 'SMS Notifications')}</span>
+                <span className="text-xs text-tertiary">{t('settings.notConfiguredDesc', 'SMS notifications are not configured for this environment.')}</span>
               </div>
-              <span className="badge badge-info" style={{ fontSize: 10 }}>Not Configured</span>
+              <span className="badge badge-info" style={{ fontSize: 10 }}>{t('settings.notConfigured', 'Not Configured')}</span>
             </div>
 
             {/* Push */}
             <div style={{ padding: '10px 14px', background: 'var(--bg-card)', border: '1px solid var(--border-secondary)', borderRadius: 'var(--border-radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.85 }}>
               <div>
-                <span className="text-sm font-semibold" style={{ display: 'block' }}>Push Notifications</span>
-                <span className="text-xs text-tertiary">Push notifications are not configured for this environment.</span>
+                <span className="text-sm font-semibold" style={{ display: 'block' }}>{t('settings.pushNotifs', 'Push Notifications')}</span>
+                <span className="text-xs text-tertiary">{t('settings.notConfiguredDesc', 'Push notifications are not configured for this environment.')}</span>
               </div>
-              <span className="badge badge-info" style={{ fontSize: 10 }}>Not Configured</span>
+              <span className="badge badge-info" style={{ fontSize: 10 }}>{t('settings.notConfigured', 'Not Configured')}</span>
             </div>
           </div>
         </div>
 
         {/* Categories */}
         <div style={{ paddingTop: 16, borderTop: '1px solid var(--border-secondary)' }}>
-          <label className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 10 }}>Alert Categories</label>
+          <label className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 10 }}>{t('settings.alertCategories', 'Alert Categories')}</label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 8 }}>
-            {[
-              { key: 'criticalFraud', label: 'Critical Fraud Alerts' },
-              { key: 'highRiskTxn', label: 'High-Risk Transactions' },
-              { key: 'securityAlerts', label: 'Security & Auth Alerts' },
-              { key: 'loginAlerts', label: 'Login & Session Alerts' },
-              { key: 'mfaAlerts', label: 'MFA Verification Alerts' },
-              { key: 'systemNotifications', label: 'System Notifications' },
-              { key: 'investigationUpdates', label: 'Investigation Updates' },
-            ].map(cat => (
+            {alertCategoriesList.map(cat => (
               <label
                 key={cat.key}
                 style={{
@@ -491,33 +546,33 @@ export default function Settings() {
 
       {/* 4. Privacy & Security */}
       <div className="glass-card animate-fade-in-up" style={{ animationDelay: '250ms', marginBottom: 24 }}>
-        <h3 className="heading-3" style={{ marginBottom: 4 }}>🔒 Privacy & Security Status</h3>
-        <p className="text-secondary text-xs" style={{ marginBottom: 18 }}>Multi-factor authentication status and active device telemetry</p>
+        <h3 className="heading-3" style={{ marginBottom: 4 }}>{t('settings.privacySecurity', '🔒 Privacy & Security Status')}</h3>
+        <p className="text-secondary text-xs" style={{ marginBottom: 18 }}>{t('settings.privacySecurityDesc', 'Multi-factor authentication status and active device telemetry')}</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div className="txn-detail__field">
-            <span className="txn-detail__field-label">Multi-Factor Authentication (MFA)</span>
-            <span className="badge badge-low">✓ Level-2 Enforced</span>
+            <span className="txn-detail__field-label">{t('settings.mfaStatus', 'Multi-Factor Authentication (MFA)')}</span>
+            <span className="badge badge-low">{t('settings.level2Enforced', '✓ Level-2 Enforced')}</span>
           </div>
           <div className="txn-detail__field">
-            <span className="txn-detail__field-label">Current Active Session</span>
-            <span className="txn-detail__field-value text-mono">SEC-SES-9820 (This Device)</span>
+            <span className="txn-detail__field-label">{t('settings.currentActiveSession', 'Current Active Session')}</span>
+            <span className="txn-detail__field-value text-mono">SEC-SES-9820 ({t('settings.thisDevice', 'This Device')})</span>
           </div>
           <div className="txn-detail__field">
-            <span className="txn-detail__field-label">Last Successful Authentication</span>
-            <span className="txn-detail__field-value">2026-09-20 • Verified MFA</span>
+            <span className="txn-detail__field-label">{t('settings.lastAuth', 'Last Successful Authentication')}</span>
+            <span className="txn-detail__field-value">2026-09-20 • {t('settings.verifiedMfa', 'Verified MFA')}</span>
           </div>
           <div className="txn-detail__field">
-            <span className="txn-detail__field-label">Distributed Remote Session Termination</span>
-            <span className="text-xs text-tertiary">Requires distributed Redis backend session store (not connected in prototype).</span>
+            <span className="txn-detail__field-label">{t('settings.remoteSessionTerm', 'Distributed Remote Session Termination')}</span>
+            <span className="text-xs text-tertiary">{t('settings.remoteSessionNote', 'Requires distributed Redis backend session store (not connected in prototype).')}</span>
           </div>
         </div>
       </div>
 
       {/* 5. Language */}
       <div className="glass-card animate-fade-in-up" style={{ animationDelay: '300ms', marginBottom: 24 }}>
-        <h3 className="heading-3" style={{ marginBottom: 4 }}>🌐 Language</h3>
-        <p className="text-secondary text-xs" style={{ marginBottom: 16 }}>Choose your preferred interface language</p>
+        <h3 className="heading-3" style={{ marginBottom: 4 }}>{t('settings.languageSection', '🌐 Language')}</h3>
+        <p className="text-secondary text-xs" style={{ marginBottom: 16 }}>{t('settings.languageDesc', 'Choose your preferred interface language')}</p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {Object.entries(languages).map(([key, label]) => (
             <button
@@ -533,12 +588,12 @@ export default function Settings() {
 
       {/* 6. About */}
       <div className="glass-card animate-fade-in-up" style={{ animationDelay: '350ms' }}>
-        <h3 className="heading-3" style={{ marginBottom: 16 }}>ℹ️ About FraudX AI</h3>
+        <h3 className="heading-3" style={{ marginBottom: 16 }}>{t('settings.aboutTitle', 'ℹ️ About FraudX AI')}</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div className="txn-detail__field"><span className="txn-detail__field-label">Application</span><span className="txn-detail__field-value font-semibold">FraudX AI Enterprise Console</span></div>
-          <div className="txn-detail__field"><span className="txn-detail__field-label">Version</span><span className="txn-detail__field-value text-mono">v2.4.0-release</span></div>
-          <div className="txn-detail__field"><span className="txn-detail__field-label">Engine</span><span className="txn-detail__field-value">AI Anomaly Engine + Web Audio Synthesizer</span></div>
-          <div className="txn-detail__field"><span className="txn-detail__field-label">Environment</span><span className="txn-detail__field-value">Autonomous Real-Time Client Evaluation</span></div>
+          <div className="txn-detail__field"><span className="txn-detail__field-label">{t('settings.application', 'Application')}</span><span className="txn-detail__field-value font-semibold">{t('settings.appName', 'FraudX AI Enterprise Console')}</span></div>
+          <div className="txn-detail__field"><span className="txn-detail__field-label">{t('settings.version', 'Version')}</span><span className="txn-detail__field-value text-mono">v2.4.0-release</span></div>
+          <div className="txn-detail__field"><span className="txn-detail__field-label">{t('settings.engine', 'Engine')}</span><span className="txn-detail__field-value">{t('settings.engineName', 'AI Anomaly Engine + Web Audio Synthesizer')}</span></div>
+          <div className="txn-detail__field"><span className="txn-detail__field-label">{t('settings.environment', 'Environment')}</span><span className="txn-detail__field-value">{t('settings.envName', 'Autonomous Real-Time Client Evaluation')}</span></div>
         </div>
       </div>
     </div>

@@ -36,7 +36,7 @@ export default function FraudAlerts() {
       <div className="page-header animate-fade-in-up">
         <div>
           <h1 className="heading-2">🚨 {t('nav.fraudAlerts')}</h1>
-          <p className="text-secondary">{filtered.length} alerts detected by AI engine</p>
+          <p className="text-secondary">{t('alerts.alertCountSubtitle', { count: filtered.length })}</p>
         </div>
       </div>
 
@@ -44,7 +44,7 @@ export default function FraudAlerts() {
         <input
           className="input"
           type="text"
-          placeholder="Search alerts by ID, reason, or member..."
+          placeholder={t('alerts.searchPlaceholder')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ maxWidth: 360 }}
@@ -56,7 +56,7 @@ export default function FraudAlerts() {
               className={`btn btn-sm ${filter === level ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setFilter(level)}
             >
-              {level}
+              {level === 'All' ? t('transactions.all') : t('common.' + level.toLowerCase(), level)}
             </button>
           ))}
         </div>
@@ -77,7 +77,7 @@ export default function FraudAlerts() {
 
           const sender = alert.senderName || txn?.senderName || 'Member';
           const receiver = alert.receiverName || txn?.receiverName || 'Counterparty';
-          const amountFormatted = txn?.amountFormatted || (alert.amount ? `₹${alert.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : 'Amount unavailable');
+          const amountFormatted = txn?.amountFormatted || (alert.amount ? `₹${alert.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : t('transactionDetail.notAvailable'));
 
           return (
             <div
@@ -90,15 +90,17 @@ export default function FraudAlerts() {
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   {treatment && (
                     <span className={`badge ${displayStatus === 'Blocked' ? 'badge-critical' : displayStatus === 'Whitelisted' ? 'badge-low' : 'badge-info'}`}>
-                      {displayStatus}
+                      {t('common.' + (displayStatus === 'Under Review' ? 'underReview' : displayStatus.toLowerCase()), displayStatus)}
                     </span>
                   )}
-                  <span className={`badge badge-${alert.riskLevel.toLowerCase()}`}>{alert.riskLevel}</span>
+                  <span className={`badge badge-${alert.riskLevel.toLowerCase()}`}>
+                    {t('common.' + alert.riskLevel.toLowerCase(), alert.riskLevel)}
+                  </span>
                 </div>
               </div>
               <p className="text-sm font-semibold" style={{ marginBottom: 8, lineHeight: 1.4 }}>{alert.reason}</p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="text-xs text-tertiary">TXN: {alert.transactionId}</span>
+                <span className="text-xs text-tertiary">{t('alerts.txnId', { id: alert.transactionId })}</span>
                 <span className="text-xs text-tertiary">{alert.date}</span>
               </div>
               <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border-secondary)' }}>
@@ -110,7 +112,7 @@ export default function FraudAlerts() {
         {filtered.length === 0 && (
           <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 60, color: 'var(--text-tertiary)' }}>
             <p style={{ fontSize: '2rem', marginBottom: 8 }}>✅</p>
-            <p>No alerts match your current filters</p>
+            <p>{t('alerts.noAlertsFound')}</p>
           </div>
         )}
       </div>

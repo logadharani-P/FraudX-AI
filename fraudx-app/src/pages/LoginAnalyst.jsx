@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AnimatedBackground from '../components/AnimatedBackground';
+import LanguageSelector from '../components/LanguageSelector';
 import MFAVerification from '../components/MFA/MFAVerification';
 import logoImg from '../assets/logo.svg';
 import './Login.css';
@@ -44,14 +45,14 @@ export default function LoginAnalyst() {
     setError('');
 
     if (!analystId.trim() || !password.trim()) {
-      setError('Please enter your Analyst ID and password.');
+      setError(t('login.errFillSignIn'));
       return;
     }
 
     // Verify credentials first
     const authResult = authenticate('analyst', { identifier: analystId, password });
     if (!authResult.success) {
-      setError(authResult.error || 'Invalid analyst credentials.');
+      setError(authResult.error || t('login.errAuthFailed'));
       return;
     }
 
@@ -67,22 +68,22 @@ export default function LoginAnalyst() {
     setSignUpSuccess(null);
 
     if (!regFullName.trim() || !regEmail.trim() || !regPassword.trim() || !regAnalystId.trim()) {
-      setSignUpError('Please fill in Full Name, Official Email, Analyst/Employee ID, and Password.');
+      setSignUpError(t('login.errFillAllFields'));
       return;
     }
 
     if (!regEmail.includes('@')) {
-      setSignUpError('Please enter a valid professional email.');
+      setSignUpError(t('login.errValidEmail'));
       return;
     }
 
     if (regPassword.length < 6) {
-      setSignUpError('Password must be at least 6 characters long.');
+      setSignUpError(t('login.errPasswordLength'));
       return;
     }
 
     if (regPassword !== regConfirmPassword) {
-      setSignUpError('Passwords do not match.');
+      setSignUpError(t('login.errPasswordMatch'));
       return;
     }
 
@@ -173,6 +174,7 @@ export default function LoginAnalyst() {
   return (
     <div className="login">
       <AnimatedBackground />
+      <LanguageSelector variant="floating" />
       <div className="login__card login__card--analyst animate-fade-in-scale" style={{ maxWidth: tab === 'signup' ? 520 : 460 }}>
         <div className="login__header">
           <img src={logoImg} alt="FraudX AI" className="login__logo" />
@@ -186,14 +188,14 @@ export default function LoginAnalyst() {
               className={`login__tab ${tab === 'signin' ? 'login__tab--active' : ''}`}
               onClick={() => { setTab('signin'); setError(''); }}
             >
-              Analyst Sign In
+              {t('login.analystSignIn')}
             </button>
             <button
               type="button"
               className={`login__tab ${tab === 'signup' ? 'login__tab--active' : ''}`}
               onClick={() => { setTab('signup'); setSignUpError(''); setSignUpSuccess(null); }}
             >
-              Enrol / Request Clearance
+              {t('login.enrolRequestClearance')}
             </button>
           </div>
         )}
@@ -216,7 +218,7 @@ export default function LoginAnalyst() {
             <button type="submit" className="btn btn-primary btn-lg w-full">{t('login.signIn')}</button>
             <div style={{ textAlign: 'center', marginTop: 8 }}>
               <span className="text-xs text-tertiary" style={{ fontFamily: 'var(--font-mono)' }}>
-                Registered Demo — ID: ANL-200001 | Password: fraudx2024
+                {t('login.registeredDemoAnalyst')}
               </span>
             </div>
           </form>
@@ -227,26 +229,26 @@ export default function LoginAnalyst() {
             {signUpSuccess ? (
               <div style={{ padding: '16px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: 'var(--border-radius-lg)', textAlign: 'center' }}>
                 <div style={{ fontSize: '2rem', marginBottom: 8 }}>🛡️</div>
-                <h3 style={{ margin: '0 0 6px', color: 'var(--risk-low, #22C55E)', fontSize: '1.1rem' }}>Analyst Clearance Registered!</h3>
+                <h3 style={{ margin: '0 0 6px', color: 'var(--risk-low, #22C55E)', fontSize: '1.1rem' }}>{t('login.analystClearanceSuccess')}</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
-                  Credentials logged for <strong>{signUpSuccess.name}</strong> ({signUpSuccess.id}) under <em>{signUpSuccess.org}</em>.
+                  {t('login.analystRegisteredMsg', { name: signUpSuccess.name, id: signUpSuccess.id, org: signUpSuccess.org })}
                 </p>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', padding: '8px 12px', borderRadius: 6, marginBottom: 16 }}>
-                  📋 Level-2 clearance enabled for local session. You may now proceed to Analyst Sign In.
+                  📋 {t('login.level2ClearanceNotice')}
                 </div>
                 <button
                   type="button"
                   className="btn btn-primary btn-md w-full"
                   onClick={() => { setTab('signin'); setSignUpSuccess(null); }}
                 >
-                  Proceed to Sign In
+                  {t('login.proceedToSignIn')}
                 </button>
               </div>
             ) : (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="input-group">
-                    <label className="input-label">Full Name *</label>
+                    <label className="input-label">{t('login.fullName')} *</label>
                     <input
                       className="input"
                       type="text"
@@ -256,7 +258,7 @@ export default function LoginAnalyst() {
                     />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Official Email *</label>
+                    <label className="input-label">{t('login.officialEmail')} *</label>
                     <input
                       className="input"
                       type="email"
@@ -269,7 +271,7 @@ export default function LoginAnalyst() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="input-group">
-                    <label className="input-label">Analyst / Employee ID *</label>
+                    <label className="input-label">{t('login.employeeId')} *</label>
                     <input
                       className="input"
                       type="text"
@@ -279,7 +281,7 @@ export default function LoginAnalyst() {
                     />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Security Division / Org</label>
+                    <label className="input-label">{t('login.securityDivision')}</label>
                     <input
                       className="input"
                       type="text"
@@ -292,7 +294,7 @@ export default function LoginAnalyst() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="input-group">
-                    <label className="input-label">Designation</label>
+                    <label className="input-label">{t('login.designation')}</label>
                     <input
                       className="input"
                       type="text"
@@ -302,7 +304,7 @@ export default function LoginAnalyst() {
                     />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Location / City</label>
+                    <label className="input-label">{t('login.cityLocation')}</label>
                     <input
                       className="input"
                       type="text"
@@ -315,7 +317,7 @@ export default function LoginAnalyst() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="input-group">
-                    <label className="input-label">Password *</label>
+                    <label className="input-label">{t('login.password')} *</label>
                     <input
                       className="input"
                       type="password"
@@ -325,7 +327,7 @@ export default function LoginAnalyst() {
                     />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Confirm Password *</label>
+                    <label className="input-label">{t('login.confirmPassword')} *</label>
                     <input
                       className="input"
                       type="password"
@@ -342,7 +344,7 @@ export default function LoginAnalyst() {
                   </div>
                 )}
 
-                <button type="submit" className="btn btn-primary btn-lg w-full">Submit Analyst Application</button>
+                <button type="submit" className="btn btn-primary btn-lg w-full">{t('login.submitApplication')}</button>
               </>
             )}
           </form>
@@ -352,7 +354,7 @@ export default function LoginAnalyst() {
           <div className="login__face animate-fade-in" style={{ textAlign: 'center' }}>
             <h2 className="login__step-title" style={{ marginBottom: 4 }}>{t('login.faceVerification')}</h2>
             <p className="text-xs text-secondary" style={{ marginBottom: 16 }}>
-              Biometric verification for <strong>{authenticatedAnalyst?.name || 'Authorized Analyst'}</strong>
+              {t('login.biometricFor', { name: authenticatedAnalyst?.name || t('roles.analyst') })}
             </p>
 
             {/* Professional Biometric Verification Frame */}
@@ -479,32 +481,27 @@ export default function LoginAnalyst() {
               )}
             </div>
 
-            {/* Biometric Status Indicator matching specification:
-                [ Analyst Face Image ]
-                      ✓
-                Face Verified
-            */}
             {faceProgress >= 100 ? (
               <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                 <span style={{ fontSize: 20, color: 'var(--risk-low, #22C55E)', fontWeight: 800 }}>✓</span>
                 <p className="login__face-status" style={{ color: 'var(--risk-low, #22C55E)', fontWeight: 700, margin: 0 }}>
-                  Face Verified
+                  {t('login.faceVerified')}
                 </p>
               </div>
             ) : faceProgress > 0 ? (
               <p className="login__face-status" style={{ color: 'var(--brand-blue, #4A7BF7)', fontWeight: 600, margin: 0 }}>
-                Scanning / Verifying...
+                {t('login.scanningVerifying')}
               </p>
             ) : (
               <p className="login__face-status" style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                Initializing biometric sensor...
+                {t('login.initBiometric')}
               </p>
             )}
 
             <div className="login__demo-badge" style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', padding: '6px 14px', background: 'rgba(74, 123, 247, 0.08)', borderRadius: 'var(--border-radius-md)', marginTop: 12, border: '1px solid var(--border-secondary)' }}>
               <span style={{ fontSize: '0.9rem' }}>🔬</span>
-              <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--brand-blue, #4A7BF7)' }}>BIOMETRIC SENSOR</span>
-              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}> — Facial telemetry validation</span>
+              <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--brand-blue, #4A7BF7)' }}>{t('login.biometricSensor')}</span>
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}> — {t('login.biometricValidation')}</span>
             </div>
           </div>
         )}
@@ -513,7 +510,7 @@ export default function LoginAnalyst() {
           <div>
             <div className="login__step-check" style={{ marginBottom: 16, justifyContent: 'center' }}>
               <span className="login__check">✓</span>
-              <span>Face Verified</span>
+              <span>{t('login.faceVerified')}</span>
             </div>
             <MFAVerification
               userEmail={authenticatedAnalyst?.email || 'priya.iyer@fraudx.ai'}

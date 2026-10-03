@@ -65,9 +65,9 @@ export default function Transactions() {
     }
   };
 
-  const pageTitle = isCustomer ? 'My Transactions' : t('transactions.title');
+  const pageTitle = isCustomer ? t('transactions.myTransactionsTitle') : t('transactions.title');
   const pageSubtitle = isCustomer
-    ? `${baseTransactions.length} transactions on your account`
+    ? t('transactions.customerSubtitle', { count: baseTransactions.length })
     : t('transactions.subtitle');
 
   return (
@@ -79,7 +79,7 @@ export default function Transactions() {
         </div>
         <div className="transactions-page__actions">
           <button className={`btn ${showMap ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setShowMap(!showMap)}>
-            {showMap ? '🗺️ Hide Map' : '🗺️ Show Map'}
+            {showMap ? t('transactions.hideMap') : t('transactions.showMap')}
           </button>
         </div>
       </div>
@@ -98,16 +98,16 @@ export default function Transactions() {
         <div className="filter-bar">
           <input className="input filter-bar__search" type="text" placeholder={t('transactions.search')} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} aria-label="Search transactions" />
           <select className="input filter-bar__select" value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1); }} aria-label="Filter by type">
-            {types.map(tp => <option key={tp} value={tp}>{tp}</option>)}
+            {types.map(tp => <option key={tp} value={tp}>{tp === 'All' ? t('transactions.all') : tp}</option>)}
           </select>
           <select className="input filter-bar__select" value={riskFilter} onChange={e => { setRiskFilter(e.target.value); setPage(1); }} aria-label="Filter by risk">
-            {risks.map(r => <option key={r} value={r}>{r}</option>)}
+            {risks.map(r => <option key={r} value={r}>{r === 'All' ? t('transactions.all') : t('common.' + r.toLowerCase(), r)}</option>)}
           </select>
           <select className="input filter-bar__select" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }} aria-label="Filter by status">
-            {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+            {statuses.map(s => <option key={s} value={s}>{s === 'All' ? t('transactions.all') : t('common.' + (s === 'Under Review' ? 'underReview' : s.toLowerCase()), s)}</option>)}
           </select>
         </div>
-        <span className="text-xs text-tertiary">Showing {paginated.length} of {filtered.length} transactions</span>
+        <span className="text-xs text-tertiary">{t('transactions.showing', { count: paginated.length, total: filtered.length })}</span>
       </div>
 
       <div className="transactions-page__table-wrap animate-fade-in-up" style={{ animationDelay: '150ms' }}>
@@ -140,8 +140,8 @@ export default function Transactions() {
                 <td><span className="badge badge-info">{txn.type}</span></td>
                 <td><span className="text-sm font-semibold">{txn.amountFormatted}</span></td>
                 <td><span className="text-sm">{txn.city}</span></td>
-                <td><span className={`badge badge-${txn.riskLevel.toLowerCase()}`}>{txn.riskLevel}</span></td>
-                <td><span className="text-sm">{txn.status}</span></td>
+                <td><span className={`badge badge-${txn.riskLevel.toLowerCase()}`}>{t('common.' + txn.riskLevel.toLowerCase(), txn.riskLevel)}</span></td>
+                <td><span className="text-sm">{t('common.' + (txn.status === 'Under Review' ? 'underReview' : txn.status.toLowerCase()), txn.status)}</span></td>
               </tr>
             ))}
             {paginated.length === 0 && (
@@ -153,9 +153,9 @@ export default function Transactions() {
 
       {totalPages > 1 && (
         <div className="transactions-page__pagination">
-          <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Previous</button>
-          <span className="text-sm text-secondary">Page {page} of {totalPages}</span>
-          <button className="btn btn-ghost btn-sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
+          <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>{t('transactions.previous')}</button>
+          <span className="text-sm text-secondary">{t('transactions.pageOf', { page, totalPages })}</span>
+          <button className="btn btn-ghost btn-sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>{t('transactions.next')}</button>
         </div>
       )}
 

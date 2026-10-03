@@ -4,65 +4,55 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import './TransactionDetail.css';
 
-// Human-readable anomaly explanations
-const ANOMALY_EXPLANATIONS = {
-  'Unusual transaction amount detected': {
-    title: 'Unusual Amount Deviation',
-    desc: 'The transaction amount is unusually high compared with this member\'s previous activity and typical spending baseline.',
-    factor: 'Amount exceeds 3.5x sender historical average',
-  },
-  'Rapid transaction sequence identified': {
-    title: 'Rapid Transfer Velocity',
-    desc: 'Multiple transactions occurred in quick succession within a short window, which is atypical for this account.',
-    factor: 'High velocity spike (>3 transfers in 5 minutes)',
-  },
-  'Transaction from unusual location': {
-    title: 'Geographic Location Mismatch',
-    desc: 'This transaction originated from a location or IP not typically associated with this member\'s activity.',
-    factor: 'Origin city differs from primary registration hub',
-  },
-  'New device used for transaction': {
-    title: 'Unregistered Device Signature',
-    desc: 'This transaction was initiated from a hardware fingerprint or browser not previously associated with this account.',
-    factor: 'First-time device token observed',
-  },
-  'Transaction at unusual time': {
-    title: 'Unusual Timing',
-    desc: 'This transaction occurred at an unusual time (e.g. late night or off-hours) compared with previous member patterns.',
-    factor: 'Out-of-pattern execution window',
-  },
-  'Higher than normal transaction frequency': {
-    title: 'Frequency Anomaly',
-    desc: 'Transaction frequency is significantly higher than the member\'s normal activity pattern.',
-    factor: 'Daily transaction count exceeded 95th percentile',
-  },
-  'Suspicious network pattern detected': {
-    title: 'Recipient Network Risk',
-    desc: 'The AI engine detected a suspicious relationship involving linked accounts or recipient risk indicators.',
-    factor: 'Counterparty associated with elevated risk graph',
-  },
-  'Suspicious activity detected': {
-    title: 'Suspicious Activity Detected',
-    desc: 'General suspicious activity was flagged by the AI engine based on combined multi-dimensional risk indicators.',
-    factor: 'Multi-feature ensemble model threshold exceeded',
-  },
-};
-
-function explainAnomaly(factor) {
-  return ANOMALY_EXPLANATIONS[factor] || {
-    title: 'Risk Factor Detected',
-    desc: factor || 'Anomaly detected by model evaluation.',
-    factor: factor || 'Feature threshold deviation',
+function explainAnomaly(factor, t) {
+  const map = {
+    'Unusual transaction amount detected': {
+      title: t('anomalies.amountDevTitle'),
+      desc: t('anomalies.amountDevDesc'),
+      factor: t('anomalies.amountDevFactor'),
+    },
+    'Rapid transaction sequence identified': {
+      title: t('anomalies.velocityTitle'),
+      desc: t('anomalies.velocityDesc'),
+      factor: t('anomalies.velocityFactor'),
+    },
+    'Transaction from unusual location': {
+      title: t('anomalies.locationTitle'),
+      desc: t('anomalies.locationDesc'),
+      factor: t('anomalies.locationFactor'),
+    },
+    'New device used for transaction': {
+      title: t('anomalies.deviceTitle'),
+      desc: t('anomalies.deviceDesc'),
+      factor: t('anomalies.deviceFactor'),
+    },
+    'Transaction at unusual time': {
+      title: t('anomalies.timeTitle'),
+      desc: t('anomalies.timeDesc'),
+      factor: t('anomalies.timeFactor'),
+    },
+    'Higher than normal transaction frequency': {
+      title: t('anomalies.freqTitle'),
+      desc: t('anomalies.freqDesc'),
+      factor: t('anomalies.freqFactor'),
+    },
+    'Suspicious network pattern detected': {
+      title: t('anomalies.networkTitle'),
+      desc: t('anomalies.networkDesc'),
+      factor: t('anomalies.networkFactor'),
+    },
+    'Suspicious activity detected': {
+      title: t('anomalies.generalTitle'),
+      desc: t('anomalies.generalDesc'),
+      factor: t('anomalies.generalFactor'),
+    },
+  };
+  return map[factor] || {
+    title: t('anomalies.riskFactorDetected', 'Risk Factor Detected'),
+    desc: factor || t('anomalies.generalDesc'),
+    factor: factor || t('anomalies.generalFactor'),
   };
 }
-
-const TREATMENT_OPTIONS = [
-  { id: 'block', label: 'Block Transaction', icon: '🚫', desc: 'Block within FraudX system', className: 'badge-critical' },
-  { id: 'freeze', label: 'Freeze Account', icon: '🧊', desc: 'Temporarily freeze associated account in FraudX', className: 'badge-high' },
-  { id: 'escalate', label: 'Escalate to Analyst', icon: '👤', desc: 'Forward to senior analyst review', className: 'badge-medium' },
-  { id: 'monitor', label: 'Enhanced Monitoring', icon: '👁️', desc: 'Apply enhanced monitoring rules for 30 days', className: 'badge-info' },
-  { id: 'whitelist', label: 'Whitelist', icon: '✅', desc: 'Mark as legitimate in FraudX', className: 'badge-low' },
-];
 
 export default function TransactionDetail({ transaction: txn, onClose }) {
   const { t } = useTheme();
@@ -96,22 +86,30 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
     else if (treatment.id === 'monitor') effectiveStatus = 'Enhanced Monitoring';
   }
 
+  const treatmentOptions = [
+    { id: 'block', label: t('treatments.blockTxn'), icon: '🚫', desc: t('treatments.blockDesc'), className: 'badge-critical' },
+    { id: 'freeze', label: t('treatments.freezeAccount'), icon: '🧊', desc: t('treatments.freezeDesc'), className: 'badge-high' },
+    { id: 'escalate', label: t('treatments.escalateAnalyst'), icon: '👤', desc: t('treatments.escalateDesc'), className: 'badge-medium' },
+    { id: 'monitor', label: t('treatments.enhancedMonitoring'), icon: '👁️', desc: t('treatments.monitorDesc'), className: 'badge-info' },
+    { id: 'whitelist', label: t('treatments.whitelist'), icon: '✅', desc: t('treatments.whitelistDesc'), className: 'badge-low' },
+  ];
+
   const handleApplyTreatment = (option) => {
     if (!alert?.id) return;
     applyTreatment(alert.id, option, user?.name || 'Analyst');
-    setTreatmentNotice(`Action applied: ${option.label}`);
+    setTreatmentNotice(t('transactionDetail.actionApplied', { label: option.label }));
     setTimeout(() => setTreatmentNotice(null), 3500);
   };
 
   // Find related transactions (from same sender or receiver, excluding current transaction)
   const relatedTransactions = useMemo(() => {
     if (!txn || !transactions || transactions.length === 0) return [];
-    return transactions.filter(t => 
-      t.id !== txn.id && (
-        (txn.senderId && t.senderId === txn.senderId) ||
-        (txn.receiverId && t.receiverId === txn.receiverId) ||
-        (txn.senderName && t.senderName === txn.senderName) ||
-        (txn.receiverName && t.receiverName === txn.receiverName)
+    return transactions.filter(tItem => 
+      tItem.id !== txn.id && (
+        (txn.senderId && tItem.senderId === txn.senderId) ||
+        (txn.receiverId && tItem.receiverId === txn.receiverId) ||
+        (txn.senderName && tItem.senderName === txn.senderName) ||
+        (txn.receiverName && tItem.receiverName === txn.receiverName)
       )
     ).slice(0, 4);
   }, [transactions, txn]);
@@ -137,7 +135,7 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
       time: txn.time || '10:42 AM',
       date: txn.date || 'Today',
       status: 'complete',
-      desc: `Risk score evaluated at ${txn.riskScore}/100 by FraudX AI engine.`,
+      desc: `${t('transactionDetail.riskScore')} ${txn.riskScore}/100.`,
     },
     {
       id: 'txn_review',
@@ -145,7 +143,7 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
       time: txn.time || '10:43 AM',
       date: txn.date || 'Today',
       status: 'complete',
-      desc: `Amount ${txn.amountFormatted || '—'} via ${txn.type || 'Channel'} inspected.`,
+      desc: `${t('transactions.amount')} ${txn.amountFormatted || '—'} (${txn.type || 'Channel'}).`,
     },
     {
       id: 'behavior_comp',
@@ -163,7 +161,7 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
       status: 'complete',
       desc: relatedTransactions.length > 0 
         ? `${relatedTransactions.length} connected transactions cross-referenced.`
-        : 'No correlated high-risk transactions detected.',
+        : t('transactionDetail.noRelatedTxns'),
     },
     {
       id: 'member_verif',
@@ -199,7 +197,7 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
     <div className="txn-detail__field">
       <span className="txn-detail__field-label">{label}</span>
       <span className={`txn-detail__field-value ${mono ? 'text-mono' : ''}`}>
-        {value !== undefined && value !== null && value !== '' ? value : 'Not available from current data'}
+        {value !== undefined && value !== null && value !== '' ? value : t('transactionDetail.notAvailable')}
       </span>
     </div>
   );
@@ -213,7 +211,7 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
             <h2 className="txn-detail__title">{t('transactionDetail.title')}</h2>
             <span className="text-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>{txn.id}</span>
           </div>
-          <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Close">
+          <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label={t('common.close')}>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M4 4l10 10M14 4L4 14"/>
             </svg>
@@ -231,15 +229,15 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
           <div className="txn-detail__card txn-detail__card--highlight">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span className="text-xs text-secondary" style={{ display: 'block', marginBottom: 2 }}>Amount</span>
+                <span className="text-xs text-secondary" style={{ display: 'block', marginBottom: 2 }}>{t('transactions.amount')}</span>
                 <span style={{ fontSize: 'var(--font-size-xl)', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {txn.amountFormatted || 'Not available from current data'}
+                  {txn.amountFormatted || t('transactionDetail.notAvailable')}
                 </span>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span className="text-xs text-secondary" style={{ display: 'block', marginBottom: 4 }}>Risk Level</span>
+                <span className="text-xs text-secondary" style={{ display: 'block', marginBottom: 4 }}>{t('transactionDetail.riskLevel')}</span>
                 <span className={`badge badge-${txn.riskLevel?.toLowerCase() || 'low'}`}>
-                  {txn.riskLevel || 'Low'} Risk ({txn.riskScore || 0}/100)
+                  {t('common.' + (txn.riskLevel?.toLowerCase() || 'low'), txn.riskLevel || 'Low')} ({txn.riskScore || 0}/100)
                 </span>
               </div>
             </div>
@@ -250,14 +248,14 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
             <div className="txn-detail__why-risk-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: '1.1rem' }}>🔍</span>
-                <h3 className="txn-detail__why-risk-title">Why This Risk?</h3>
+                <h3 className="txn-detail__why-risk-title">{t('transactionDetail.whyThisRisk')}</h3>
               </div>
               <button
                 type="button"
                 className="btn btn-ghost btn-xs"
                 onClick={() => setShowWhyRisk(!showWhyRisk)}
               >
-                {showWhyRisk ? 'Collapse Explanation' : 'Expand Explanation'}
+                {showWhyRisk ? t('transactionDetail.collapseExplanation') : t('transactionDetail.expandExplanation')}
               </button>
             </div>
 
@@ -266,19 +264,19 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
                 {/* Metric Summary */}
                 <div className="txn-detail__risk-metric-row">
                   <div className="txn-detail__risk-metric-pill">
-                    <span className="text-xs text-tertiary">Calculated Score</span>
+                    <span className="text-xs text-tertiary">{t('transactionDetail.calculatedScore')}</span>
                     <span className="text-sm font-bold text-mono" style={{ color: riskColor }}>
                       {txn.riskScore || 0} / 100
                     </span>
                   </div>
                   <div className="txn-detail__risk-metric-pill">
-                    <span className="text-xs text-tertiary">Severity Category</span>
-                    <span className="text-sm font-semibold">{txn.riskLevel || 'Low'} Risk</span>
+                    <span className="text-xs text-tertiary">{t('transactionDetail.severityCategory')}</span>
+                    <span className="text-sm font-semibold">{t('common.' + (txn.riskLevel?.toLowerCase() || 'low'), txn.riskLevel || 'Low')}</span>
                   </div>
                   <div className="txn-detail__risk-metric-pill">
-                    <span className="text-xs text-tertiary">Review Requirement</span>
+                    <span className="text-xs text-tertiary">{t('transactionDetail.reviewRequirement')}</span>
                     <span className="text-xs font-semibold" style={{ color: txn.riskScore >= 60 ? 'var(--risk-high)' : 'var(--risk-low)' }}>
-                      {txn.riskScore >= 60 ? 'Requires human review' : 'Standard monitoring'}
+                      {txn.riskScore >= 60 ? t('transactionDetail.requiresHumanReview') : t('transactionDetail.standardMonitoring')}
                     </span>
                   </div>
                 </div>
@@ -291,24 +289,24 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
                 {/* Model Assessment Statement */}
                 <div className="txn-detail__assessment-box">
                   <div style={{ fontWeight: 600, fontSize: 'var(--font-size-xs)', marginBottom: 4, color: 'var(--text-primary)' }}>
-                    AI Engine Assessment:
+                    {t('transactionDetail.aiAssessment')}
                   </div>
                   <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
                     {txn.riskScore >= 60
-                      ? 'Suspicious activity detected. This high-risk transaction exhibits statistical deviations against historical member patterns and requires human review.'
-                      : 'Standard activity detected. Transaction parameters fall within normal historical baselines with no critical anomalies flagged.'}
+                      ? t('transactionDetail.suspiciousDetected')
+                      : t('transactionDetail.standardDetected')}
                   </p>
                 </div>
 
                 {/* Contributing Factors */}
                 <div style={{ marginTop: 14 }}>
                   <span className="text-xs font-semibold text-secondary" style={{ display: 'block', marginBottom: 8 }}>
-                    Contributing Anomaly Factors ({anomalyFactors.length})
+                    {t('transactionDetail.contributingFactors', { count: anomalyFactors.length })}
                   </span>
                   {anomalyFactors.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {anomalyFactors.map((factor, i) => {
-                        const item = explainAnomaly(factor);
+                        const item = explainAnomaly(factor, t);
                         return (
                           <div key={i} className="txn-detail__factor-item">
                             <div className="txn-detail__factor-header">
@@ -322,7 +320,7 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
                     </div>
                   ) : (
                     <div className="txn-detail__empty-factor">
-                      ✓ No adverse anomaly factors detected for this transaction.
+                      {t('transactionDetail.noAnomalyFactors')}
                     </div>
                   )}
                 </div>
@@ -335,16 +333,16 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
             <div className="txn-detail__card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <h3 className="txn-detail__section-title" style={{ margin: 0, border: 'none' }}>
-                  🛡️ Risk Treatment Actions
+                  {t('transactionDetail.riskTreatmentActions')}
                 </h3>
                 {treatment && (
                   <span className={`badge ${treatment.id === 'block' ? 'badge-critical' : treatment.id === 'whitelist' ? 'badge-low' : 'badge-info'}`}>
-                    Active: {treatment.label}
+                    {t('transactionDetail.activeAction', { label: treatment.label })}
                   </span>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {TREATMENT_OPTIONS.map(opt => (
+                {treatmentOptions.map(opt => (
                   <button
                     key={opt.id}
                     type="button"
@@ -357,18 +355,13 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
                   </button>
                 ))}
               </div>
-              {treatment && (
-                <p className="text-xs text-tertiary" style={{ margin: '8px 0 0', fontStyle: 'italic' }}>
-                  FraudX system status updated by {treatment.performedBy || 'Analyst'}.
-                </p>
-              )}
             </div>
           )}
 
           {/* Investigation Timeline */}
           {isAnalystOrOrg && (
             <div className="txn-detail__card">
-              <h3 className="txn-detail__section-title">⏱️ Investigation Timeline</h3>
+              <h3 className="txn-detail__section-title">⏱️ {t('transactionDetail.investigationTimeline')}</h3>
               <div className="txn-timeline">
                 {timelineSteps.map((step, idx) => (
                   <div key={step.id} className={`txn-timeline-item txn-timeline-item--${step.status}`}>
@@ -391,7 +384,7 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
 
           {/* Related Activity / Relationship View */}
           <div className="txn-detail__card">
-            <h3 className="txn-detail__section-title">🔗 Related Activity / Connected Transactions</h3>
+            <h3 className="txn-detail__section-title">🔗 {t('transactionDetail.relatedTransactions')}</h3>
             {relatedTransactions.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {relatedTransactions.map(rel => (
@@ -406,7 +399,7 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
                         {rel.id}
                       </span>
                       <span className={`badge badge-${rel.riskLevel?.toLowerCase() || 'low'}`} style={{ fontSize: 10 }}>
-                        {rel.riskLevel}
+                        {t('common.' + (rel.riskLevel?.toLowerCase() || 'low'), rel.riskLevel)}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-size-xs)' }}>
@@ -421,7 +414,7 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
               </div>
             ) : (
               <div className="txn-detail__empty-note">
-                Related activity is not available from the current data.
+                {t('transactionDetail.noRelatedTxns')}
               </div>
             )}
           </div>
@@ -429,28 +422,28 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
           {/* General Transaction Information */}
           <div className="txn-detail__card">
             <h3 className="txn-detail__section-title">{t('transactionDetail.info')}</h3>
-            <Field label="Transaction ID" value={txn.id} mono />
-            <Field label="Amount" value={txn.amountFormatted} />
-            <Field label="Type / Channel" value={txn.type} />
-            <Field label="Purpose" value={txn.purpose} />
-            {txn.loanRef && <Field label="Loan Reference" value={txn.loanRef} mono />}
-            <Field label="Date" value={txn.date} />
-            <Field label="Time" value={txn.time} />
-            <Field label="System Status" value={effectiveStatus} />
+            <Field label={t('transactions.transactionId')} value={txn.id} mono />
+            <Field label={t('transactions.amount')} value={txn.amountFormatted} />
+            <Field label={t('transactions.type')} value={txn.type} />
+            <Field label={t('transactionDetail.purpose')} value={txn.purpose} />
+            {txn.loanRef && <Field label={t('transactionDetail.loanRef')} value={txn.loanRef} mono />}
+            <Field label={t('transactionDetail.date')} value={txn.date} />
+            <Field label={t('transactionDetail.time')} value={txn.time} />
+            <Field label={t('transactionDetail.systemStatus')} value={t('common.' + (effectiveStatus === 'Under Review' ? 'underReview' : effectiveStatus.toLowerCase()), effectiveStatus)} />
           </div>
 
           {/* Account Balances & Simulation */}
           <div className="txn-detail__card">
-            <h3 className="txn-detail__section-title">💳 Balance & Simulation Baseline</h3>
-            <Field label="Sender Balance (Before)" value={`₹${(txn.oldBalanceOrig || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
-            <Field label="Sender Balance (After)" value={`₹${(txn.newBalanceOrig || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
+            <h3 className="txn-detail__section-title">{t('transactionDetail.balanceSection')}</h3>
+            <Field label={t('transactionDetail.senderBalanceBefore')} value={`₹${(txn.oldBalanceOrig || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
+            <Field label={t('transactionDetail.senderBalanceAfter')} value={`₹${(txn.newBalanceOrig || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
             <div className="txn-detail__divider" />
-            <Field label="Receiver Balance (Before)" value={`₹${(txn.oldBalanceDest || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
-            <Field label="Receiver Balance (After)" value={`₹${(txn.newBalanceDest || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
+            <Field label={t('transactionDetail.receiverBalanceBefore')} value={`₹${(txn.oldBalanceDest || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
+            <Field label={t('transactionDetail.receiverBalanceAfter')} value={`₹${(txn.newBalanceDest || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} />
             {txn.amlsimType && (
               <>
                 <div className="txn-detail__divider" />
-                <Field label="Simulation Typology" value={`${txn.amlsimType} (Step ${txn.amlsimStep || 1})`} mono />
+                <Field label={t('transactionDetail.simulationTypology')} value={`${txn.amlsimType} (Step ${txn.amlsimStep || 1})`} mono />
               </>
             )}
           </div>
@@ -458,30 +451,30 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
           {/* Participants */}
           <div className="txn-detail__card">
             <h3 className="txn-detail__section-title">{t('transactionDetail.participants')}</h3>
-            <Field label="Sender" value={txn.senderName} />
-            <Field label="Sender Member ID" value={txn.senderMemberId} mono />
-            <Field label="Sender Account" value={txn.senderAccountId} mono />
-            <Field label="Sender Bank" value={txn.senderBank} />
+            <Field label={t('transactions.sender')} value={txn.senderName} />
+            <Field label={t('transactionDetail.senderMemberId')} value={txn.senderMemberId} mono />
+            <Field label={t('transactionDetail.senderAccount')} value={txn.senderAccountId} mono />
+            <Field label={t('transactionDetail.senderBank')} value={txn.senderBank} />
             <div className="txn-detail__divider" />
-            <Field label="Receiver" value={txn.receiverName} />
-            <Field label="Receiver Member ID" value={txn.receiverMemberId} mono />
-            <Field label="Receiver Account" value={txn.receiverAccountId} mono />
-            <Field label="Receiver Bank" value={txn.receiverBank} />
+            <Field label={t('transactions.receiver')} value={txn.receiverName} />
+            <Field label={t('transactionDetail.receiverMemberId')} value={txn.receiverMemberId} mono />
+            <Field label={t('transactionDetail.receiverAccount')} value={txn.receiverAccountId} mono />
+            <Field label={t('transactionDetail.receiverBank')} value={txn.receiverBank} />
           </div>
 
           {/* Location & Device */}
           <div className="txn-detail__card">
             <h3 className="txn-detail__section-title">{t('transactionDetail.locationSection')}</h3>
-            <Field label="Recorded Location" value={txn.location || txn.city} />
+            <Field label={t('transactionDetail.recordedLocation')} value={txn.location || txn.city} />
             {txn.lat != null && !isNaN(txn.lat) ? (
               <>
-                <Field label="Latitude" value={txn.lat.toFixed(4)} mono />
-                <Field label="Longitude" value={txn.lng.toFixed(4)} mono />
+                <Field label={t('transactionDetail.latitude')} value={txn.lat.toFixed(4)} mono />
+                <Field label={t('transactionDetail.longitude')} value={txn.lng.toFixed(4)} mono />
               </>
             ) : (
-              <div className="txn-detail__empty-note">Location coordinates unavailable</div>
+              <div className="txn-detail__empty-note">{t('transactionDetail.locationUnavailable')}</div>
             )}
-            <Field label="Origin Device" value={txn.device} />
+            <Field label={t('transactionDetail.originDevice')} value={txn.device} />
           </div>
         </div>
       </div>

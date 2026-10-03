@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
 
 const LOGOUT_REASONS = [
-  'Finished using the app',
-  'Need to return later',
-  'Testing the application',
-  'Could not find what I needed',
-  'Issue with the application',
-  'Other',
+  { id: 'finished', key: 'logoutModal.reasons.finished', defaultText: 'Finished using the app' },
+  { id: 'returnLater', key: 'logoutModal.reasons.returnLater', defaultText: 'Need to return later' },
+  { id: 'testing', key: 'logoutModal.reasons.testing', defaultText: 'Testing the application' },
+  { id: 'notFound', key: 'logoutModal.reasons.notFound', defaultText: 'Could not find what I needed' },
+  { id: 'issue', key: 'logoutModal.reasons.issue', defaultText: 'Issue with the application' },
+  { id: 'other', key: 'logoutModal.reasons.other', defaultText: 'Other' },
 ];
 
 export default function LogoutFeedbackModal({ isOpen, onConfirmLogout, onCancel }) {
+  const { t } = useTheme();
   const [rating, setRating] = useState(5);
-  const [selectedReason, setSelectedReason] = useState('Finished using the app');
+  const [selectedReason, setSelectedReason] = useState('finished');
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -69,10 +71,10 @@ export default function LogoutFeedbackModal({ isOpen, onConfirmLogout, onCancel 
         <div style={{ textAlign: 'center', marginBottom: 18 }}>
           <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>👋</div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary, #F8FAFC)' }}>
-            Before you go
+            {t('logoutModal.title')}
           </h2>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary, #94A3B8)', margin: 0 }}>
-            How was your FraudX AI experience today?
+            {t('logoutModal.subtitle')}
           </p>
         </div>
 
@@ -103,28 +105,28 @@ export default function LogoutFeedbackModal({ isOpen, onConfirmLogout, onCancel 
           {/* Reason Selection */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary, #94A3B8)', marginBottom: 8 }}>
-              Why are you logging out?
+              {t('logoutModal.whyLoggingOut')}
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              {LOGOUT_REASONS.map((reason) => (
+              {LOGOUT_REASONS.map((item) => (
                 <button
-                  key={reason}
+                  key={item.id}
                   type="button"
-                  onClick={() => setSelectedReason(reason)}
+                  onClick={() => setSelectedReason(item.id)}
                   style={{
                     padding: '8px 10px',
                     fontSize: '0.75rem',
                     textAlign: 'left',
                     borderRadius: 8,
                     cursor: 'pointer',
-                    border: selectedReason === reason ? '1px solid var(--brand-blue, #4A7BF7)' : '1px solid var(--border-primary, rgba(255,255,255,0.08))',
-                    background: selectedReason === reason ? 'rgba(74, 123, 247, 0.15)' : 'var(--bg-secondary, rgba(255,255,255,0.03))',
-                    color: selectedReason === reason ? 'var(--brand-blue, #4A7BF7)' : 'var(--text-secondary, #CBD5E1)',
-                    fontWeight: selectedReason === reason ? 600 : 400,
+                    border: selectedReason === item.id ? '1px solid var(--brand-blue, #4A7BF7)' : '1px solid var(--border-primary, rgba(255,255,255,0.08))',
+                    background: selectedReason === item.id ? 'rgba(74, 123, 247, 0.15)' : 'var(--bg-secondary, rgba(255,255,255,0.03))',
+                    color: selectedReason === item.id ? 'var(--brand-blue, #4A7BF7)' : 'var(--text-secondary, #CBD5E1)',
+                    fontWeight: selectedReason === item.id ? 600 : 400,
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  {reason}
+                  {t(item.key, item.defaultText)}
                 </button>
               ))}
             </div>
@@ -133,12 +135,12 @@ export default function LogoutFeedbackModal({ isOpen, onConfirmLogout, onCancel 
           {/* Optional Text feedback */}
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary, #94A3B8)', marginBottom: 6 }}>
-              Additional feedback (Optional)
+              {t('logoutModal.additionalFeedback')}
             </label>
             <textarea
               className="input"
               rows={2}
-              placeholder="Tell us what went well or what we can improve..."
+              placeholder={t('logoutModal.commentsPlaceholder')}
               value={feedbackText}
               onChange={e => setFeedbackText(e.target.value)}
               style={{ width: '100%', fontSize: '0.8rem', resize: 'none', padding: '8px 12px' }}
@@ -153,7 +155,7 @@ export default function LogoutFeedbackModal({ isOpen, onConfirmLogout, onCancel 
               onClick={handleSkip}
               style={{ color: 'var(--text-tertiary, #94A3B8)' }}
             >
-              Skip & Logout
+              {t('logoutModal.skip')}
             </button>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -161,14 +163,14 @@ export default function LogoutFeedbackModal({ isOpen, onConfirmLogout, onCancel 
                 className="btn btn-secondary btn-sm"
                 onClick={onCancel}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 className="btn btn-primary btn-sm"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Logging out...' : 'Submit & Logout'}
+                {isSubmitting ? t('logoutModal.loggingOut') : t('logoutModal.submitLogout')}
               </button>
             </div>
           </div>

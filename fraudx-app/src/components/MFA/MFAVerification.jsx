@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNotifications } from '../../context/NotificationContext';
+import { useTheme } from '../../context/ThemeContext';
 import './MFAVerification.css';
 
 export default function MFAVerification({
@@ -8,6 +9,7 @@ export default function MFAVerification({
   onSuccess,
   onCancel,
 }) {
+  const { t } = useTheme();
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [attemptsLeft, setAttemptsLeft] = useState(3);
@@ -96,13 +98,13 @@ export default function MFAVerification({
 
     // Validation: Empty or incomplete code
     if (code.length === 0) {
-      setError('Please enter the 6-digit verification code.');
+      setError(t('mfa.errEnterCode'));
       if (inputRefs.current[0]) inputRefs.current[0].focus();
       return;
     }
 
     if (code.length < 6) {
-      setError(`Incomplete code. Please enter all 6 digits (${code.length}/6 entered).`);
+      setError(t('mfa.errIncomplete', { length: code.length }));
       return;
     }
 
@@ -139,9 +141,9 @@ export default function MFAVerification({
         });
 
         if (remaining <= 0) {
-          setError('Maximum MFA attempts exceeded. Verification locked for 5 minutes.');
+          setError(t('mfa.errMaxAttempts'));
         } else {
-          setError(`Invalid verification code. Please enter the 6-digit code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
+          setError(t('mfa.errInvalidCode', { remaining }));
         }
       }
     }, 750);
@@ -163,12 +165,12 @@ export default function MFAVerification({
       </div>
 
       <h2 className="mfa-title">
-        {isSuccess ? 'Verification Succeeded' : 'Two-Factor Authentication'}
+        {isSuccess ? t('mfa.successTitle') : t('mfa.title')}
       </h2>
       <p className="mfa-desc">
         {isSuccess
-          ? 'Security credentials verified. Initializing secure workspace...'
-          : `Verification code sent to ${userEmail || 'your registered email'}.`}
+          ? t('mfa.successDesc')
+          : t('mfa.desc', { email: userEmail || 'your registered email' })}
       </p>
 
       {!isSuccess && (
@@ -208,14 +210,14 @@ export default function MFAVerification({
           )}
 
           <div className="mfa-resend-row">
-            <span>Didn't receive code?</span>
+            <span>{t('mfa.didntReceive')}</span>
             <button
               type="button"
               className="mfa-resend-btn"
               onClick={handleResend}
               disabled={resendTimer > 0 || attemptsLeft <= 0}
             >
-              {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Code'}
+              {resendTimer > 0 ? t('mfa.resendTimer', { seconds: resendTimer }) : t('mfa.resendCode')}
             </button>
           </div>
 
@@ -228,10 +230,10 @@ export default function MFAVerification({
             {isVerifying ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span className="login__access-spinner" style={{ width: 14, height: 14 }} />
-                Verifying Security Token...
+                {t('mfa.verifyingToken')}
               </span>
             ) : (
-              'Verify & Continue'
+              t('mfa.verifyAndContinue')
             )}
           </button>
 
@@ -242,7 +244,7 @@ export default function MFAVerification({
               onClick={onCancel}
               style={{ marginTop: 8 }}
             >
-              Back to Sign In
+              {t('mfa.backToSignIn')}
             </button>
           )}
         </form>
@@ -252,11 +254,11 @@ export default function MFAVerification({
         <div className="login__complete animate-fade-in" style={{ padding: '8px 0' }}>
           <div className="login__step-check">
             <span className="login__check">✓</span>
-            <span>Security token verified successfully</span>
+            <span>{t('mfa.tokenVerifiedSuccess')}</span>
           </div>
           <div className="login__access-msg">
             <div className="login__access-spinner" />
-            <span>Establishing encrypted session...</span>
+            <span>{t('mfa.establishingSession')}</span>
           </div>
         </div>
       )}

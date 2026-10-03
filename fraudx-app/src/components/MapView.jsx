@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useTheme } from '../context/ThemeContext';
 
 // Fix default leaflet marker asset paths if needed
 delete L.Icon.Default.prototype._getIconUrl;
@@ -29,6 +30,7 @@ const MAP_TILES = {
 };
 
 export default function MapView({ transactions = [], highlightedId, onMarkerClick }) {
+  const { t } = useTheme();
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const tileLayerRef = useRef(null);
@@ -149,31 +151,33 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
 
       // Custom styled popup
       const riskBadgeColor = isCritical ? '#DC2626' : isHigh ? '#EF4444' : isMedium ? '#F59E0B' : '#22C55E';
+      const riskLevelText = t('common.' + (txn.riskLevel?.toLowerCase() || 'low'), txn.riskLevel || 'Low');
+      const riskSuffix = t('dashboard.riskOverview', 'Risk');
       const popupContent = `
         <div style="font-family: 'Inter', -apple-system, sans-serif; font-size: 12px; line-height: 1.4; color: #1E293B; padding: 2px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px;">
             <strong style="font-family: monospace; font-size: 13px; color: #0F172A;">${txn.id}</strong>
             <span style="background: ${riskBadgeColor}15; color: ${riskBadgeColor}; font-weight: 700; font-size: 10px; padding: 2px 6px; border-radius: 4px; border: 1px solid ${riskBadgeColor}40;">
-              ${txn.riskLevel || 'Low'} Risk (${txn.riskScore || 0}/100)
+              ${riskLevelText} ${riskSuffix} (${txn.riskScore || 0}/100)
             </span>
           </div>
           <div style="margin-bottom: 3px; font-weight: 600; color: #334155;">
             ${txn.senderName || 'Member'} → ${txn.receiverName || 'Counterparty'}
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span style="color: #64748B;">Amount:</span>
+            <span style="color: #64748B;">${t('map.amount')}:</span>
             <strong style="color: #0F172A;">${txn.amountFormatted || ('₹' + (txn.amount || 0).toLocaleString('en-IN'))}</strong>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span style="color: #64748B;">Origin:</span>
+            <span style="color: #64748B;">${t('map.origin')}:</span>
             <span style="color: #334155;">${txn.location || txn.city || 'India'}</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span style="color: #64748B;">Channel:</span>
+            <span style="color: #64748B;">${t('map.channel')}:</span>
             <span style="color: #334155;">${txn.type || 'Transfer'}</span>
           </div>
           <div style="margin-top: 6px; padding-top: 4px; border-top: 1px dashed #E2E8F0; font-size: 11px; text-align: center; color: #4A7BF7; font-weight: 600; cursor: pointer;">
-            Click marker to inspect full record ➔
+            ${t('map.clickToInspect')}
           </div>
         </div>
       `;
@@ -191,7 +195,7 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
 
       marker.addTo(markersGroupRef.current);
     });
-  }, [validTxns, highlightedId, onMarkerClick]);
+  }, [validTxns, highlightedId, onMarkerClick, t]);
 
   // Synchronize map center when highlightedId changes
   useEffect(() => {
@@ -254,15 +258,15 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
           <span style={{ fontSize: '1.1rem' }}>🗺️</span>
           <div>
             <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary, #F8FAFC)' }}>
-              Interactive Telemetry Geo-Map
+              {t('map.title')}
             </span>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 1 }}>
               <span style={{ fontSize: '0.72rem', color: '#22C55E', fontWeight: 600 }}>
-                ● {validTxns.length} Mapped Coordinates
+                {t('map.mappedCoords', { count: validTxns.length })}
               </span>
               {invalidCoordsCount > 0 && (
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary, #94A3B8)' }}>
-                  ({invalidCoordsCount} Location unavailable)
+                  {t('map.locationUnavailable', { count: invalidCoordsCount })}
                 </span>
               )}
             </div>
@@ -278,7 +282,7 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
             title="Toggle Map Style"
             style={{ fontSize: '0.75rem', padding: '4px 8px' }}
           >
-            {mapStyle === 'standard' ? '🌐 Humanitarian OSM' : '🗺️ OpenStreetMap'}
+            {mapStyle === 'standard' ? t('map.humanitarianOsm') : t('map.standardOsm')}
           </button>
           <button
             type="button"
@@ -287,7 +291,7 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
             title="Fit All Markers"
             style={{ fontSize: '0.75rem', padding: '4px 8px' }}
           >
-            🎯 Center View
+            {t('map.centerView')}
           </button>
           <div style={{ display: 'flex', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, overflow: 'hidden' }}>
             <button
@@ -342,15 +346,15 @@ export default function MapView({ transactions = [], highlightedId, onMarkerClic
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E' }} />
-          <span>Low Risk (0–34)</span>
+          <span>{t('map.lowRisk')}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B' }} />
-          <span>Medium Risk (35–59)</span>
+          <span>{t('map.mediumRisk')}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444' }} />
-          <span>High / Critical (60–100)</span>
+          <span>{t('map.highCriticalRisk')}</span>
         </div>
       </div>
     </div>
