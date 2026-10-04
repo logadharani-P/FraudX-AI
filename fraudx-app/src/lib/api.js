@@ -69,7 +69,23 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ email }),
       }),
+    verifyEmail: (token) =>
+      request('/api/auth/verify-email', {
+        method: 'POST',
+        body: JSON.stringify(typeof token === 'string' ? { token } : token),
+      }),
+    verifyRegistrationOtp: (payload) =>
+      request('/api/auth/verify-registration-otp', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    resendRegistrationOtp: (payload) =>
+      request('/api/auth/resend-registration-otp', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
   },
+
 
   dashboard: {
     getStats: () => request('/api/dashboard/stats'),

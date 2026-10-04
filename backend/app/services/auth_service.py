@@ -44,6 +44,118 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=Fals
 # }
 AUTH_CHALLENGES: Dict[str, Dict[str, Any]] = {}
 
+# Server-side account verification token store for registration
+# Structure: token -> { "user_id": int, "email": str, "expires_at": datetime, "used": bool }
+ACCOUNT_VERIFICATION_TOKENS: Dict[str, Dict[str, Any]] = {}
+
+
+# Demo credentials that allow direct demo sign-in without requiring email OTP
+DEMO_EMAILS = {"customer@fraudx.ai", "analyst@fraudx.ai", "admin@fraudx.ai"}
+DEMO_IDS = {"anl-88210", "anl-200001", "org-apex-01", "mbr-400001"}
+
+
+def is_demo_account(user: User, identifier: str = "") -> bool:
+    """Checks whether the given user or login identifier is a designated hackathon/demo account."""
+    if user and user.email and user.email.lower() in DEMO_EMAILS:
+        return True
+    clean_id = (identifier or "").strip().lower()
+    if clean_id in DEMO_EMAILS or clean_id in DEMO_IDS:
+        return True
+    if user and getattr(user, "analyst_id", None) and user.analyst_id.lower() in DEMO_IDS:
+        return True
+    if user and getattr(user, "member_id", None) and user.member_id.lower() in DEMO_IDS:
+        return True
+    if user and getattr(user, "organisation_id", None) and user.organisation_id.lower() in DEMO_IDS:
+        return True
+    return False
+
+
+def create_account_verification_token(user_id: int, email: str, expires_hours: int = 24) -> str:
+    """Generates a secure account verification token for email activation."""
+    token = secrets.token_urlsafe(32)
+    now = datetime.utcnow()
+    ACCOUNT_VERIFICATION_TOKENS[token] = {
+        "user_id": user_id,
+        "email": email.strip().lower(),
+        "expires_at": now + timedelta(hours=expires_hours),
+        "used": False,
+        "created_at": now,
+    }
+    return token
+
+
+def create_registration_challenge(user: User, target_email: str) -> Dict[str, Any]:
+    """
+    Generates a secure 6-digit registration verification code and sends it to the user's email via Resend.
+    """
+    session_id = str(uuid.uuid4())
+    now = datetime.utcnow()
+
+    # Clean up expired challenges
+    expired = [k for k, v in AUTH_CHALLENGES.items() if v.get("expires_at") and v["expires_at"] < now]
+    for k in expired:
+        AUTH_CHALLENGES.pop(k, None)
+
+    otp = generate_secure_otp()
+    clean_target_email = target_email.strip().lower()
+
+    # Dispatch verification code email via configured email service (SMTP / Resend)
+    dispatch_res = send_verification_email(to_email=clean_target_email, otp=otp, expires_minutes=5)
+    if not dispatch_res.get("success", False):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to deliver verification code email. Please check your email configuration or try again.",
+        )
+
+    challenge_data = {
+        "session_id": session_id,
+        "challenge_id": session_id,
+        "user_id": user.id,
+        "email": user.email,
+        "target_email": clean_target_email,
+        "role": user.role.value if hasattr(user.role, "value") else str(user.role),
+        "mfa_code": otp,
+        "attempts": 0,
+        "max_attempts": 5,
+        "face_verified": True,
+        "mfa_verified": False,
+        "used": False,
+        "is_registration": True,
+        "created_at": now,
+        "last_sent_at": now,
+        "expires_at": now + timedelta(minutes=5),
+    }
+    AUTH_CHALLENGES[session_id] = challenge_data
+    return challenge_data
+
+
+def verify_account_token(token: str, db: Session) -> Optional[User]:
+    """
+    Validates account verification token, ensures single-use & expiration,
+    activates the user, and returns the user object.
+    """
+    if not token or token not in ACCOUNT_VERIFICATION_TOKENS:
+        return None
+
+    t_data = ACCOUNT_VERIFICATION_TOKENS[token]
+    if t_data.get("used", False) or t_data["expires_at"] < datetime.utcnow():
+        ACCOUNT_VERIFICATION_TOKENS.pop(token, None)
+        return None
+
+    # Mark token used (single-use)
+    t_data["used"] = True
+
+    user = db.query(User).filter(User.id == t_data["user_id"]).first()
+    if user:
+        user.is_active = True
+        user.email_verified = True
+        db.commit()
+        db.refresh(user)
+
+    ACCOUNT_VERIFICATION_TOKENS.pop(token, None)
+    return user
+
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
@@ -161,7 +273,12 @@ def create_auth_challenge(user: User, entered_email: Optional[str] = None) -> Di
     target_email = (entered_email.strip().lower() if entered_email and "@" in entered_email else user.email.strip().lower())
 
     # Send verification code email
-    send_verification_email(to_email=target_email, otp=otp, expires_minutes=5)
+    dispatch_res = send_verification_email(to_email=target_email, otp=otp, expires_minutes=5)
+    if not dispatch_res.get("success", False):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to deliver verification code email. Please check your email configuration or try again.",
+        )
 
     challenge_data = {
         "session_id": session_id,
@@ -232,7 +349,12 @@ def resend_auth_challenge(
     challenge["used"] = False
 
     target_email = challenge.get("target_email") or challenge.get("email")
-    send_verification_email(to_email=target_email, otp=new_otp, expires_minutes=5)
+    dispatch_res = send_verification_email(to_email=target_email, otp=new_otp, expires_minutes=5)
+    if not dispatch_res.get("success", False):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to deliver verification code email. Please check your email configuration or try again.",
+        )
 
     return {
         "status": "success",

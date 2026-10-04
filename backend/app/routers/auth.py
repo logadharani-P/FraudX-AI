@@ -16,7 +16,8 @@ from app.models.member import Member, RiskStatus
 from app.models.transaction import Transaction, RiskLevel, TransactionStatus
 from app.schemas.auth import (
     LoginRequest, Token, UserResponse, AuthResponse, UserCreate,
-    MfaVerifyRequest, FaceVerifyRequest, MfaChallengeResponse, ResendMfaRequest
+    MfaVerifyRequest, FaceVerifyRequest, MfaChallengeResponse, ResendMfaRequest,
+    EmailVerifyRequest, EmailVerifyResponse, RegisterResponse,
 )
 from app.services.auth_service import (
     verify_password,
@@ -27,13 +28,19 @@ from app.services.auth_service import (
     validate_face_verification,
     build_user_response,
     create_auth_challenge,
+    create_registration_challenge,
     resend_auth_challenge,
+    create_account_verification_token,
+    verify_account_token,
+    is_demo_account,
     AUTH_CHALLENGES,
 )
+from app.services.email_service import send_account_verification_email, send_verification_email
 from app.config import get_settings
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 settings = get_settings()
+
 
 
 def _seed_customer_initial_transactions(db: Session, member: Member, partner_member_id: int):
@@ -122,10 +129,11 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     """
     Login endpoint:
     1. Validates email/ID and password.
-    2. If customer role: completes login and returns AuthResponse.
-    3. If analyst or organisation: generates random 6-digit OTP, sends it to the user's email,
-       and returns MFA challenge (does NOT return the OTP or final JWT).
-    4. If mfa_code is already provided in the payload, validates the code and completes login.
+    2. If demo account (Customer, Analyst, Organisation demo credentials):
+       Direct login succeeds without requiring email OTP.
+    3. If registered non-demo account:
+       Requires email_verified == True before login.
+    4. If mfa_code is provided in payload, validates the code and completes login.
     """
     identifier = payload.email.strip().lower()
     user = db.query(User).filter(
@@ -143,11 +151,20 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             detail="Invalid email/ID or password",
         )
 
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is deactivated",
-        )
+    # Demo accounts allow direct login without email OTP requirement
+    is_demo = is_demo_account(user, identifier)
+
+    if not is_demo:
+        if not user.email_verified and not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Please verify your email address with the 6-digit verification code before signing in.",
+            )
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User account is deactivated",
+            )
 
     # If face verification failure is reported
     if payload.face_verified is False:
@@ -163,8 +180,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or empty MFA verification code",
             )
-    elif user.role in [UserRole.analyst, UserRole.organisation]:
-        # Generate random 6-digit OTP and send to entered email address
+    elif not is_demo and getattr(user, "mfa_enabled", False):
+        # Generate random 6-digit OTP and send to authenticated user email address
         challenge = create_auth_challenge(user, entered_email=payload.email)
         return {
             "mfa_required": True,
@@ -176,6 +193,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             "expires_in": 300,
             "status": "challenge_required",
         }
+
 
     user.last_login = datetime.utcnow()
     db.commit()
@@ -408,107 +426,283 @@ def logout(current_user: User = Depends(get_current_user)):
     return {"message": "Logged out successfully", "user": current_user.email}
 
 
-@router.post("/register", response_model=AuthResponse)
-def register_customer(payload: UserCreate, db: Session = Depends(get_db)):
+@router.post("/register", response_model=RegisterResponse)
+def register(payload: UserCreate, db: Session = Depends(get_db)):
     """
-    Registers a new Customer:
-    1. Generates unique cooperative member_id and account_id.
-    2. Creates a persistent Member record in the database.
-    3. Seeds realistic, customer-specific transactions linked to that Member.
-    4. Creates the persistent User record linked to member_id.
-    5. Returns an authenticated session with full database-backed profile info.
+    Registers / enrols a new user for any of the three roles:
+    1. Customer: Creates cooperative Member + 4 baseline transactions + User.
+    2. Analyst: Creates Analyst User with clearance and analyst_id.
+    3. Organisation: Creates Organisation Admin User.
+    Generates a secure 6-digit OTP, sends it via Resend, and returns session challenge.
     """
-    if payload.role != UserRole.customer:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Self-registration is only allowed for customer accounts",
-        )
-
     clean_email = payload.email.strip().lower()
     existing = db.query(User).filter(func.lower(User.email) == clean_email).first()
-    if existing:
+
+    if existing and existing.email_verified:
+        role_label = existing.role.value.capitalize()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email is already registered. Please sign in instead.",
+            detail=f"Email is already registered as an active {role_label} account. Please sign in instead.",
         )
 
-    # Generate unique cooperative Member IDs
-    member_count = db.query(func.count(Member.id)).scalar() or 0
-    next_num = 400001 + member_count
-    unique_mbr_id = f"MBR-{next_num}"
-    unique_acc_id = f"ACC-{900000 + member_count + 1}"
-    unique_aml_acc_id = f"C{9000000000 + member_count + 1}"
+    # If pending/unverified user exists, update details & resend OTP
+    if existing and not existing.email_verified:
+        existing.hashed_password = get_password_hash(payload.password)
+        existing.name = payload.name.strip()
+        if payload.phone:
+            existing.phone = payload.phone.strip()
+        if payload.city:
+            existing.city = payload.city.strip()
+        if payload.role == UserRole.analyst:
+            if payload.analyst_id:
+                existing.analyst_id = payload.analyst_id.strip()
+            if payload.designation:
+                existing.designation = payload.designation.strip()
+            if payload.specialization:
+                existing.specialization = payload.specialization.strip()
+        elif payload.role == UserRole.organisation:
+            if payload.organisation_id:
+                existing.organisation_id = payload.organisation_id.strip()
+        db.commit()
+        db.refresh(existing)
+        new_user = existing
+        new_member = existing.member
+    else:
+        # Create brand new user record based on role
+        if payload.role == UserRole.customer:
+            member_count = db.query(func.count(Member.id)).scalar() or 0
+            next_num = 400001 + member_count
+            unique_mbr_id = f"MBR-{next_num}"
+            unique_acc_id = f"ACC-{900000 + member_count + 1}"
+            unique_aml_acc_id = f"C{9000000000 + member_count + 1}"
 
-    # City & Location mapping
-    customer_city = payload.city.strip() if payload.city else "Chennai"
-    city_coords = {
-        "mumbai": (19.0760, 72.8777, "Maharashtra"),
-        "chennai": (13.0827, 80.2707, "Tamil Nadu"),
-        "bangalore": (12.9716, 77.5946, "Karnataka"),
-        "delhi": (28.6139, 77.2090, "Delhi"),
-        "hyderabad": (17.3850, 78.4867, "Telangana"),
-        "kolkata": (22.5726, 88.3639, "West Bengal"),
-        "pune": (18.5204, 73.8567, "Maharashtra"),
-        "coimbatore": (11.0168, 76.9558, "Tamil Nadu"),
-        "madurai": (9.9252, 78.1198, "Tamil Nadu"),
+            customer_city = payload.city.strip() if payload.city else "Chennai"
+            city_coords = {
+                "mumbai": (19.0760, 72.8777, "Maharashtra"),
+                "chennai": (13.0827, 80.2707, "Tamil Nadu"),
+                "bangalore": (12.9716, 77.5946, "Karnataka"),
+                "delhi": (28.6139, 77.2090, "Delhi"),
+                "hyderabad": (17.3850, 78.4867, "Telangana"),
+                "kolkata": (22.5726, 88.3639, "West Bengal"),
+                "pune": (18.5204, 73.8567, "Maharashtra"),
+                "coimbatore": (11.0168, 76.9558, "Tamil Nadu"),
+                "madurai": (9.9252, 78.1198, "Tamil Nadu"),
+            }
+            coords = city_coords.get(customer_city.lower(), (13.0827, 80.2707, "Tamil Nadu"))
+            lat, lng, state = coords[0], coords[1], coords[2]
+
+            new_member = Member(
+                member_id=unique_mbr_id,
+                amlsim_account_id=unique_aml_acc_id,
+                name=payload.name.strip(),
+                email=clean_email,
+                phone=payload.phone.strip() if payload.phone else "+91 98765 00000",
+                city=customer_city,
+                state=state,
+                lat=lat + (random.random() - 0.5) * 0.02,
+                lng=lng + (random.random() - 0.5) * 0.02,
+                bank="Apex Urban Cooperative Bank",
+                account_id=unique_acc_id,
+                account_type="Savings",
+                join_date=date.today(),
+                verified=True,
+                share_capital=5000.0,
+                savings_balance=25000.0,
+                loan_outstanding=0.0,
+                risk_status=RiskStatus.low,
+            )
+            db.add(new_member)
+            db.flush()
+
+            first_member = db.query(Member).order_by(Member.id.asc()).first()
+            partner_id = first_member.id if first_member else new_member.id
+            _seed_customer_initial_transactions(db, new_member, partner_id)
+
+            new_user = User(
+                email=clean_email,
+                hashed_password=get_password_hash(payload.password),
+                name=payload.name.strip(),
+                role=UserRole.customer,
+                phone=new_member.phone,
+                city=new_member.city,
+                organisation_id="ORG-APEX-01",
+                member_id=new_member.member_id,
+                designation="Cooperative Society Member",
+                is_active=False,
+                email_verified=False,
+            )
+            db.add(new_user)
+            db.commit()
+            db.refresh(new_user)
+
+        elif payload.role == UserRole.analyst:
+            analyst_count = db.query(func.count(User.id)).filter(User.role == UserRole.analyst).scalar() or 0
+            analyst_id_val = payload.analyst_id.strip() if payload.analyst_id else f"ANL-{200000 + analyst_count + 1}"
+            new_member = None
+
+            new_user = User(
+                email=clean_email,
+                hashed_password=get_password_hash(payload.password),
+                name=payload.name.strip(),
+                role=UserRole.analyst,
+                phone=payload.phone.strip() if payload.phone else "+91 98765 43210",
+                city=payload.city.strip() if payload.city else "Mumbai",
+                organisation_id=payload.organisation_id.strip() if payload.organisation_id else "ORG-APEX-01",
+                analyst_id=analyst_id_val,
+                designation=payload.designation.strip() if payload.designation else "Financial Crime Analyst",
+                specialization=payload.specialization.strip() if payload.specialization else "Behavioral Anomaly & Network Laundering",
+                clearance_level=payload.clearance_level.strip() if payload.clearance_level else "Level 2 - Operational Access",
+                is_active=False,
+                email_verified=False,
+            )
+            db.add(new_user)
+            db.commit()
+            db.refresh(new_user)
+
+        elif payload.role == UserRole.organisation:
+            new_member = None
+            org_id_val = payload.organisation_id.strip() if payload.organisation_id else "ORG-APEX-01"
+
+            new_user = User(
+                email=clean_email,
+                hashed_password=get_password_hash(payload.password),
+                name=payload.name.strip(),
+                role=UserRole.organisation,
+                phone=payload.phone.strip() if payload.phone else "+91 91234 56780",
+                city=payload.city.strip() if payload.city else "Mumbai",
+                organisation_id=org_id_val,
+                designation=payload.designation.strip() if payload.designation else "Chief Compliance Officer & Cooperative Administrator",
+                is_active=False,
+                email_verified=False,
+            )
+            db.add(new_user)
+            db.commit()
+            db.refresh(new_user)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid role specified for registration",
+            )
+
+    # Generate 6-digit OTP challenge and dispatch real email via Resend
+    challenge = create_registration_challenge(new_user, clean_email)
+    # Also create fallback legacy token for backward compatibility
+    create_account_verification_token(new_user.id, new_user.email, expires_hours=24)
+
+    role_messages = {
+        UserRole.customer: f"Verification code sent to {clean_email}. Please enter the 6-digit code to activate your account.",
+        UserRole.analyst: f"Analyst clearance verification code sent to {clean_email}. Please enter the 6-digit code to verify your profile.",
+        UserRole.organisation: f"Organisation verification code sent to {clean_email}. Please enter the 6-digit code to complete registration.",
     }
-    coords = city_coords.get(customer_city.lower(), (13.0827, 80.2707, "Tamil Nadu"))
-    lat, lng, state = coords[0], coords[1], coords[2]
 
-    # Create persistent Member record
-    new_member = Member(
-        member_id=unique_mbr_id,
-        amlsim_account_id=unique_aml_acc_id,
-        name=payload.name.strip(),
+    return RegisterResponse(
+        success=True,
+        message=role_messages.get(new_user.role, f"Verification code sent to {clean_email}."),
         email=clean_email,
-        phone=payload.phone.strip() if payload.phone else "+91 98765 00000",
-        city=customer_city,
-        state=state,
-        lat=lat + (random.random() - 0.5) * 0.02,
-        lng=lng + (random.random() - 0.5) * 0.02,
-        bank="Apex Urban Cooperative Bank",
-        account_id=unique_acc_id,
-        account_type="Savings",
-        join_date=date.today(),
-        verified=True,
-        share_capital=5000.0,
-        savings_balance=25000.0,
-        loan_outstanding=0.0,
-        risk_status=RiskStatus.low,
+        role=new_user.role.value,
+        challenge_id=challenge["session_id"],
+        session_id=challenge["session_id"],
+        member_id=new_member.member_id if new_member else None,
+        account_id=new_member.account_id if new_member else None,
+        verification_required=True,
     )
-    db.add(new_member)
-    db.flush()
 
-    # Find partner member (first cooperative institution member) for initial transactions
-    first_member = db.query(Member).order_by(Member.id.asc()).first()
-    partner_id = first_member.id if first_member else new_member.id
 
-    # Seed initial isolated customer transactions
-    _seed_customer_initial_transactions(db, new_member, partner_id)
+@router.post("/verify-registration-otp", response_model=AuthResponse)
+@router.post("/verify-email")
+def verify_registration_otp(payload: EmailVerifyRequest, db: Session = Depends(get_db)):
+    """
+    Validates submitted 6-digit registration verification code (or legacy URL token).
+    Upon successful validation:
+    1. Sets email_verified = True and is_active = True on the database User record.
+    2. Issues a full JWT access token so the user is immediately authenticated.
+    """
+    code = (payload.otp or payload.code or "").strip()
+    session_id = payload.challenge_id or payload.session_id
+    token_str = (payload.token or "").strip()
 
-    # Create persistent User record
-    new_user = User(
-        email=clean_email,
-        hashed_password=get_password_hash(payload.password),
-        name=payload.name.strip(),
-        role=UserRole.customer,
-        phone=new_member.phone,
-        city=new_member.city,
-        organisation_id="ORG-APEX-01",
-        member_id=new_member.member_id,
-        is_active=True,
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    # Legacy token validation fallback
+    if token_str and not code:
+        user = verify_account_token(token_str, db)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid, expired, or already used verification link.",
+            )
+    else:
+        # 6-Digit OTP verification
+        if not code:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Verification code cannot be empty",
+            )
+
+        challenge = None
+        if session_id and session_id in AUTH_CHALLENGES:
+            challenge = AUTH_CHALLENGES[session_id]
+        elif payload.email:
+            clean_email = payload.email.strip().lower()
+            now = datetime.utcnow()
+            for cid, cdata in list(AUTH_CHALLENGES.items()):
+                if (cdata["email"].lower() == clean_email or cdata.get("target_email", "").lower() == clean_email):
+                    if cdata["expires_at"] > now and not cdata.get("used", False):
+                        challenge = cdata
+                        session_id = cid
+                        break
+
+        if not challenge:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Verification session has expired or is invalid. Please request a new verification code.",
+            )
+
+        # Check expiration & max attempts
+        if challenge["expires_at"] < datetime.utcnow() or challenge.get("used", False):
+            AUTH_CHALLENGES.pop(session_id, None)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Verification code has expired. Please request a new code.",
+            )
+
+        user = db.query(User).filter(User.id == challenge["user_id"]).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User account associated with this verification session was not found.",
+            )
+
+        if challenge["mfa_code"] != code:
+            challenge["attempts"] = challenge.get("attempts", 0) + 1
+            remaining = max(0, challenge.get("max_attempts", 5) - challenge["attempts"])
+            if remaining == 0:
+                AUTH_CHALLENGES.pop(session_id, None)
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Maximum verification attempts exceeded. Please register or request a new code.",
+                )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Incorrect verification code. {remaining} attempt{'s' if remaining != 1 else ''} remaining.",
+            )
+
+        # Correct OTP! Mark single use and consume challenge
+        challenge["mfa_verified"] = True
+        challenge["used"] = True
+        AUTH_CHALLENGES.pop(session_id, None)
+
+        user.email_verified = True
+        user.is_active = True
+        user.last_login = datetime.utcnow()
+        db.commit()
+        db.refresh(user)
 
     token_expires = timedelta(minutes=settings.jwt_access_token_expire_minutes)
     access_token = create_access_token(
         data={
-            "sub": new_user.email,
-            "role": new_user.role.value,
-            "user_id": new_user.id,
-            "member_id": new_user.member_id,
+            "sub": user.email,
+            "role": user.role.value,
+            "user_id": user.id,
+            "member_id": user.member_id,
         },
         expires_delta=token_expires,
     )
@@ -519,6 +713,43 @@ def register_customer(payload: UserCreate, db: Session = Depends(get_db)):
             token_type="bearer",
             expires_in=settings.jwt_access_token_expire_minutes * 60,
         ),
-        user=build_user_response(new_user, db),
+        user=build_user_response(user, db),
     )
+
+
+@router.post("/resend-registration-otp")
+def resend_registration_otp(payload: ResendMfaRequest, db: Session = Depends(get_db)):
+    """
+    Resends a freshly generated 6-digit registration OTP to the user's email with 30s cooldown.
+    """
+    session_id = payload.challenge_id or payload.session_id
+    user = None
+    if payload.email:
+        user = db.query(User).filter(func.lower(User.email) == payload.email.strip().lower()).first()
+
+    return resend_auth_challenge(
+        session_id=session_id,
+        email=payload.email,
+        user=user,
+        cooldown_seconds=30,
+    )
+
+
+@router.get("/verify-email", response_model=EmailVerifyResponse)
+def verify_email_get(token: str, db: Session = Depends(get_db)):
+    """
+    Validates account verification token via link click (legacy compatibility).
+    """
+    user = verify_account_token(token.strip(), db)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid, expired, or already used verification link.",
+        )
+    return EmailVerifyResponse(
+        success=True,
+        message="Account verified successfully! You can now sign in with your email and password.",
+        email=user.email,
+    )
+
 

@@ -85,6 +85,7 @@ def create_all_tables() -> None:
                     ("clearance_level", "VARCHAR(50)"),
                     ("mfa_secret", "VARCHAR(100)"),
                     ("mfa_enabled", "BOOLEAN DEFAULT 0"),
+                    ("email_verified", "BOOLEAN DEFAULT 0"),
                 ]
                 for col_name, col_type in new_cols:
                     if col_name not in existing_cols:

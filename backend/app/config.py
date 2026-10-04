@@ -3,15 +3,18 @@ FraudX AI — Application Configuration
 Reads from .env via pydantic-settings.
 """
 from functools import lru_cache
+from pathlib import Path
 from typing import List
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_ENV_PATH) if _ENV_PATH.exists() else ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -53,7 +56,7 @@ class Settings(BaseSettings):
     smtp_user: str | None = None
     smtp_password: str | None = None
     smtp_use_tls: bool = True
-    smtp_from_email: str = "security@fraudx.ai"
+    smtp_from_email: str = "onboarding@resend.dev"
     smtp_from_name: str = "FraudX AI Security"
     resend_api_key: str | None = None
     sendgrid_api_key: str | None = None

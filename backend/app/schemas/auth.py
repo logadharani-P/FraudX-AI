@@ -71,6 +71,10 @@ class UserBase(BaseModel):
     city: Optional[str] = None
     organisation_id: Optional[str] = None
     member_id: Optional[str] = None
+    analyst_id: Optional[str] = None
+    designation: Optional[str] = None
+    specialization: Optional[str] = None
+    clearance_level: Optional[str] = None
 
 
 class UserCreate(UserBase):
@@ -87,6 +91,7 @@ class UserResponse(BaseModel):
     phone: Optional[str] = None
     city: Optional[str] = None
     is_active: bool = True
+    email_verified: bool = False
     created_at: Optional[datetime] = None
     last_login: Optional[datetime] = None
 
@@ -124,4 +129,34 @@ class UserResponse(BaseModel):
 class AuthResponse(BaseModel):
     token: Token
     user: UserResponse
+
+
+class EmailVerifyRequest(BaseModel):
+    token: Optional[str] = None
+    code: Optional[str] = None
+    otp: Optional[str] = None
+    email: Optional[str] = None
+    session_id: Optional[str] = None
+    challenge_id: Optional[str] = None
+
+
+class EmailVerifyResponse(BaseModel):
+    success: bool
+    message: str
+    email: Optional[str] = None
+    token: Optional[Token] = None
+    user: Optional[UserResponse] = None
+
+
+class RegisterResponse(BaseModel):
+    success: bool = True
+    message: str
+    email: str
+    role: Optional[str] = None
+    challenge_id: Optional[str] = None
+    session_id: Optional[str] = None
+    member_id: Optional[str] = None
+    account_id: Optional[str] = None
+    verification_required: bool = True
+
 

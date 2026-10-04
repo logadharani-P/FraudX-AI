@@ -1,320 +1,267 @@
-﻿# FraudX AI
+# FraudX AI
 
 ## AI-Based Cooperative Financial Fraud Intelligence
 
-FraudX AI is an AI-powered platform for cooperative financial fraud intelligence. It analyzes transaction behavior, detects unusual patterns, produces explainable risk signals, and supports human-led fraud investigation. FraudX AI is designed to provide risk intelligence to analysts and compliance officers — it does not make a final fraud accusation and does not replace human investigators.
+FraudX AI is an AI-powered platform for cooperative financial fraud intelligence and anomaly detection. It analyzes transaction behavior, surfaces statistical anomalies, produces explainable risk signals, and streamlines human-led fraud investigations. FraudX AI is designed to augment analysts and compliance officers with actionable intelligence — all flagged indicators represent risk intelligence and do not constitute definitive fraud accusations.
 
 ---
 
 ## Problem Statement
 
-Detecting subtle fraud patterns in cooperative financial systems is difficult. Fraudulent activity often spans multiple transactions, members, accounts, devices, locations, and connected relationships over time. Traditional rule-based systems miss complex behavioral anomalies, while isolated transaction checks cannot surface coordinated or layered activity. Cooperative societies face particular challenges due to the personal, long-standing relationships between members and the limited tooling available for behavioral monitoring at scale.
+Detecting subtle fraud patterns in cooperative financial societies is challenging. Fraudulent schemes often span multiple transactions, accounts, members, locations, and connected relationships over time. Traditional rule-based threshold systems struggle to detect distributed, low-and-slow anomalies, while isolated checks cannot surface coordinated or layered activity. Cooperative institutions face particular challenges due to interconnected community networks and the need for explainable, human-governed fraud intelligence.
 
 ---
 
-## Proposed Solution
+## Overview & Architecture
 
 FraudX AI provides an end-to-end cooperative fraud intelligence workflow:
 
-1. **Transaction and member data** — synthetic AMLSim-based cooperative transaction data is ingested and enriched with member, channel, purpose, device, and location context.
-2. **Behavioral analysis** — per-member and per-transaction features are extracted to capture behavioral patterns.
-3. **AI anomaly detection** — a pure NumPy Isolation Forest engine detects statistically unusual transactions without requiring labeled training data.
-4. **Risk scoring** — each transaction receives a calibrated risk score (0–100) and a risk level (Low / Medium / High / Critical).
-5. **Explainable fraud alerts** — the system generates evidence-based explanations for why a transaction was flagged, presented as human-readable anomaly factors.
-6. **Transaction/network relationship analysis** — NetworkX is used to model the directed transaction graph, revealing relationships, clusters, and flow patterns between members.
-7. **Human investigation** — analysts open and manage fraud investigations with structured case notes and status tracking.
-8. **Risk treatment** — persistent risk treatment actions (e.g., freeze, monitor, escalate, clear) are recorded against alerts and members.
-9. **Audit trail** — all analyst and organisation actions are logged for accountability and compliance review.
-
-> **Important:** FraudX AI provides risk intelligence. All flagged transactions and risk indicators must be reviewed by a human investigator before any action is taken. The system does not make a final fraud determination.
-
----
-
-## Key Features
-
-- **Transaction monitoring** — browse, filter, and inspect all cooperative transactions with enriched context.
-- **Behavioral anomaly detection** — unsupervised Isolation Forest detects statistically unusual transaction patterns.
-- **Risk scoring and risk levels** — calibrated 0–100 risk scores with four levels: Low, Medium, High, Critical.
-- **Explainable fraud alerts** — each alert includes evidence-based anomaly factors explaining the risk signals.
-- **Member risk profiling** — per-member risk overview with transaction history and behavioral indicators.
-- **Transaction network analysis** — directed transaction graph built with NetworkX to visualize member-to-member relationships and detect connected activity.
-- **Fraud investigation workflow** — analysts can open, assign, and close investigations with case notes and status tracking.
-- **Persistent risk treatment actions** — freeze, monitor, escalate, or clear actions are saved and auditable.
-- **Role-based access control** — three roles: `customer`, `analyst`, and `organisation`, each with different permissions and views.
-- **Customer data isolation** — each customer sees only their own transactions and member data.
-- **Email OTP / MFA authentication** — analyst and organisation logins require a 6-digit verification code sent to email before a JWT session is issued.
-- **FraudX Intelligence Agent** — an interactive AI agent for natural-language queries over transaction and risk data, scoped by role.
-- **PDF, CSV, and JSON reports** — downloadable reports for investigations and transaction data.
-- **Transaction location visualization** — interactive map (Leaflet/React-Leaflet) showing transaction geographic distribution.
-- **Audit logging** — all significant analyst and organisation actions are recorded with timestamps.
+1. **Ingestion & Cooperative Context** — Ingests AMLSim-derived transaction datasets and applies cooperative enrichment (member profiles, account types, purposes, devices, and geographic coordinates).
+2. **Behavioral Feature Engineering** — Computes velocity, amount dispersion, channel distributions, and time-based metrics per account and transaction.
+3. **Unsupervised Anomaly Detection** — An ensemble of Isolation Trees built directly in pure NumPy detects statistical outliers without requiring ground-truth fraud labels.
+4. **Calibrated Risk Scoring** — Maps anomaly indicators to an explainable 0–100 risk score and four distinct operational risk tiers: Low, Medium, High, and Critical.
+5. **Explainable Risk Indicators** — Deconstructs anomaly scores into human-readable factor summaries for each flagged transaction.
+6. **Network & Graph Analysis** — Leverages NetworkX to construct directed transaction relationship graphs, revealing money flow clusters, rapid fan-in/fan-out patterns, and shared entity rings.
+7. **Analyst Investigation & Case Management** — Supports case creation, priority assignment, evidence aggregation, and resolution tracking.
+8. **Persistent Risk Treatment** — Allows authorized analysts to record auditable mitigation actions (Blocked, Froze, Escalated, Monitored, Whitelisted, NoteAdded).
+9. **Role-Aware AI Intelligence Agent** — Provides interactive contextual analysis and evidence summarization scoped strictly by user role.
+10. **Audit & Traceability** — Records auditable logs for compliance review and generates structured PDF, CSV, and JSON exports.
 
 ---
 
-## Authentication & Security
+## Key Capabilities
 
-### Login Flow (Analyst and Organisation roles)
+- **Behavioral Transaction Analysis** — Multi-dimensional monitoring of transaction velocity, amount deviation, purpose alignment, and device profiles.
+- **Unsupervised Anomaly Detection** — Pure NumPy Isolation Forest identifying out-of-distribution transactions.
+- **Calibrated Risk Scoring** — 0–100 risk scoring with transparent categorization (Low <35, Medium 35–59, High 60–79, Critical ≥80).
+- **Explainable Risk Indicators** — Evidence-based factors explaining specific reasons why a transaction was flagged.
+- **Fraud Alert Center** — Real-time triage queue for elevated risk transactions with status tracking.
+- **Investigation Case Management** — Full lifecycle case management for financial crime analysts.
+- **Network / Relationship Graph** — Interactive directed graph visualization of member-to-member transaction relationships using NetworkX.
+- **Persistent Risk Treatment** — Auditable treatment actions recorded against alerts and member accounts (Blocked, Froze, Escalated, Monitored, Whitelisted).
+- **Role-Aware AI Agent** — Natural-language financial crime query assistant with strict data-scoping per role.
+- **Comprehensive Reporting** — Downloadable structured reports in PDF, CSV, and JSON formats.
+- **Audit Logging** — Auditable logging of all security, investigation, and configuration events.
+- **Geographic Transaction Visualization** — Interactive spatial map (Leaflet / React-Leaflet) of transactions across cooperative operating regions.
 
-```
-Email + Password submitted
-    → Backend validates credentials
-    → OTP generated and sent to the email entered during login
-    → Frontend prompts user to enter the 6-digit code
-    → User submits OTP
-    → Backend verifies OTP against server-side challenge
-    → On success: JWT access token is issued
-    → On failure: attempt count incremented; challenge invalidated after 5 failed attempts
-```
+---
 
-Customer logins use email and password only (no MFA step).
+## Authentication & Role-Based Access Control (RBAC)
 
-### Verified Security Parameters
+FraudX AI implements a multi-role authentication system with cryptographically secure email OTP verification:
 
-| Parameter | Value |
+### Supported Roles
+
+1. **Customer**
+   - Self-registration with automatic cooperative member profile generation and baseline account initialization.
+   - Secure credential login with direct access to private account activity.
+   - **Customer Data Isolation**: Customers are strictly restricted to their own transactions, accounts, and member details. Access to analyst or organisation endpoints is denied with HTTP 403.
+2. **Analyst**
+   - Analyst Sign In with credential verification.
+   - **Analyst Enrol / Request Clearance**: Allows analysts to submit clearance requests with badge identifier (`ANL-200001` format).
+   - Operational access to dashboard analytics, transaction triage, alert management, case investigations, graph relationships, and intelligence reports.
+3. **Organisation (Admin)**
+   - Organisation Sign In and Organisation Administrator registration.
+   - Executive dashboard access, society-wide risk profiling, policy configurations, comprehensive audit logs, and compliance oversight.
+
+### Email Verification Code / OTP Specifications
+
+| Security Parameter | Specification |
 |---|---|
-| OTP format | 6-digit random numeric code |
-| OTP generation | `secrets.randbelow()` — cryptographically secure |
-| OTP expiry | 5 minutes (300 seconds) |
-| Maximum incorrect attempts | 5 — challenge is invalidated on breach |
-| OTP reuse | Single-use; consumed on successful verification |
-| OTP in API responses | Never returned in login or challenge API responses |
-| OTP on frontend | Never displayed |
-| OTP delivery | Sent to the exact email entered during login |
-| Token type | JWT (Bearer) |
-| Role enforcement | Backend enforces RBAC on every protected endpoint |
-| Customer data isolation | Customers can only access their own records |
-| Secrets management | Credentials and secrets are stored in `.env`, excluded from source control |
-
-### Face Verification
-
-The application includes a secondary face verification demonstration step as part of the authentication flow for analyst and organisation users. This is a demonstration/liveness flow — it is not a production-grade biometric recognition system.
+| **OTP Format** | 6-digit random numeric code |
+| **Generation Algorithm** | `secrets.randbelow(900000) + 100000` (Cryptographically secure, range `100000`–`999999`) |
+| **Static / Hardcoded Codes** | **None** — Every challenge generates a fresh, non-deterministic random code |
+| **Expiration Time** | 5 minutes (300 seconds) |
+| **Maximum Attempt Limit** | 5 failed attempts allowed before challenge invalidation |
+| **Usage Policy** | Single-use — challenge is immediately consumed and invalidated upon successful verification |
+| **Resend Cooldown** | 30-second throttle between resend requests |
+| **Resend Invalidation** | Requesting a new code immediately invalidates any previously issued OTP |
+| **Secret Masking** | Plaintext OTP is never returned in API responses, never logged to persistent files, and never exposed to the frontend |
+| **Token Format** | Signed JWT (HS256 Bearer Token) issued only upon completed verification |
+| **Email Delivery (Local)** | Standard Gmail SMTP with STARTTLS on port `587` |
+| **Email Delivery (Cloud)** | Multi-provider architecture supporting SMTP, Resend, SendGrid, and Brevo |
 
 ---
 
-## AI / Machine Learning
+## Synthetic Data & Enrichment
 
-### Anomaly Detection
+The application ingests an **AMLSim-derived synthetic transaction dataset** and enriches it for cooperative society banking scenarios:
 
-FraudX AI implements a **pure NumPy Isolation Forest** (Liu et al., 2008) from scratch — no scikit-learn dependency is required for the core model. The algorithm:
-
-- Builds an ensemble of 100 isolation trees, each trained on a random subsample of 256 transactions.
-- Computes anomaly scores in [0, 1] using average path length normalization (`s(x, n) = 2^(-E(h(x)) / c(ψ))`).
-- Calibrates raw scores to a 0–100 risk scale using min-max normalization.
-- Assigns risk levels based on thresholds: Critical (≥80), High (≥60), Medium (≥35), Low (<35).
-
-### Explainability
-
-The `risk_explainer` module generates evidence-based, human-readable anomaly factors for each flagged transaction by examining the transaction's features against behavioral norms.
-
-### Network Analysis
-
-`network_analysis.py` uses **NetworkX** to build a directed transaction graph. This allows the system to compute relationship metrics, identify high-connectivity members, detect transaction clusters, and surface connected activity between accounts.
-
-### Data Processing
-
-**NumPy** and **Pandas** are used throughout for feature engineering, statistical computation, and data transformation.
-
-### Evaluation Results (Synthetic Benchmark)
-
-The ML engine was evaluated against 1,430 seeded synthetic transactions from the AMLSim dataset, using the embedded `is_fraud_label` ground truth:
-
-| Metric | Result |
-|---|---|
-| Precision | 48.98% |
-| Recall | 60.00% |
-| F1 Score | 53.93% |
-| False Positive Rate | 3.70% |
-
-> These results are from the project's synthetic evaluation dataset and are **not** indicators of real-world financial fraud detection performance.
+- **Source Data**: Synthetic transaction records derived from AMLSim benchmark distributions.
+- **Cooperative Enrichment**: Application-level enrichment assigns member identifiers (`MBR-400xxx`), cooperative account numbers (`ACC-900xxx`), transaction types (UPI, IMPS, NEFT, RTGS, Cash), cooperative purposes (Agricultural Seeds & Fertilizer, Dairy Equipment, Share Capital, Crop Loan, Utility), device signatures, and coordinates.
+- **Label Clarification**: Synthetic labels (`is_fraud_label`) are used strictly for benchmark validation. Flagged anomalies in the live application represent statistical outliers and risk signals for human review, not absolute legal determinations of fraud.
 
 ---
 
-## Dataset
+## Machine Learning & Analytics
 
-The backend uses an **AMLSim-based synthetic transaction environment** enriched with cooperative financial context. The dataset is not real banking data.
+### Pure NumPy Isolation Forest
 
-Synthetic enrichment applied includes:
+The core anomaly detection engine is implemented in pure NumPy without relying on scikit-learn for tree construction:
+- **Ensemble Architecture**: 100 Isolation Trees trained on recursive random subsamples.
+- **Path Length Normalization**: Anomaly scoring based on average depth `s(x, n) = 2^(-E(h(x)) / c(ψ))`.
+- **Score Calibration**: Normalizes raw anomaly scores to a 0–100 scale.
+- **Threshold Tiers**:
+  - **Low Risk**: `Score < 35.0` (Normal baseline behavior)
+  - **Medium Risk**: `35.0 ≤ Score < 60.0` (Moderate deviation, watch list)
+  - **High Risk**: `60.0 ≤ Score < 80.0` (Significant anomaly, automated alert generated)
+  - **Critical Risk**: `Score ≥ 80.0` (Extreme anomaly requiring priority human investigation)
 
-- Member information (member ID, account ID, account type, balances)
-- Transaction channels (e.g., mobile app, branch, ATM, online)
-- Transaction purposes (e.g., loan repayment, savings deposit, transfer)
-- Device information
-- Geographic location (latitude/longitude)
-- Risk and anomaly indicators (`is_fraud_label`, `is_suspicious`, anomaly flags)
+### Network Relationship Analysis
+
+`network_analysis.py` models directed money flows using **NetworkX**:
+- Member connectivity degrees (in-degree / out-degree).
+- Detection of fan-out structuring and pass-through hubs.
+- Visual subgraph extraction for flagged entities.
+
+---
+
+## Role-Aware AI Intelligence Agent
+
+The **FraudX Intelligence Agent** assists human investigators with contextual explanations:
+- **Role-Scoped Context**: Customers can only ask questions regarding their own account history; analysts and organisation admins can query society-wide risk trends and transaction patterns.
+- **Non-Accusatory Governance**: Formulates responses using objective evidence factors, confidence indicators, and recommended investigation steps.
 
 ---
 
 ## Technology Stack
 
 ### Frontend
-- React 19 (Vite)
-- React Router DOM
-- Recharts (charts and dashboards)
-- Leaflet / React-Leaflet (transaction location maps)
-- Framer Motion (animations)
-- PapaParse (CSV parsing)
+- **Framework**: React 19 with Vite
+- **Routing**: React Router DOM
+- **Charts & Visualizations**: Recharts
+- **Geospatial Maps**: Leaflet & React-Leaflet
+- **Styling**: Vanilla CSS Design System with theme variables (Default: Pearl / Light theme with persisted user preferences)
 
 ### Backend
-- Python 3
-- FastAPI
-- Uvicorn
-- SQLAlchemy (ORM)
-- PyJWT (JWT)
-- bcrypt / passlib (password hashing)
-- python-dotenv
+- **Framework**: FastAPI (Python 3.10+)
+- **Server**: Uvicorn (ASGI)
+- **Database ORM**: SQLAlchemy
+- **Authentication**: PyJWT & direct bcrypt password hashing
+- **Email Delivery**: Python `smtplib` (STARTTLS / SSL) with httpx multi-provider fallback (Resend, SendGrid, Brevo)
+- **Reporting**: ReportLab (PDF) & Python standard CSV
 
 ### Database
-- SQLite (local development / default)
-- PostgreSQL (supported via `psycopg2-binary`; configured via `DATABASE_URL` environment variable)
-
-### AI / ML / Data
-- NumPy (pure NumPy Isolation Forest implementation)
-- Pandas
-- scikit-learn (feature engineering utilities)
-- joblib
-
-### Visualization / Graph
-- NetworkX (transaction relationship graph)
-- Leaflet / React-Leaflet (geographic visualization)
-- Recharts
-
-### Reporting
-- ReportLab / fpdf2 (PDF report generation)
+- **Local Development**: SQLite (`backend/fraudx.db`)
+- **Production**: PostgreSQL compatible via SQLAlchemy connection string (`DATABASE_URL`)
 
 ---
 
-## Project Structure
-
-```
-FraudX-AI/
-├── backend/
-│   ├── app/
-│   │   ├── ml/                  # Isolation Forest, network analysis, feature engineering, risk explainer
-│   │   ├── models/              # SQLAlchemy ORM models
-│   │   ├── routers/             # API route handlers (auth, dashboard, transactions, alerts, ...)
-│   │   ├── schemas/             # Pydantic request/response schemas
-│   │   ├── services/            # Auth service, email service, report generator
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   └── main.py
-│   ├── data/                    # Seed data files
-│   ├── scripts/                 # Database seeding scripts
-│   ├── tests/
-│   │   └── test_api.py
-│   ├── .env.example
-│   └── requirements.txt
-├── fraudx-app/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── context/
-│   │   ├── pages/               # Dashboard, Transactions, Alerts, Members, Reports, AIAgent, ...
-│   │   ├── styles/
-│   │   ├── utils/
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
-└── README.md
-```
-
----
-
-## How to Run Locally
+## Local Development Setup
 
 ### Prerequisites
+- Python 3.10 or higher
+- Node.js 18 or higher
+- Git
 
-- Python 3.10+
-- Node.js 18+
-- A configured `.env` file in `backend/` (see `backend/.env.example`)
-
-### Backend
+### 1. Backend Setup
 
 ```bash
 cd backend
+
+# Install Python dependencies
 pip install -r requirements.txt
+
+# Create local environment configuration
+# Copy .env.example to .env
+cp .env.example .env
+```
+
+Configure the following variables in `backend/.env`:
+
+```env
+DATABASE_URL=sqlite:///./fraudx.db
+JWT_SECRET_KEY=your-secure-random-32-byte-hex-secret
+EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-16-character-app-password
+SMTP_FROM_EMAIL=your-email@gmail.com
+SMTP_FROM_NAME=FraudX AI Security
+```
+
+Start the backend server:
+
+```bash
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-The backend will automatically seed the database on first run if no transactions are present.
+- **Health Check**: `GET http://localhost:8000/health`
+- **Interactive API Docs**: `http://localhost:8000/docs`
 
-**Health check endpoint:**
-```
-GET http://localhost:8000/health
-```
-
-**API documentation (auto-generated):**
-```
-http://localhost:8000/docs
-```
-
-### Frontend
+### 2. Frontend Setup
 
 ```bash
 cd fraudx-app
+
+# Install npm dependencies
 npm install
+
+# Start Vite dev server
 npm run dev
 ```
 
-The frontend dev server will start at `http://localhost:5173` by default.
+The application will be accessible at `http://localhost:5173`.
 
 ---
 
-## Testing
+## Production Deployment
 
-The backend test suite covers 9 test functions across all major system areas:
-
-| Test | Description |
-|---|---|
-| `test_root_and_health` | Root and health endpoints return expected status |
-| `test_auth_login_and_profile_data` | Primary authentication and profile data completeness |
-| `test_mfa_and_face_verification` | Server-side MFA validation and face verification demonstration |
-| `test_customer_registration_persistence_and_isolation` | Customer registration, persistent member creation, isolated transactions |
-| `test_customer_rbac_denials` | Customer role is denied access to analyst/org-only endpoints |
-| `test_analyst_and_organisation_access` | Analyst and organisation operational access to investigations, alerts, reports |
-| `test_transaction_explanations_location_and_ai_agent` | Transaction explanations, location data, and AI agent responses |
-| `test_alert_details_and_persistent_risk_treatment` | Alert detail retrieval and persistent risk treatment actions |
-| `test_reports_traceability_and_readable_formats` | Report generation in PDF, CSV, and JSON formats |
-
-**Backend result: 9 passed, 0 failed.**
-
-**Frontend:** Vite production build completed successfully with 0 errors.
-
-> The automated project verification passed. These results reflect test coverage of the implemented system against a synthetic dataset and do not represent real-world fraud detection accuracy.
+- **Frontend Deployment (Vercel)**:
+  - Framework Preset: Vite
+  - Build Command: `npm run build`
+  - Output Directory: `dist`
+  - Environment Variable: `VITE_API_URL=https://<your-render-backend-url>`
+- **Backend Deployment (Render)**:
+  - Runtime: Python 3
+  - Root Directory: `backend`
+  - Build Command: `pip install -r requirements.txt`
+  - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+  - Environment Variables configured in Render dashboard: `DATABASE_URL`, `JWT_SECRET_KEY`, `EMAIL_PROVIDER`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, `CORS_ORIGINS`.
 
 ---
 
-## Security / Responsible AI
+## Verification & Testing
 
-- **Role-based access control** — backend enforces role permissions on every protected API endpoint.
-- **Customer data isolation** — customers can only access their own member records and transactions.
-- **MFA** — analyst and organisation users must complete email OTP verification before a session token is issued.
-- **Audit logging** — analyst and organisation actions are recorded for accountability and traceability.
-- **Human review** — all risk alerts and anomaly flags are surfaced for human investigation; the system does not take autonomous action.
-- **Synthetic dataset** — the AI model was trained and evaluated on synthetic data. Its outputs reflect patterns in synthetic cooperative transactions, not real-world financial behavior.
-- **Risk indicators are not fraud accusations** — flagged transactions indicate elevated statistical anomaly, not confirmed fraud. Human review is required before any action is taken.
+### Test Suite Execution
+
+Run the complete backend automated test suite:
+
+```bash
+cd backend
+python -m pytest -q
+```
+
+**Latest Verified Test Run:**
+- **Status**: **11 tests passed, 0 failed**
+- **Test Modules**:
+  1. `test_root_and_health` — Root and health endpoint availability
+  2. `test_auth_login_and_profile_data` — Customer, Analyst, and Organisation authentication & complete profile retrieval
+  3. `test_mfa_and_face_verification` — Server-side MFA challenge validation, attempt exhaustion, and face demonstration
+  4. `test_customer_registration_persistence_and_isolation` — Customer registration, member creation, and transaction seeding
+  5. `test_customer_rbac_denials` — Strict HTTP 403 enforcement preventing customer access to analyst/org endpoints
+  6. `test_analyst_and_organisation_access` — Full operational access to cases, alerts, and management views
+  7. `test_transaction_explanations_location_and_ai_agent` — Risk explanations, location mapping, and scoped AI agent queries
+  8. `test_alert_details_and_persistent_risk_treatment` — Alert detail retrieval and persistent mitigation treatment actions
+  9. `test_reports_traceability_and_readable_formats` — PDF binary validation, CSV structure, and JSON report exports
+  10. `test_all_roles_registration_email_delivery_and_otp_randomness` — End-to-end registration email dispatch for all 3 roles, verification of dynamic 6-digit OTP randomness, and safe HTTP 503 error handling on delivery failure
+  11. `test_smtp_email_service_unit` — Unit validation of SMTP host/port connection, STARTTLS initialization, credentials validation, and exception safety
+
+### Frontend Production Build
+
+```bash
+cd fraudx-app
+npm run build
+```
+
+**Latest Verified Build:**
+- **Status**: **Success (0 errors)** in 618ms.
 
 ---
 
-## Limitations
+## Known Limitations
 
-- The AI model is trained on a synthetic AMLSim-based dataset. Performance on real-world cooperative transaction data may differ significantly.
-- The backend uses SQLite by default. Production deployment requires a persistent database (e.g., PostgreSQL) and appropriate infrastructure.
-- AI risk scores support investigation and do not replace human judgment or legal due diligence.
-- The face verification step is a demonstration flow, not a production-grade biometric recognition system.
-- The in-memory MFA challenge store does not persist across server restarts.
-
----
-
-## Future Enhancements
-
-- Real-time transaction streaming and alerting
-- Training on larger, real-world (anonymized) cooperative datasets
-- Advanced graph-based fraud detection using graph neural networks
-- Production-grade notification and alert delivery infrastructure
-- Model monitoring, drift detection, and scheduled retraining pipelines
-
----
-
-## License
-
-This project is currently provided for educational, research, and hackathon purposes. No open-source license has been specified at this time.
+1. **Synthetic Dataset**: The anomaly detection engine is calibrated on AMLSim synthetic cooperative transactions. Performance benchmarks reflect synthetic patterns and should be re-calibrated for production cooperative data.
+2. **Face Verification Step**: The facial verification step in the analyst login flow is a frontend demonstration of secondary biometric liveness validation and is not connected to a government ID biometric registry.
+3. **MFA Challenge Memory Store**: Active OTP challenge sessions are stored in-memory with automatic 5-minute TTL cleanup. In high-availability multi-instance deployments, a shared Redis cache would be utilized.

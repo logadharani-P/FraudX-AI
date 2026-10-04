@@ -8,6 +8,9 @@ export default function MFAVerification({
   challengeId = '',
   sessionId = '',
   roleName = 'Analyst',
+  title = '',
+  onVerify,
+  onResend,
   onSuccess,
   onCancel,
 }) {
@@ -97,11 +100,19 @@ export default function MFAVerification({
     setInfoMessage('');
 
     try {
-      await resendMfa({
-        session_id: activeSessionId,
-        challenge_id: activeSessionId,
-        email: email,
-      });
+      if (onResend) {
+        await onResend({
+          session_id: activeSessionId,
+          challenge_id: activeSessionId,
+          email: email,
+        });
+      } else {
+        await resendMfa({
+          session_id: activeSessionId,
+          challenge_id: activeSessionId,
+          email: email,
+        });
+      }
       setResendTimer(30);
       setDigits(['', '', '', '', '', '']);
       setInfoMessage('A new verification code has been sent to your email.');
@@ -136,13 +147,24 @@ export default function MFAVerification({
     setInfoMessage('');
 
     try {
-      const authUser = await verifyMfa({
-        session_id: activeSessionId,
-        challenge_id: activeSessionId,
-        code: code,
-        otp: code,
-        email: email,
-      });
+      let authUser;
+      if (onVerify) {
+        authUser = await onVerify({
+          session_id: activeSessionId,
+          challenge_id: activeSessionId,
+          code: code,
+          otp: code,
+          email: email,
+        });
+      } else {
+        authUser = await verifyMfa({
+          session_id: activeSessionId,
+          challenge_id: activeSessionId,
+          code: code,
+          otp: code,
+          email: email,
+        });
+      }
 
       setIsSuccess(true);
       setIsVerifying(false);
@@ -195,7 +217,7 @@ export default function MFAVerification({
       </div>
 
       <h2 className="mfa-title">
-        {isSuccess ? 'Verification Succeeded' : 'Email Verification'}
+        {isSuccess ? 'Verification Succeeded' : title || 'FraudX AI — Two-Factor Authentication'}
       </h2>
       <p className="mfa-desc">
         {isSuccess

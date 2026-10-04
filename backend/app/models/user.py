@@ -51,6 +51,7 @@ class User(Base):
     )
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
     member: Mapped[Optional["Member"]] = relationship(  # type: ignore[name-defined]  # noqa

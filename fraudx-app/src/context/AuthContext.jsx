@@ -109,14 +109,40 @@ export function AuthProvider({ children }) {
 
   const register = async (userData) => {
     try {
-      await api.auth.register(userData);
-      return await login({
-        email: userData.email,
-        password: userData.password,
-        role: userData.role || 'customer',
-      });
+      return await api.auth.register(userData);
     } catch (err) {
       console.error('Registration failed:', err);
+      throw err;
+    }
+  };
+
+  const verifyEmail = async (token) => {
+    try {
+      return await api.auth.verifyEmail(token);
+    } catch (err) {
+      console.error('Email verification failed:', err);
+      throw err;
+    }
+  };
+
+  const verifyRegistrationOtp = async (payload) => {
+    try {
+      const data = await api.auth.verifyRegistrationOtp(payload);
+      if (data.token?.access_token) {
+        return completeLogin(data);
+      }
+      return data;
+    } catch (err) {
+      console.error('Registration OTP verification failed:', err);
+      throw err;
+    }
+  };
+
+  const resendRegistrationOtp = async (payload) => {
+    try {
+      return await api.auth.resendRegistrationOtp(payload);
+    } catch (err) {
+      console.error('Resend registration OTP failed:', err);
       throw err;
     }
   };
@@ -145,9 +171,13 @@ export function AuthProvider({ children }) {
     resendMfa,
     completeLogin,
     register,
+    verifyEmail,
+    verifyRegistrationOtp,
+    resendRegistrationOtp,
     logout,
     setSelectedRole,
   }), [user, selectedRole, isAuthenticated, isLoading]);
+
 
   return (
     <AuthContext.Provider value={value}>

@@ -49,34 +49,13 @@ def test_root_and_health():
 
 
 def test_auth_login_and_profile_data():
-    from app.services.auth_service import AUTH_CHALLENGES
-
-    # 1. Analyst login initiates email MFA challenge (does NOT return JWT token prematurely)
+    # 1. Analyst demo login succeeds directly without requiring email OTP
     res = client.post("/api/auth/login", json={"email": "analyst@fraudx.ai", "password": "password123"})
     assert res.status_code == 200
     data = res.json()
-    assert data.get("mfa_required") is True
-    assert "token" not in data  # Security: No JWT issued before email code validation
-    assert "challenge_id" in data or "session_id" in data
-    assert "otp" not in data  # Security: OTP NEVER leaked to frontend response
-    assert "code" not in data
-
-    session_id = data.get("challenge_id") or data.get("session_id")
-    assert session_id in AUTH_CHALLENGES
-    # Simulate user reading the 6-digit code from their email
-    email_otp = AUTH_CHALLENGES[session_id]["mfa_code"]
-    assert len(email_otp) == 6
-    assert email_otp.isdigit()
-
-    # Complete Analyst login via verify-mfa with email code
-    verify_res = client.post("/api/auth/verify-mfa", json={
-        "session_id": session_id,
-        "otp": email_otp
-    })
-    assert verify_res.status_code == 200
-    v_data = verify_res.json()
-    assert "token" in v_data
-    user = v_data["user"]
+    assert "token" in data
+    assert "access_token" in data["token"]
+    user = data["user"]
     assert user["role"] == "analyst"
     assert "Vikram Seth" in user["name"]
     assert user["analyst_id"] or user["analystId"]
@@ -85,7 +64,7 @@ def test_auth_login_and_profile_data():
     assert user["clearance_level"] or user["clearanceLevel"]
     assert user["cases_investigated"] >= 0
 
-    token = v_data["token"]["access_token"]
+    token = data["token"]["access_token"]
 
     # Verify /api/auth/me returns same complete profile
     me_res = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
@@ -95,27 +74,18 @@ def test_auth_login_and_profile_data():
     assert me_user["role"] == "analyst"
     assert me_user["designation"] is not None
 
-    # 2. Organisation login & email verification flow
+    # 2. Organisation demo login & direct authentication
     org_res = client.post("/api/auth/login", json={"email": "admin@fraudx.ai", "password": "password123"})
     assert org_res.status_code == 200
-    org_chal = org_res.json()
-    assert org_chal.get("mfa_required") is True
-    assert "token" not in org_chal
-    org_sid = org_chal.get("challenge_id") or org_chal.get("session_id")
-    org_otp = AUTH_CHALLENGES[org_sid]["mfa_code"]
-
-    org_verify = client.post("/api/auth/verify-mfa", json={
-        "challenge_id": org_sid,
-        "code": org_otp
-    })
-    assert org_verify.status_code == 200
-    org_user = org_verify.json()["user"]
+    org_data = org_res.json()
+    assert "token" in org_data
+    org_user = org_data["user"]
     assert org_user["role"] == "organisation"
     assert org_user["organisation"]
     assert org_user["org_id"] or org_user["orgId"] or org_user["organisation_id"]
     assert org_user["designation"]
 
-    # 3. Customer default login & profile (remains unchanged and direct)
+    # 3. Customer demo login & direct authentication
     c_res = client.post("/api/auth/login", json={"email": "customer@fraudx.ai", "password": "password123"})
     assert c_res.status_code == 200
     c_data = c_res.json()
@@ -255,6 +225,8 @@ def test_mfa_and_face_verification():
 
 def test_customer_registration_persistence_and_isolation():
     import uuid
+    from app.services.auth_service import ACCOUNT_VERIFICATION_TOKENS
+
     run_id = str(uuid.uuid4())[:8]
     sarah_email = f"sarah.{run_id}@testcoop.com"
     rahul_email = f"rahul.{run_id}@testcoop.com"
@@ -270,8 +242,30 @@ def test_customer_registration_persistence_and_isolation():
     })
     assert sarah_res.status_code == 200
     sarah_data = sarah_res.json()
-    sarah_token = sarah_data["token"]["access_token"]
-    sarah_user = sarah_data["user"]
+    assert sarah_data["success"] is True
+    assert sarah_data["verification_required"] is True
+    assert sarah_data["email"] == sarah_email
+    sarah_sid = sarah_data.get("session_id") or sarah_data.get("challenge_id")
+
+    # Verify Sarah's account via 6-digit registration OTP
+    from app.services.auth_service import AUTH_CHALLENGES
+    assert sarah_sid in AUTH_CHALLENGES
+    sarah_otp = AUTH_CHALLENGES[sarah_sid]["mfa_code"]
+    assert len(sarah_otp) == 6
+
+    # Test verify-registration-otp endpoint
+    v_res = client.post("/api/auth/verify-registration-otp", json={
+        "session_id": sarah_sid,
+        "otp": sarah_otp
+    })
+    assert v_res.status_code == 200
+    assert "token" in v_res.json()
+
+    # Sarah completes login directly
+    sarah_token = v_res.json()["token"]["access_token"]
+    me_sarah = client.get("/api/auth/me", headers={"Authorization": f"Bearer {sarah_token}"})
+    assert me_sarah.status_code == 200
+    sarah_user = me_sarah.json()
     sarah_mbr_id = sarah_user["member_id"]
     sarah_acc_id = sarah_user["account_id"]
     assert sarah_mbr_id is not None
@@ -289,14 +283,26 @@ def test_customer_registration_persistence_and_isolation():
     })
     assert rahul_res.status_code == 200
     rahul_data = rahul_res.json()
-    rahul_token = rahul_data["token"]["access_token"]
-    rahul_user = rahul_data["user"]
+    assert rahul_data["success"] is True
+    rahul_sid = rahul_data.get("session_id") or rahul_data.get("challenge_id")
+    rahul_otp = AUTH_CHALLENGES[rahul_sid]["mfa_code"]
+
+    v_rahul = client.post("/api/auth/verify-registration-otp", json={
+        "session_id": rahul_sid,
+        "otp": rahul_otp
+    })
+    assert v_rahul.status_code == 200
+    rahul_token = v_rahul.json()["token"]["access_token"]
+    me_rahul = client.get("/api/auth/me", headers={"Authorization": f"Bearer {rahul_token}"})
+    assert me_rahul.status_code == 200
+    rahul_user = me_rahul.json()
     rahul_mbr_id = rahul_user["member_id"]
     rahul_acc_id = rahul_user["account_id"]
 
     # Verify separate identities
     assert sarah_mbr_id != rahul_mbr_id
     assert sarah_acc_id != rahul_acc_id
+
 
     # ── 3. Customer A Transaction Scoping ──
     # Sarah should only see her own transactions (e.g. 4 initial txns), NOT all 1,430 org txns
@@ -351,11 +357,11 @@ def test_customer_registration_persistence_and_isolation():
     # Sarah logs out
     client.post("/api/auth/logout", headers={"Authorization": f"Bearer {sarah_token}"})
 
-    # Sarah re-logs in
-    s_relogin = client.post("/api/auth/login", json={"email": sarah_email, "password": "Password@123"})
-    assert s_relogin.status_code == 200
-    re_user = s_relogin.json()["user"]
-    re_token = s_relogin.json()["token"]["access_token"]
+    # Sarah re-logs in via 6-digit MFA OTP flow
+    re_token = get_user_token(sarah_email, "Password@123")
+    re_me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {re_token}"})
+    assert re_me.status_code == 200
+    re_user = re_me.json()
     assert re_user["member_id"] == sarah_mbr_id
     assert re_user["account_id"] == sarah_acc_id
 
@@ -366,10 +372,10 @@ def test_customer_registration_persistence_and_isolation():
 
 
 def test_customer_rbac_denials():
-    # Login as customer
-    res = client.post("/api/auth/login", json={"email": "customer@fraudx.ai", "password": "password123"})
-    token = res.json()["token"]["access_token"]
+    # Login as customer via MFA OTP
+    token = get_user_token("customer@fraudx.ai", "password123")
     auth_header = {"Authorization": f"Bearer {token}"}
+
 
     # 1. Customer cannot list all members directory -> 403
     assert client.get("/api/members", headers=auth_header).status_code == 403
@@ -788,6 +794,167 @@ def test_reports_traceability_and_readable_formats():
     assert "Action" in csv_aud.text
 
 
+def test_all_roles_registration_email_delivery_and_otp_randomness(monkeypatch):
+    """
+    Verifies:
+    1. Customer, Analyst, and Organisation registration all execute email delivery.
+    2. OTPs generated are cryptographically random 6-digit integers (not static / not 123456).
+    3. Email delivery failure is cleanly returned as HTTP 503 without leaking secrets.
+    """
+    import uuid
+    from app.services.auth_service import AUTH_CHALLENGES
+    import app.services.auth_service as auth_service
+
+    sent_emails = []
+
+    def mock_send_email(to_email: str, otp: str, expires_minutes: int = 5):
+        sent_emails.append({"to_email": to_email, "otp": otp})
+        return {"success": True, "provider": "smtp", "recipient": to_email}
+
+    monkeypatch.setattr(auth_service, "send_verification_email", mock_send_email)
+
+    otps_generated = set()
+    tag = uuid.uuid4().hex[:6]
+
+    # 1. Customer Registration
+    c_email = f"customer_{tag}@coopbank.in"
+    c_res = client.post("/api/auth/register", json={
+        "name": "Coop Customer Test",
+        "email": c_email,
+        "password": "Password123!",
+        "role": "customer",
+        "city": "Chennai",
+    })
+    assert c_res.status_code == 200
+    c_data = c_res.json()
+    assert c_data["success"] is True
+    assert c_data["role"] == "customer"
+    c_sid = c_data["challenge_id"]
+    assert c_sid in AUTH_CHALLENGES
+    c_otp = AUTH_CHALLENGES[c_sid]["mfa_code"]
+    assert len(c_otp) == 6 and c_otp.isdigit() and int(c_otp) >= 100000
+    otps_generated.add(c_otp)
+
+    # 2. Analyst Enrol Registration
+    a_email = f"analyst_{tag}@coopbank.in"
+    a_res = client.post("/api/auth/register", json={
+        "name": "Coop Analyst Test",
+        "email": a_email,
+        "password": "Password123!",
+        "role": "analyst",
+        "city": "Mumbai",
+        "phone": f"ANL-{tag.upper()}",
+    })
+    assert a_res.status_code == 200
+    a_data = a_res.json()
+    assert a_data["success"] is True
+    assert a_data["role"] == "analyst"
+    a_sid = a_data["challenge_id"]
+    assert a_sid in AUTH_CHALLENGES
+    a_otp = AUTH_CHALLENGES[a_sid]["mfa_code"]
+    assert len(a_otp) == 6 and a_otp.isdigit() and int(a_otp) >= 100000
+    otps_generated.add(a_otp)
+
+    # 3. Organisation Registration
+    o_email = f"admin_{tag}@coopbank.in"
+    o_res = client.post("/api/auth/register", json={
+        "name": "Apex Cooperative Admin",
+        "email": o_email,
+        "password": "Password123!",
+        "role": "organisation",
+        "city": "Delhi",
+    })
+    assert o_res.status_code == 200
+    o_data = o_res.json()
+    assert o_data["success"] is True
+    assert o_data["role"] == "organisation"
+    o_sid = o_data["challenge_id"]
+    assert o_sid in AUTH_CHALLENGES
+    o_otp = AUTH_CHALLENGES[o_sid]["mfa_code"]
+    assert len(o_otp) == 6 and o_otp.isdigit() and int(o_otp) >= 100000
+    otps_generated.add(o_otp)
+
+    # Verify all 3 roles sent email
+    assert len(sent_emails) == 3
+    assert sent_emails[0]["to_email"] == c_email
+    assert sent_emails[1]["to_email"] == a_email
+    assert sent_emails[2]["to_email"] == o_email
+
+    # 4. Email Delivery Failure Handling
+    def mock_fail_email(to_email: str, otp: str, expires_minutes: int = 5):
+        return {"success": False, "error": "SMTP server unreachable", "provider": "smtp"}
+
+    monkeypatch.setattr(auth_service, "send_verification_email", mock_fail_email)
+
+    fail_email = f"fail_{tag}@coopbank.in"
+    fail_res = client.post("/api/auth/register", json={
+        "name": "Failed Delivery Test",
+        "email": fail_email,
+        "password": "Password123!",
+        "role": "analyst",
+    })
+    assert fail_res.status_code == 503
+    assert "Unable to deliver verification code" in fail_res.json()["detail"]
+    # Ensure no passwords or secrets leaked in error
+    assert "Password" not in fail_res.text and "smtp_password" not in fail_res.text
+
+
+def test_smtp_email_service_unit(monkeypatch):
+    """
+    Verifies SMTP email service unit behavior:
+    1. Connects to configured host and port with STARTTLS and authentication.
+    2. Missing SMTP credentials returns success=False with clear message.
+    3. Handles SMTP exceptions gracefully.
+    """
+    import smtplib
+    from app.services.email_service import send_verification_email
+    import app.services.email_service as email_service
+
+    # Test 1: Missing credentials under provider='smtp'
+    monkeypatch.setattr(email_service.settings, "email_provider", "smtp")
+    monkeypatch.setattr(email_service.settings, "smtp_host", None)
+    monkeypatch.setattr(email_service.settings, "smtp_user", None)
+    monkeypatch.setattr(email_service.settings, "smtp_password", None)
+
+    res_missing = send_verification_email(to_email="test@coop.org", otp="654321")
+    assert res_missing["success"] is False
+    assert res_missing["provider"] == "smtp"
+
+    # Test 2: Successful SMTP mock delivery
+    monkeypatch.setattr(email_service.settings, "smtp_host", "smtp.gmail.com")
+    monkeypatch.setattr(email_service.settings, "smtp_port", 587)
+    monkeypatch.setattr(email_service.settings, "smtp_user", "security@fraudx.ai")
+    monkeypatch.setattr(email_service.settings, "smtp_password", "fake_app_password")
+    monkeypatch.setattr(email_service.settings, "smtp_from_email", "security@fraudx.ai")
+    monkeypatch.setattr(email_service.settings, "smtp_from_name", "FraudX AI Security")
+
+    smtp_calls = []
+
+    class MockSMTP:
+        def __init__(self, host, port, timeout=12.0):
+            smtp_calls.append(("connect", host, port))
+        def __enter__(self):
+            return self
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            pass
+        def starttls(self, context=None):
+            smtp_calls.append(("starttls",))
+        def login(self, user, password):
+            smtp_calls.append(("login", user))
+        def sendmail(self, from_addr, to_addrs, msg):
+            smtp_calls.append(("sendmail", from_addr, to_addrs))
+
+    monkeypatch.setattr(smtplib, "SMTP", MockSMTP)
+
+    res_success = send_verification_email(to_email="test@coop.org", otp="654321")
+    assert res_success["success"] is True
+    assert res_success["provider"] == "smtp"
+    assert ("connect", "smtp.gmail.com", 587) in smtp_calls
+    assert ("starttls",) in smtp_calls
+    assert ("login", "security@fraudx.ai") in smtp_calls
+    assert any(c[0] == "sendmail" and c[1] == "security@fraudx.ai" for c in smtp_calls)
+
+
 if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -812,6 +979,7 @@ if __name__ == "__main__":
     test_reports_traceability_and_readable_formats()
     print("  [OK] Reports Traceability & Readable PDF/CSV/JSON Formats OK")
     print("\nALL COMPREHENSIVE BACKEND VERIFICATION TESTS PASSED SUCCESSFULLY!")
+
 
 
 
