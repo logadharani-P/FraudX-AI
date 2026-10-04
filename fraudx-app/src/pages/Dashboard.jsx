@@ -7,7 +7,6 @@ import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tool
 import AIWelcomeCard from '../components/AIWelcomeCard';
 import './Dashboard.css';
 
-const CHART_COLORS = ['#4A7BF7', '#2ECC87', '#8B5CF6', '#F59E0B', '#22D3EE', '#EF4444'];
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -16,40 +15,57 @@ export default function Dashboard() {
   const { navigateWithTransition } = useModuleTransition();
   const isCustomer = user?.role === 'customer';
 
-  // Find customer's member entry by matching name
+  // Find customer's member entry by ID or name
   const customerMember = useMemo(() => {
-    if (!isCustomer || !user?.name) return null;
-    return members.find(m => m.name?.toLowerCase() === user.name.toLowerCase());
+    if (!isCustomer) return null;
+    const targetId = user?.memberId || user?.id;
+    return (members || []).find(m =>
+      (targetId && (m.id === targetId || m.memberId === targetId)) ||
+      (user?.name && m.name?.toLowerCase() === user.name.toLowerCase())
+    );
   }, [isCustomer, user, members]);
 
-  // Filter transactions for customer role
+  // Filter transactions for customer role strictly (never leak other members' transactions)
   const roleTransactions = useMemo(() => {
-    if (!isCustomer || !customerMember) return transactions;
-    const memberId = customerMember.id ?? customerMember.memberId;
-    return transactions.filter(t => t.senderId === memberId || t.receiverId === memberId);
-  }, [isCustomer, customerMember, transactions]);
+    if (!isCustomer) return transactions || [];
+    const memberId = customerMember?.id ?? customerMember?.memberId ?? user?.memberId ?? user?.id;
+    if (memberId) {
+      return (transactions || []).filter(t =>
+        t.senderId === memberId || t.receiverId === memberId ||
+        t.senderMemberId === memberId || t.receiverMemberId === memberId
+      );
+    }
+    if (user?.name) {
+      return (transactions || []).filter(t => t.senderName === user.name || t.receiverName === user.name);
+    }
+    return [];
+  }, [isCustomer, customerMember, user, transactions]);
 
   const roleAlerts = useMemo(() => {
-    if (!isCustomer) return alerts;
+    if (!isCustomer) return alerts || [];
     const txnIds = new Set(roleTransactions.map(t => t.id));
     return (alerts || []).filter(a => txnIds.has(a.transactionId));
   }, [isCustomer, alerts, roleTransactions]);
 
   // Compute stats for role
   const roleStats = useMemo(() => {
-    if (!isCustomer) return stats;
+    if (!isCustomer) return stats || {};
     const rt = roleTransactions;
     const ra = roleAlerts;
     return {
-      ...stats,
+      ...(stats || {}),
       totalTransactions: rt.length,
-      totalAmount: rt.reduce((sum, t) => sum + t.amount, 0),
+      totalAmount: rt.reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
       fraudCount: rt.filter(t => t.isFraud).length,
       openAlerts: ra.filter(a => a.status === 'Open').length,
       highRiskCount: rt.filter(t => t.riskLevel === 'High' || t.riskLevel === 'Critical').length,
       mediumRiskCount: rt.filter(t => t.riskLevel === 'Medium').length,
       lowRiskCount: rt.filter(t => t.riskLevel === 'Low').length,
-      typeCounts: rt.reduce((acc, t) => { acc[t.type] = (acc[t.type] || 0) + 1; return acc; }, {}),
+      typeCounts: rt.reduce((acc, t) => {
+        const tp = t.type || 'Transfer';
+        acc[tp] = (acc[tp] || 0) + 1;
+        return acc;
+      }, {}),
     };
   }, [isCustomer, stats, roleTransactions, roleAlerts]);
 
@@ -67,15 +83,19 @@ export default function Dashboard() {
     { name: 'High', value: roleStats.highRiskCount || 0, color: '#EF4444' },
   ];
 
-  // Activity timeline (group by hours)
+  // Activity timeline (group by hours safely)
   const activityData = [];
   if (roleTransactions.length > 0) {
-    const maxTime = Math.max(...roleTransactions.map(t => t.timeSeconds));
-    const bucketSize = maxTime / 24;
+    const validTimes = roleTransactions.map(t => Number(t.timeSeconds)).filter(n => !isNaN(n) && n > 0);
+    const maxTime = validTimes.length > 0 ? Math.max(...validTimes) : 86400;
+    const bucketSize = maxTime > 0 ? maxTime / 24 : 3600;
     for (let i = 0; i < 24; i++) {
       const start = i * bucketSize;
       const end = (i + 1) * bucketSize;
-      const bucket = roleTransactions.filter(t => t.timeSeconds >= start && t.timeSeconds < end);
+      const bucket = roleTransactions.filter(t => {
+        const sec = Number(t.timeSeconds) || 0;
+        return sec >= start && sec < end;
+      });
       activityData.push({
         hour: `${String(i).padStart(2, '0')}:00`,
         transactions: bucket.length,

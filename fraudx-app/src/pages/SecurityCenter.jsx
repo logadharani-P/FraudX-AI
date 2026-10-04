@@ -230,7 +230,7 @@ export default function SecurityCenter() {
                   <td>{getSeverityBadge(evt.severity)}</td>
                   <td>
                     <span className={`badge ${evt.status === 'Verified' || evt.status === 'Reviewed' ? 'badge-low' : 'badge-high'}`}>
-                      {t('common.' + (evt.status === 'Reviewed' ? 'completed' : evt.status.toLowerCase()), evt.status)}
+                      {t('common.' + (evt.status === 'Reviewed' ? 'completed' : ((evt.status || 'verified').toLowerCase())), evt.status || 'Verified')}
                     </span>
                   </td>
                 </tr>

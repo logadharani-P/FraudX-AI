@@ -184,7 +184,13 @@ export function NotificationProvider({ children }) {
         
         // If customer, only show if transaction belongs to this customer
         if (isCustomer) {
-          if (!txn || (txn.senderName !== user?.name && txn.receiverName !== user?.name)) {
+          const userMid = user?.memberId || user?.id;
+          const belongs = txn && (
+            (txn.senderName && txn.senderName === user?.name) ||
+            (txn.receiverName && txn.receiverName === user?.name) ||
+            (userMid && (txn.senderId === userMid || txn.receiverId === userMid || txn.senderMemberId === userMid || txn.receiverMemberId === userMid))
+          );
+          if (!belongs) {
             return;
           }
         }

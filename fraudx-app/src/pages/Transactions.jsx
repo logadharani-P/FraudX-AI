@@ -21,18 +21,31 @@ export default function Transactions() {
 
   // Find customer's member entry
   const customerMember = useMemo(() => {
-    if (!isCustomer || !user?.name) return null;
-    return members.find(m => m.name?.toLowerCase() === user.name.toLowerCase());
+    if (!isCustomer) return null;
+    const targetId = user?.memberId || user?.id;
+    return (members || []).find(m =>
+      (targetId && (m.id === targetId || m.memberId === targetId)) ||
+      (user?.name && m.name?.toLowerCase() === user.name.toLowerCase())
+    );
   }, [isCustomer, user, members]);
 
-  // Filter transactions for customer role
+  // Filter transactions for customer role strictly
   const baseTransactions = useMemo(() => {
-    if (!isCustomer || !customerMember) return transactions;
-    const memberId = customerMember.id ?? customerMember.memberId;
-    return transactions.filter(t => t.senderId === memberId || t.receiverId === memberId);
-  }, [isCustomer, customerMember, transactions]);
+    if (!isCustomer) return transactions || [];
+    const memberId = customerMember?.id ?? customerMember?.memberId ?? user?.memberId ?? user?.id;
+    if (memberId) {
+      return (transactions || []).filter(t =>
+        t.senderId === memberId || t.receiverId === memberId ||
+        t.senderMemberId === memberId || t.receiverMemberId === memberId
+      );
+    }
+    if (user?.name) {
+      return (transactions || []).filter(t => t.senderName === user.name || t.receiverName === user.name);
+    }
+    return [];
+  }, [isCustomer, customerMember, user, transactions]);
 
-  const types = ['All', ...new Set(baseTransactions.map(t => t.type))];
+  const types = ['All', ...new Set(baseTransactions.map(t => t.type || 'Transfer'))];
   const risks = ['All', 'Low', 'Medium', 'High', 'Critical'];
   const statuses = ['All', 'Completed', 'Under Review', 'Flagged', 'Monitoring'];
 
@@ -43,7 +56,13 @@ export default function Transactions() {
       if (statusFilter !== 'All' && txn.status !== statusFilter) return false;
       if (search) {
         const q = search.toLowerCase();
-        return txn.id.toLowerCase().includes(q) || txn.senderName.toLowerCase().includes(q) || txn.receiverName.toLowerCase().includes(q) || txn.location.toLowerCase().includes(q) || String(txn.amount).includes(q);
+        return (
+          String(txn.id || '').toLowerCase().includes(q) ||
+          String(txn.senderName || '').toLowerCase().includes(q) ||
+          String(txn.receiverName || '').toLowerCase().includes(q) ||
+          String(txn.location || txn.city || '').toLowerCase().includes(q) ||
+          String(txn.amount || '').includes(q)
+        );
       }
       return true;
     });
@@ -140,8 +159,8 @@ export default function Transactions() {
                 <td><span className="badge badge-info">{txn.type}</span></td>
                 <td><span className="text-sm font-semibold">{txn.amountFormatted}</span></td>
                 <td><span className="text-sm">{txn.city}</span></td>
-                <td><span className={`badge badge-${txn.riskLevel.toLowerCase()}`}>{t('common.' + txn.riskLevel.toLowerCase(), txn.riskLevel)}</span></td>
-                <td><span className="text-sm">{t('common.' + (txn.status === 'Under Review' ? 'underReview' : txn.status.toLowerCase()), txn.status)}</span></td>
+                <td><span className={`badge badge-${(txn.riskLevel || 'low').toLowerCase()}`}>{t('common.' + (txn.riskLevel || 'low').toLowerCase(), txn.riskLevel || 'Low')}</span></td>
+                <td><span className="text-sm">{t('common.' + ((txn.status === 'Under Review' ? 'underReview' : txn.status) || 'completed').toLowerCase(), txn.status || 'Completed')}</span></td>
               </tr>
             ))}
             {paginated.length === 0 && (

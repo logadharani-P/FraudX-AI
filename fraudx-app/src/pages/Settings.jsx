@@ -123,8 +123,7 @@ export default function Settings() {
     playCriticalAlertSound,
   } = useNotifications();
 
-  const { user } = useAuth();
-  const isCustomer = user?.role === 'customer';
+  const { user: _user } = useAuth();
 
   const toggleChannel = (key) => {
     setChannels(prev => ({ ...prev, [key]: !prev[key] }));

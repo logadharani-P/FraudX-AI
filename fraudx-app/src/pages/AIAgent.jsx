@@ -106,7 +106,7 @@ function AIAgentInner() {
   // Keep single welcome message synced when language switches before user starts chatting
   useEffect(() => {
     setMessages(prev => {
-      if (prev.length === 1 && prev[0].role === 'assistant') {
+      if (prev.length === 1 && prev[0].role === 'assistant' && prev[0].content !== initialWelcome) {
         return [{ role: 'assistant', content: initialWelcome }];
       }
       return prev;
@@ -377,16 +377,12 @@ function AIAgentInner() {
 
     // Attempt backend AI service call with timeout
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4500);
-
       const res = await Promise.race([
         api.agent.chat(userMsg.content),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('AI service timeout')), 4500)
+          setTimeout(() => reject(new Error('AI service timeout')), 15000)
         )
       ]);
-      clearTimeout(timeoutId);
 
       if (res && res.reply) {
         setMessages(prev => [

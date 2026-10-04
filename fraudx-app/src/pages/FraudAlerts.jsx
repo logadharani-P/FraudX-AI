@@ -90,11 +90,11 @@ export default function FraudAlerts() {
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   {treatment && (
                     <span className={`badge ${displayStatus === 'Blocked' ? 'badge-critical' : displayStatus === 'Whitelisted' ? 'badge-low' : 'badge-info'}`}>
-                      {t('common.' + (displayStatus === 'Under Review' ? 'underReview' : displayStatus.toLowerCase()), displayStatus)}
+                      {t('common.' + ((displayStatus === 'Under Review' ? 'underReview' : displayStatus) || 'open').toLowerCase(), displayStatus || 'Open')}
                     </span>
                   )}
-                  <span className={`badge badge-${alert.riskLevel.toLowerCase()}`}>
-                    {t('common.' + alert.riskLevel.toLowerCase(), alert.riskLevel)}
+                  <span className={`badge badge-${(alert.riskLevel || 'medium').toLowerCase()}`}>
+                    {t('common.' + (alert.riskLevel || 'medium').toLowerCase(), alert.riskLevel || 'Medium')}
                   </span>
                 </div>
               </div>

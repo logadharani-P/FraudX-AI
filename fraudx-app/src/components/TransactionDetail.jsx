@@ -54,6 +54,15 @@ function explainAnomaly(factor, t) {
   };
 }
 
+const Field = ({ label, value, mono, fallback = '—' }) => (
+  <div className="txn-detail__field">
+    <span className="txn-detail__field-label">{label}</span>
+    <span className={`txn-detail__field-value ${mono ? 'text-mono' : ''}`}>
+      {value !== undefined && value !== null && value !== '' ? value : fallback}
+    </span>
+  </div>
+);
+
 export default function TransactionDetail({ transaction: txn, onClose }) {
   const { t } = useTheme();
   const { user } = useAuth();
@@ -62,7 +71,6 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
   const [treatmentNotice, setTreatmentNotice] = useState(null);
 
   const role = user?.role || 'customer';
-  const isCustomer = role === 'customer';
   const isAnalystOrOrg = role === 'analyst' || role === 'organisation';
 
   const alert = (txn && getAlertForTransaction(txn.id)) || {
@@ -192,15 +200,6 @@ export default function TransactionDetail({ transaction: txn, onClose }) {
         : 'Investigation active.',
     },
   ];
-
-  const Field = ({ label, value, mono }) => (
-    <div className="txn-detail__field">
-      <span className="txn-detail__field-label">{label}</span>
-      <span className={`txn-detail__field-value ${mono ? 'text-mono' : ''}`}>
-        {value !== undefined && value !== null && value !== '' ? value : t('transactionDetail.notAvailable')}
-      </span>
-    </div>
-  );
 
   return (
     <div className="txn-detail-overlay" onClick={onClose}>

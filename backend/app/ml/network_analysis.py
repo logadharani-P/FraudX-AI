@@ -95,6 +95,12 @@ class SimpleDiGraph:
                 sub.add_edge(u, v, **d)
         return sub
 
+    def copy(self):
+        new_g = SimpleDiGraph()
+        new_g._nodes = {k: dict(v) for k, v in self._nodes.items()}
+        new_g._edges = {k: dict(v) for k, v in self._edges.items()}
+        return new_g
+
     def __len__(self):
         return len(self._nodes)
 

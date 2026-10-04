@@ -54,6 +54,15 @@ function getAnomalyExplanation(factor, t) {
   };
 }
 
+const Field = ({ label, value, mono, fallback = '—' }) => (
+  <div className="alert-detail__field">
+    <span className="alert-detail__field-label">{label}</span>
+    <span className={`alert-detail__field-value ${mono ? 'text-mono' : ''}`}>
+      {value !== undefined && value !== null && value !== '' ? value : fallback}
+    </span>
+  </div>
+);
+
 export default function AlertDetailPanel({ alert, onClose }) {
   const { t } = useTheme();
   const { user } = useAuth();
@@ -182,15 +191,6 @@ export default function AlertDetailPanel({ alert, onClose }) {
         : 'Investigation active.',
     },
   ];
-
-  const Field = ({ label, value, mono }) => (
-    <div className="alert-detail__field">
-      <span className="alert-detail__field-label">{label}</span>
-      <span className={`alert-detail__field-value ${mono ? 'text-mono' : ''}`}>
-        {value !== undefined && value !== null && value !== '' ? value : t('transactionDetail.notAvailable')}
-      </span>
-    </div>
-  );
 
   return (
     <div className="alert-detail-overlay" onClick={onClose}>

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import demoRawData from '../data/demoTransactions.json';
 import { enrichDataset } from '../data/enrichDataset';
+import api from '../lib/api';
 
 const DataContext = createContext(null);
 
@@ -62,7 +63,6 @@ export function DataProvider({ children }) {
 
     // 2. Resilient background sync with backend if available
     try {
-      const { default: api } = await import('../lib/api').catch(() => ({ default: null }));
       if (api?.alerts?.update) {
         const actionMap = {
           block: 'blocked',

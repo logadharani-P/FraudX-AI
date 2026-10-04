@@ -14,17 +14,27 @@ export default function RiskAnalysis() {
 
   // Customer specific data
   const customerMember = useMemo(() => {
-    if (!isCustomer || !user?.name) return null;
-    return members.find(m => m.name?.toLowerCase() === user.name.toLowerCase());
+    if (!isCustomer) return null;
+    const targetId = user?.memberId || user?.id;
+    return (members || []).find(m =>
+      (targetId && (m.id === targetId || m.memberId === targetId)) ||
+      (user?.name && m.name?.toLowerCase() === user.name.toLowerCase())
+    );
   }, [isCustomer, user, members]);
 
   const customerTxns = useMemo(() => {
     if (!isCustomer) return [];
-    if (customerMember) {
-      const memberId = customerMember.id ?? customerMember.memberId;
-      return transactions.filter(t => t.senderId === memberId || t.receiverId === memberId);
+    const memberId = customerMember?.id ?? customerMember?.memberId ?? user?.memberId ?? user?.id;
+    if (memberId) {
+      return (transactions || []).filter(t =>
+        t.senderId === memberId || t.receiverId === memberId ||
+        t.senderMemberId === memberId || t.receiverMemberId === memberId
+      );
     }
-    return transactions.filter(t => t.senderName === user?.name || t.receiverName === user?.name);
+    if (user?.name) {
+      return (transactions || []).filter(t => t.senderName === user.name || t.receiverName === user.name);
+    }
+    return [];
   }, [isCustomer, customerMember, user, transactions]);
 
   // Customer calculations

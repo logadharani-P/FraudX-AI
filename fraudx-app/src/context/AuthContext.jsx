@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import api from '../lib/api';
 
 const AuthContext = createContext(null);
 
@@ -167,7 +168,7 @@ export function AuthProvider({ children }) {
       );
 
       if (!matchedUser) {
-        if (orgKey === 'org-300001' || adminEmail === 'vikram.mehta@fraudx.ai') {
+        if (orgKey === 'org-300001' || orgKey === 'org-apex-01' || adminEmail === 'vikram.mehta@fraudx.ai' || adminEmail === 'admin@fraudx.ai') {
           matchedUser = DEFAULT_DEMO_USERS.organisation;
         }
       }
@@ -198,6 +199,21 @@ export function AuthProvider({ children }) {
     setUser(matchedUser);
     setSelectedRole(role);
     setIsAuthenticated(true);
+
+    // Obtain backend token for real API integration
+    try {
+      const emailToUse = matchedUser.email || (role === 'analyst' ? 'analyst@fraudx.ai' : role === 'organisation' ? 'admin@fraudx.ai' : 'customer@fraudx.ai');
+      const passToUse = (matchedUser.password && matchedUser.password.length >= 6) ? matchedUser.password : 'password123';
+      api.auth.login(emailToUse, passToUse, role).then(res => {
+        if (res?.token?.access_token) {
+          localStorage.setItem('fraudx_token', res.token.access_token);
+          localStorage.setItem('fraudx_user', JSON.stringify(res.user || matchedUser));
+        }
+      }).catch(err => {
+        console.warn('Backend authentication sync note:', err?.message || err);
+      });
+    } catch {}
+
     return { success: true, user: matchedUser };
   }, [usersRegistry]);
 
@@ -212,6 +228,17 @@ export function AuthProvider({ children }) {
       setUser(defaultUser);
       setSelectedRole(role);
       setIsAuthenticated(true);
+
+      // Sync backend token
+      try {
+        const emailToUse = role === 'analyst' ? 'analyst@fraudx.ai' : role === 'organisation' ? 'admin@fraudx.ai' : 'customer@fraudx.ai';
+        api.auth.login(emailToUse, 'password123', role).then(res => {
+          if (res?.token?.access_token) {
+            localStorage.setItem('fraudx_token', res.token.access_token);
+            localStorage.setItem('fraudx_user', JSON.stringify(res.user || defaultUser));
+          }
+        }).catch(() => {});
+      } catch {}
     }
   }, []);
 
@@ -240,6 +267,22 @@ export function AuthProvider({ children }) {
       ...prev,
       [newId]: newAccount,
     }));
+
+    try {
+      api.auth.register({
+        name: customerData.fullName.trim(),
+        email: customerData.email.trim(),
+        password: customerData.password,
+        phone: customerData.phone.trim(),
+        city: customerData.city.trim(),
+        role: 'customer'
+      }).then(res => {
+        if (res?.token?.access_token) {
+          localStorage.setItem('fraudx_token', res.token.access_token);
+          localStorage.setItem('fraudx_user', JSON.stringify(res.user));
+        }
+      }).catch(() => {});
+    } catch {}
 
     return { success: true, user: newAccount };
   }, []);
@@ -335,10 +378,13 @@ export function AuthProvider({ children }) {
       }
       sessionStorage.removeItem('fraudx_welcomed_customer');
       sessionStorage.removeItem('fraudx-current-user');
+      localStorage.removeItem('fraudx_token');
+      localStorage.removeItem('fraudx_user');
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
     }
+    api.auth.logout().catch(() => {});
     setUser(null);
     setSelectedRole(null);
     setIsAuthenticated(false);

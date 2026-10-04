@@ -183,10 +183,39 @@ def get_live_report_data(report_id: str, db: Session) -> Dict[str, Any]:
     }
 
 
+def _generate_fallback_pdf(report_data: Dict[str, Any]) -> bytes:
+    try:
+        from fpdf import FPDF
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(0, 10, report_data.get("title", "FraudX AI Report"), new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", size=10)
+        pdf.cell(0, 8, f"Report ID: {report_data.get('report_id', '')} | Generated: {report_data.get('generated_at', '')}", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(5)
+        pdf.multi_cell(0, 6, report_data.get("description", ""))
+        pdf.ln(5)
+        for k, v in report_data.items():
+            if isinstance(v, dict):
+                pdf.set_font("Helvetica", "B", 12)
+                pdf.cell(0, 8, k.replace("_", " ").title(), new_x="LMARGIN", new_y="NEXT")
+                pdf.set_font("Helvetica", size=9)
+                for sub_k, sub_v in v.items():
+                    pdf.cell(0, 5, f"{sub_k}: {sub_v}", new_x="LMARGIN", new_y="NEXT")
+                pdf.ln(3)
+        return bytes(pdf.output())
+    except Exception:
+        content = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R/Resources<<>>>>endobj\nxref\n0 4\n0000000000 65535 f \n0000000010 00000 n \n0000000060 00000 n \n0000000115 00000 n \ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n190\n%%EOF\n"
+        return content.encode("latin1")
+
+
 def generate_pdf_report(report_data: Dict[str, Any]) -> bytes:
     """
     Renders a multi-page, formatted PDF document using ReportLab.
     """
+    if SimpleDocTemplate is None:
+        return _generate_fallback_pdf(report_data)
+
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
