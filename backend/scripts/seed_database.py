@@ -37,11 +37,24 @@ import json
 from datetime import datetime, timedelta
 
 def load_fraudx_dataset():
-    csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "Dataset", "fraudx_transactions.csv"))
-    if not os.path.exists(csv_path):
-        # Fallback path if run from backend/
-        csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "Dataset", "fraudx_transactions.csv"))
-    
+    candidate_paths = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "fraudx_transactions.csv")),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "backend", "fraudx_transactions.csv")),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "Dataset", "fraudx_transactions.csv")),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "Dataset", "fraudx_transactions.csv")),
+        os.path.abspath(os.path.join(os.getcwd(), "backend", "fraudx_transactions.csv")),
+        os.path.abspath(os.path.join(os.getcwd(), "fraudx_transactions.csv")),
+    ]
+
+    csv_path = None
+    for path in candidate_paths:
+        if os.path.exists(path):
+            csv_path = path
+            break
+
+    if not csv_path:
+        csv_path = candidate_paths[0]
+
     print(f"[*] Loading transactions directly from active dataset: {csv_path}")
     with open(csv_path, mode="r", encoding="utf-8") as f:
         reader = csv.DictReader(f)

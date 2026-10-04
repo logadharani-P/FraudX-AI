@@ -34,3 +34,4 @@ backend/data/models/*.joblib
 Dataset/
 data/*.csv
 data/*.zip
+!backend/fraudx_transactions.csv
